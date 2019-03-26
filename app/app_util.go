@@ -5,10 +5,13 @@ package app
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
-	"github.com/zpab123/sco/config" // 配置管理
-	"github.com/zpab123/zaplog"     // log 库
+	"github.com/zpab123/sco/acceptor" // acceptor 组件
+	"github.com/zpab123/sco/config"   // 配置管理
+	"github.com/zpab123/sco/network"  // 网络库
+	"github.com/zpab123/zaplog"       // log 库
 )
 
 // 完成 app 的默认设置
@@ -17,10 +20,13 @@ func defaultConfig(app *Application) {
 	parseArgs(app)
 
 	// 获取服务器信息
+	getServerJson(app)
 
 	// 设置 log 信息
+	configLogger(app)
 
 	// 默认组件参数
+	defaultComponentOpt(app)
 }
 
 // 解析 命令行参数
@@ -64,7 +70,7 @@ func getServerJson(app *Application) {
 	list, ok := config.GetServerMap()[appType]
 
 	if nil == list || len(list) <= 0 || !ok {
-		zaplog.Fatal("app 获取 appType 信息失败。 appType=%s", appType)
+		zaplog.Fatalf("app 获取 appType 信息失败。 appType=%s", appType)
 
 		os.Exit(1)
 	}
@@ -82,5 +88,86 @@ func getServerJson(app *Application) {
 		zaplog.Fatal("app 获取 server.json 信息失败。 appName=%s", app.baseInfo.Name)
 
 		os.Exit(1)
+	}
+}
+
+// 设置 log 信息
+func configLogger(app *Application) {
+	// 模块名字
+	zaplog.SetSource(app.baseInfo.Name)
+
+	// 输出等级
+	lv := config.GetScoIni().LogLevel
+	zaplog.SetLevel(zaplog.ParseLevel(lv))
+
+	// 输出文件
+	logFile := fmt.Sprintf("./logs/%s.log", app.baseInfo.Name)
+	var outputs []string
+	stdErr := config.GetScoIni().LogStderr
+	if stdErr {
+		outputs = append(outputs, "stderr")
+	}
+	outputs = append(outputs, logFile)
+	zaplog.SetOutput(outputs)
+}
+
+// 设置组件默认参数
+func defaultComponentOpt(app *Application) {
+	// Acceptor 组件
+	if nil == app.componentMgr.GetAcceptorOpt() {
+		opt := getDefaultAcceptorOpt(app)
+		app.componentMgr.SetAcceptorOpt(opt)
+	}
+}
+
+// 获取默认 AcceptorOpt
+func getDefaultAcceptorOpt(app *Application) *acceptor.TAcceptorOpt {
+	opt := acceptor.NewTAcceptorOpt()
+
+	return opt
+}
+
+// 创建默认组件
+func createComponent(app *Application) {
+	// 网络连接组件
+	opt := app.componentMgr.GetAcceptorOpt()
+	if nil != opt && opt.Enable {
+		newAcceptor(app)
+	}
+}
+
+// 创建 Acceptor 组件
+func newAcceptor(app *Application) {
+	// 创建地址
+	serverInfo := app.serverInfo
+	opt := app.componentMgr.GetAcceptorOpt()
+
+	var tcpAddr string = ""
+	if opt.ForClient && serverInfo.CTcpPort > 0 {
+		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CTcpPort) // 面向客户端的 tcp 地址
+	} else if serverInfo.Port > 0 {
+		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 tcp 地址
+	}
+
+	var wsAddr string = ""
+	if opt.ForClient && serverInfo.CWsPort > 0 {
+		wsAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CWsPort) // 面向客户端的 websocket 地址
+	} else if serverInfo.Port > 0 {
+		wsAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 websocket 地址
+	}
+
+	laddr := &network.TLaddr{
+		TcpAddr: tcpAddr,
+		WsAddr:  wsAddr,
+	}
+
+	// 创建 Acceptor
+	actor, err := acceptor.NewAcceptor(laddr, opt)
+	if nil != err {
+		return
+	}
+
+	if nil != actor {
+		app.componentMgr.AddComponent(actor)
 	}
 }

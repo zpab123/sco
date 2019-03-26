@@ -4,8 +4,12 @@
 package app
 
 import (
+	"math/rand"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/zpab123/sco/config" // 配置管理
 	"github.com/zpab123/sco/path"   // 路径库
@@ -24,6 +28,7 @@ type Application struct {
 	stopGroup    sync.WaitGroup      // stop 等待组
 	serverInfo   *config.TServerInfo // 配置信息
 	componentMgr *ComponentManager   // 组件管理
+	signalChan   chan os.Signal      // 操作系统信号
 }
 
 // 创建1个新的 Application 对象
@@ -45,6 +50,7 @@ func NewApplication(appType string, delegate IAppDelegate) *Application {
 	st := state.NewStateManager()
 	base := &TBaseInfo{}
 	cmptMgr := NewComponentManager()
+	signal := make(chan os.Signal, 1)
 
 	// 创建 app
 	app := &Application{
@@ -52,6 +58,7 @@ func NewApplication(appType string, delegate IAppDelegate) *Application {
 		baseInfo:     base,
 		appDelegate:  delegate,
 		componentMgr: cmptMgr,
+		signalChan:   signal,
 	}
 
 	// 设置类型
@@ -99,13 +106,30 @@ func (this *Application) Init() {
 
 // 启动 app
 func (this *Application) Run() {
+	// 状态效验
+
+	// 设置随机种子
+	rand.Seed(time.Now().UnixNano())
+
+	// 记录启动时间
+	this.baseInfo.RunTime = time.Now()
+
+	// 创建组件
+	createComponent(this)
+
 	// 启动所有组件
 	this.runComponent()
+
+	// 等待停止系统信号
+	this.waitStopSignal()
 
 	// 等待停止
 	this.stopGroup.Wait()
 
 	// 停止完成
+	zaplog.Infof("%s 服务器，优雅退出", this.baseInfo.Name)
+
+	os.Exit(0)
 }
 
 // 停止 app
@@ -132,4 +156,29 @@ func (this *Application) stopComponent() {
 	for _, cpt := range this.componentMgr.componentMap {
 		cpt.Stop()
 	}
+}
+
+// 等待停止系统信号
+func (this *Application) waitStopSignal() {
+	// 排除信号
+	signal.Ignore(syscall.Signal(10), syscall.Signal(12), syscall.SIGPIPE, syscall.SIGHUP)
+	signal.Notify(this.signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for {
+			sig := <-this.signalChan
+			if syscall.SIGINT == sig || syscall.SIGTERM == sig {
+				zaplog.Infof("%s 服务器，正在停止中，请等待 ...", this.baseInfo.Name)
+
+				this.Stop()
+
+				time.Sleep(C_STOP_OUT_TIME)
+				zaplog.Warnf("%s 服务器，超过 %v 秒未优雅关闭，强制关闭", this.baseInfo.Name, C_STOP_OUT_TIME)
+
+				os.Exit(1)
+			} else {
+				zaplog.Errorf("异常的操作系统信号=%s", sig)
+			}
+		}
+	}()
 }
