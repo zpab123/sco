@@ -4,9 +4,9 @@
 package app
 
 import (
-	"github.com/zpab123/sco/acceptor" // acceptor 组件
-	"github.com/zpab123/sco/model"    // 全局模型
-	"github.com/zpab123/zaplog"       // log 库
+	"github.com/zpab123/sco/model"   // 全局模型
+	"github.com/zpab123/sco/network" // 网络
+	"github.com/zpab123/zaplog"      // log
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@ import (
 // app 组件管理
 type ComponentManager struct {
 	componentMap map[string]model.IComponent // 名字-> 组件 集合
-	acceptorOpt  *acceptor.TAcceptorOpt      // acceptor 组件配置参数
+	netServerOpt *network.TNetServerOpt      // server 组件配置参数
 }
 
 // 新建1个 ComponentManager
@@ -57,12 +57,12 @@ func (this *ComponentManager) GetComponentByName(name string) model.IComponent {
 	}
 }
 
-// 获取 acceptor 组件参数
-func (this *ComponentManager) GetAcceptorOpt() *acceptor.TAcceptorOpt {
-	return this.acceptorOpt
+// 获取 netServer 组件参数
+func (this *ComponentManager) GetNetServerOpt() *network.TNetServerOpt {
+	return this.netServerOpt
 }
 
-// 设置 connector 组件参数
-func (this *ComponentManager) SetAcceptorOpt(opt *acceptor.TAcceptorOpt) {
-	this.acceptorOpt = opt
+// 设置 netServer 组件参数
+func (this *ComponentManager) SetNetServerOpt(opt *network.TNetServerOpt) {
+	this.netServerOpt = opt
 }

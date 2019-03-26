@@ -120,7 +120,7 @@ func (this *Application) Run() {
 	// 启动所有组件
 	this.runComponent()
 
-	// 等待停止系统信号
+	// 系统信号侦听
 	this.waitStopSignal()
 
 	// 等待停止
@@ -158,7 +158,7 @@ func (this *Application) stopComponent() {
 	}
 }
 
-// 等待停止系统信号
+// 系统信号侦听
 func (this *Application) waitStopSignal() {
 	// 排除信号
 	signal.Ignore(syscall.Signal(10), syscall.Signal(12), syscall.SIGPIPE, syscall.SIGHUP)

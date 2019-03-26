@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zpab123/sco/acceptor" // acceptor 组件
-	"github.com/zpab123/sco/config"   // 配置管理
-	"github.com/zpab123/sco/network"  // 网络库
-	"github.com/zpab123/zaplog"       // log 库
+	"github.com/zpab123/sco/config"  // 配置管理
+	"github.com/zpab123/sco/network" // 网络库
+	"github.com/zpab123/zaplog"      // log 库
 )
 
 // 完成 app 的默认设置
@@ -25,8 +24,8 @@ func defaultConfig(app *Application) {
 	// 设置 log 信息
 	configLogger(app)
 
-	// 默认组件参数
-	defaultComponentOpt(app)
+	// 设置组件参数
+	setCmptOpt(app)
 }
 
 // 解析 命令行参数
@@ -112,35 +111,28 @@ func configLogger(app *Application) {
 }
 
 // 设置组件默认参数
-func defaultComponentOpt(app *Application) {
-	// Acceptor 组件
-	if nil == app.componentMgr.GetAcceptorOpt() {
-		opt := getDefaultAcceptorOpt(app)
-		app.componentMgr.SetAcceptorOpt(opt)
+func setCmptOpt(app *Application) {
+	// netServer 组件
+	if nil == app.componentMgr.GetNetServerOpt() {
+		opt := network.NewTNetServerOpt()
+		app.componentMgr.SetNetServerOpt(opt)
 	}
-}
-
-// 获取默认 AcceptorOpt
-func getDefaultAcceptorOpt(app *Application) *acceptor.TAcceptorOpt {
-	opt := acceptor.NewTAcceptorOpt()
-
-	return opt
 }
 
 // 创建默认组件
 func createComponent(app *Application) {
 	// 网络连接组件
-	opt := app.componentMgr.GetAcceptorOpt()
+	opt := app.componentMgr.GetNetServerOpt()
 	if nil != opt && opt.Enable {
-		newAcceptor(app)
+		newNetServer(app)
 	}
 }
 
-// 创建 Acceptor 组件
-func newAcceptor(app *Application) {
+// 创建 Server 组件
+func newNetServer(app *Application) {
 	// 创建地址
 	serverInfo := app.serverInfo
-	opt := app.componentMgr.GetAcceptorOpt()
+	opt := app.componentMgr.GetNetServerOpt()
 
 	var tcpAddr string = ""
 	if opt.ForClient && serverInfo.CTcpPort > 0 {
@@ -161,13 +153,13 @@ func newAcceptor(app *Application) {
 		WsAddr:  wsAddr,
 	}
 
-	// 创建 Acceptor
-	actor, err := acceptor.NewAcceptor(laddr, opt)
+	// 创建 NetServer
+	s, err := network.NewNetServer(laddr, opt)
 	if nil != err {
 		return
 	}
 
-	if nil != actor {
-		app.componentMgr.AddComponent(actor)
+	if nil != s {
+		app.componentMgr.AddComponent(s)
 	}
 }
