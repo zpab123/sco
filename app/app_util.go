@@ -1,0 +1,10 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Application 一些辅助函数
+
+package app
+
+// 启动组件
+func runComponent(app *Application) {
+	defer app.stopGroup.Done()
+
+}
