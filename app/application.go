@@ -4,7 +4,13 @@
 package app
 
 import (
+	"os"
 	"sync"
+
+	"github.com/zpab123/sco/config" // 配置管理
+	"github.com/zpab123/sco/path"   // 路径库
+	"github.com/zpab123/sco/state"  // 状态管理
+	"github.com/zpab123/zaplog"     // log 库
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -12,18 +18,83 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	stopGroup    sync.WaitGroup    // stop 等待组
-	componentMgr *ComponentManager // 组件管理
+	stateMgr     *state.StateManager // 状态管理
+	baseInfo     *TBaseInfo          // 基础信息
+	appDelegate  IAppDelegate        // 代理对象
+	stopGroup    sync.WaitGroup      // stop 等待组
+	serverInfo   *config.TServerInfo // 配置信息
+	componentMgr *ComponentManager   // 组件管理
 }
 
 // 创建1个新的 Application 对象
-func NewApplication() *Application {
+func NewApplication(appType string, delegate IAppDelegate) *Application {
+	// 参数验证
+	if "" == appType {
+		zaplog.Error("app 创建失败。 appType为空")
 
+		os.Exit(1)
+	}
+
+	if nil == delegate {
+		zaplog.Error("app 创建失败。 delegate=nil")
+
+		os.Exit(1)
+	}
+
+	// 创建对象
+	st := state.NewStateManager()
+	base := &TBaseInfo{}
+	cmptMgr := NewComponentManager()
+
+	// 创建 app
+	app := &Application{
+		stateMgr:     st,
+		baseInfo:     base,
+		appDelegate:  delegate,
+		componentMgr: cmptMgr,
+	}
+
+	// 设置类型
+	app.baseInfo.AppType = appType
+
+	// 设置为无效状态
+	app.stateMgr.SetState(state.C_INVALID)
+
+	// 通知代理
+	app.appDelegate.OnCreat(app)
+
+	return app
 }
 
 // 初始化 Application
 func (this *Application) Init() {
+	// 状态效验
+	st := this.stateMgr.GetState()
+	if st != state.C_INVALID {
+		zaplog.Fatal("app Init 失败，状态错误。当前状态=%d，正确状态=%d", st, state.C_INVALID)
 
+		os.Exit(1)
+	}
+
+	// 获取主程序路径
+	dir, err := path.GetMainPath()
+	if err != nil {
+		zaplog.Fatal("app Init 失败。读取 main 根目录失败")
+
+		os.Exit(1)
+	}
+	this.baseInfo.MainPath = dir
+
+	// 默认设置
+	defaultConfig(this)
+
+	// 通知代理
+	this.appDelegate.OnInit(this)
+
+	// 状态： 初始化
+	this.stateMgr.SetState(state.C_INIT)
+
+	zaplog.Debugf("app 状态：init完成 ...")
 }
 
 // 启动 app
@@ -45,20 +116,20 @@ func (this *Application) Stop() {
 
 // 启动所有组件
 func (this *Application) runComponent() {
-	for _, cmpt := range this.componentMgr.componentMap {
+	for _, cpt := range this.componentMgr.componentMap {
 		this.stopGroup.Add(1)
 
 		go func() {
 			defer this.stopGroup.Done()
 
-			cmpt.Run()
+			cpt.Run()
 		}()
 	}
 }
 
 // 停止所有组件
 func (this *Application) stopComponent() {
-	for _, cmpt := range this.componentMgr.componentMap {
-		cmpt.Stop()
+	for _, cpt := range this.componentMgr.componentMap {
+		cpt.Stop()
 	}
 }

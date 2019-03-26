@@ -9,6 +9,6 @@ package model
 // 组件接口
 type IComponent interface {
 	Name() string // 获取组件名字
-	Run() error   // 组件开始运行
-	Stop() error  // 组件停止运行
+	Run()         // 组件开始运行
+	Stop()        // 组件停止运行
 }
