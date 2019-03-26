@@ -23,7 +23,7 @@ const (
 
 // acceptor 接口
 type IAcceptor interface {
-	Run()        // 组件开始运行
+	Run() error  // 组件开始运行
 	Stop() error // 组件停止运行
 }
 

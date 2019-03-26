@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/pkg/errors"      // 异常库
-	"github.com/zpab123/zaplog"  // log 日志库
-	"golang.org/x/net/websocket" // websocket 库
+	"github.com/pkg/errors"          // 异常库
+	"github.com/zpab123/world/state" // 状态管理
+	"github.com/zpab123/zaplog"      // log 日志库
+	"golang.org/x/net/websocket"     // websocket 库
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -18,23 +19,23 @@ import (
 
 // websocket 接收器
 type WsAcceptor struct {
-	name       string         // 接收器名字
-	laddr      string         // 监听地址
-	listener   net.Listener   // 侦听器： 用于http服务器
-	httpServer *http.Server   // http 服务器
-	certFile   string         // TLS加密文件
-	keyFile    string         // TLS解密key
-	stopGroup  sync.WaitGroup // 停止组
-	connMgr    IWsConnManager // websocket 连接管理
+	name       string              // 接收器名字
+	laddr      string              // 监听地址
+	listener   net.Listener        // 侦听器： 用于http服务器
+	httpServer *http.Server        // http 服务器
+	certFile   string              // TLS加密文件
+	keyFile    string              // TLS解密key
+	stopGroup  sync.WaitGroup      // 停止组
+	connMgr    IWsConnManager      // websocket 连接管理
+	stateMgr   *state.StateManager // 状态管理
 }
 
 // 创建1个新的 wsAcceptor 对象
 func NewWsAcceptor(addr string, mgr IWsConnManager) (IAcceptor, error) {
 	var err error
 	// 参数效验
-
 	if addr == "" {
-		err = errors.New("创建 WsAcceptor 失败。参数 WsAddr 为空")
+		err = errors.New("创建 WsAcceptor 失败。参数 addr 为空")
 
 		return nil, err
 	}
@@ -45,23 +46,39 @@ func NewWsAcceptor(addr string, mgr IWsConnManager) (IAcceptor, error) {
 		return nil, err
 	}
 
+	// 对象
+	st := state.NewStateManager()
+
 	// 创建接收器
 	aptor := &WsAcceptor{
-		name:    C_ACCEPTOR_NAME_WS,
-		laddr:   addr,
-		connMgr: mgr,
+		name:     C_ACCEPTOR_NAME_WS,
+		laddr:    addr,
+		connMgr:  mgr,
+		stateMgr: st,
 	}
+
+	aptor.stateMgr.SetState(state.C_INIT)
 
 	return aptor, nil
 }
 
 // 启动 wsAcceptor
-func (this *WsAcceptor) Run() {
-	// 创建侦听器
+func (this *WsAcceptor) Run() error {
 	var err error
+
+	// 状态效验
+	if !this.stateMgr.SwapState(state.C_INIT, state.C_RUNING) {
+		if !this.stateMgr.SwapState(state.C_STOPED, state.C_RUNING) {
+			err = errors.Errorf("WsAcceptor 启动失败，状态错误。当前状态=%d，正确状态=%d或=%d", this.stateMgr.GetState(), state.C_INIT, state.C_STOPED)
+
+			return err
+		}
+	}
+
+	// 创建侦听器
 	this.listener, err = net.Listen("tcp", this.laddr)
 	if nil != err {
-		return
+		return err
 	}
 
 	this.stopGroup.Add(1)
@@ -69,26 +86,38 @@ func (this *WsAcceptor) Run() {
 	// 侦听新连接
 	go this.accept()
 
-	this.stopGroup.Wait()
+	this.stateMgr.SetState(state.C_WORKING)
 
-	zaplog.Debugf("WsAcceptor 停止服务。ip=%s", this.laddr)
+	return nil
 }
 
 // 停止 wsAcceptor
 func (this *WsAcceptor) Stop() error {
+	var err error
+	// 状态效验
+	if !this.stateMgr.SwapState(state.C_WORKING, state.C_STOPING) {
+		err = errors.Errorf("WsAcceptor 停止失败，状态错误。当前状态=%d，正确状态=%d", this.stateMgr.GetState(), state.C_WORKING)
+
+		return err
+	}
+
 	zaplog.Debugf("主动关闭 WsAcceptor 服务。ip=%s", this.laddr)
 
-	err := this.httpServer.Close()
+	err = this.httpServer.Close()
 	if nil != err {
-		return err
+		this.listener.Close()
+	} else {
+		err = this.listener.Close()
 	}
 
-	err = this.listener.Close()
-	if nil != err {
-		return err
-	}
+	// 阻塞等待
+	this.stopGroup.Wait()
 
-	return nil
+	this.stateMgr.SetState(state.C_STOPED)
+
+	zaplog.Debugf("WsAcceptor 停止服务。ip=%s", this.laddr)
+
+	return err
 }
 
 // 侦听连接

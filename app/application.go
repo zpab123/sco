@@ -154,7 +154,7 @@ func (this *Application) runComponent() {
 // 停止所有组件
 func (this *Application) stopComponent() {
 	for _, cpt := range this.componentMgr.componentMap {
-		cpt.Stop()
+		go cpt.Stop()
 	}
 }
 
