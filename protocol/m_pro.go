@@ -22,12 +22,12 @@ const (
 
 // 通用消息码(1-1000)
 const (
-	ERROR uint32 = iota // 错误类消息 0
-	OK                  // 成功类消息 1
+	C_CODE_ERROR uint32 = iota // 错误类消息 0
+	C_CODE_OK                  // 成功类消息 1
 )
 
 // 其他消息(1001-)
 const (
-	SHAKE_KEY_ERROR      uint32 = iota + 1001 // 握手 key 消息错误 1001
-	SHAKE_ACCEPTOR_ERROR                      // 网络方式错误 1002
+	C_CODE_SHAKE_KEY_ERROR      uint32 = iota + 1001 // 握手 key 消息错误 1001
+	C_CODE_SHAKE_ACCEPTOR_ERROR                      // 网络方式错误 1002
 )

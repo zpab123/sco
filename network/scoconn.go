@@ -166,32 +166,21 @@ func (this *ScoConn) handleHandshake(pkt *Packet) {
 	key := pkt.ReadString() // 握手方式
 	//netType := pkt.ReadUint32() // 网络方式
 
-	// 回复消息
-	res := &protocol.HandshakeRes{
-		Code:      protocol.OK,
-		Heartbeat: this.option.Heartbeat,
-	}
-	var sucess bool = true
-
 	// 版本验证
 	if this.option.ShakeKey != "" && key != this.option.ShakeKey {
-		res.Code = protocol.SHAKE_KEY_ERROR
-		sucess = false
+		this.handshakeFail(protocol.C_CODE_SHAKE_KEY_ERROR)
+
+		return
 	}
 
 	// 通信方式验证,后续添加
 
-	// 回复处理结果
-	this.handshakeResponse(sucess, res)
-
-	// 握手失败，关闭连接
-	if sucess == false {
-		this.Close()
-	}
+	// 握手成功
+	this.handshakeOk()
 }
 
 //  返回握手消息
-func (this *ScoConn) handshakeResponse(sucess bool, res *protocol.HandshakeRes) {
+func (this *ScoConn) handshakeOk() {
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
 		return
@@ -199,14 +188,27 @@ func (this *ScoConn) handshakeResponse(sucess bool, res *protocol.HandshakeRes) 
 
 	// 返回数据
 	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
-	pkt.AppendUint32(res.Code)        // 结果
-	pkt.AppendUint32(res.Heartbeat)   // 心跳
-	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
+	pkt.AppendUint32(protocol.C_CODE_OK)    // 结果
+	pkt.AppendUint32(this.option.Heartbeat) // 心跳
+	this.packetSocket.SendPacket(pkt)       // 越过工作状态发送消息
 
 	// 状态： 等待握手 ack
-	if sucess {
-		this.stateMgr.SetState(C_CONN_STATE_WAIT_ACK)
+	this.stateMgr.SetState(C_CONN_STATE_WAIT_ACK)
+}
+
+//  握手失败
+func (this *ScoConn) handshakeFail(code uint32) {
+	// 状态效验
+	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
+		return
 	}
+
+	// 返回数据
+	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
+	pkt.AppendUint32(code)
+	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
+
+	this.Close()
 }
 
 //  处理握手ACK
