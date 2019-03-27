@@ -69,8 +69,8 @@ func (this *Session) Run() (err error) {
 	}
 	// 变量重置？ 状态? 发送队列？
 
-	// 开启接收 goroutine
-	go this.recvLoop()
+	// 接收循环，这里不能 go this.recvLoop()，会导致连接直接断开
+	this.recvLoop()
 
 	// 开启发送 goroutine
 	go this.sendLoop()
@@ -145,10 +145,18 @@ func (this *Session) recvLoop() {
 		}
 	}()
 
-	// 这里有bug 不应该在这里监测状态
-	for this.stateMgr.GetState() == state.C_WORKING {
+	for {
 		// 接收消息
 		pkt, err := this.scoConn.RecvPacket()
+
+		// 消息处理
+		if nil != pkt {
+			if this.msgHandler != nil {
+				this.msgHandler.OnSessionMessage(this, pkt) // 这里还需要增加异常处理
+			}
+
+			continue
+		}
 
 		// 错误处理
 		if nil != err && !scoerr.IsTimeoutError(err) {
@@ -158,16 +166,6 @@ func (this *Session) recvLoop() {
 				panic(err)
 			}
 		}
-
-		// 消息处理
-		if nil == pkt {
-			continue
-		}
-
-		if this.msgHandler != nil {
-			this.msgHandler.OnSessionMessage(this, pkt) // 这里还需要增加异常处理
-		}
-
 	}
 }
 

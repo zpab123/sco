@@ -4,6 +4,8 @@
 package network
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"           // 异常
 	"github.com/vmihailenco/msgpack"  // []byte<->struct 转化
 	"github.com/zpab123/sco/protocol" // world 内部通信协议
@@ -57,7 +59,7 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 	}
 
 	// 内部 packet
-	if pkt.pktId < protocol.C_PKT_ID_WORLD {
+	if pkt.pktId < protocol.C_PKT_ID_SCO {
 		this.handlePacket(pkt)
 
 		return nil, err
@@ -78,10 +80,9 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 // 关闭 ScoConn
 func (this *ScoConn) Close() error {
 	var err error
-	s := this.stateMgr.GetState()
 
-	if s == C_CONN_STATE_CLOSED {
-		err = errors.New("ScoConn 关闭失败：它已经处于关闭状态")
+	if !this.stateMgr.SwapState(C_CONN_STATE_WORKING, C_CONN_STATE_CLOSING) {
+		err = errors.New("ScoConn 关闭失败：它不在工作中")
 
 		return err
 	}
@@ -147,7 +148,7 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 	// 根据类型处理数据
 	switch pkt.pktId {
 	case protocol.C_PKT_ID_HANDSHAKE: // 客户端握手请求
-		this.handleHandshake(pkt.GetBody())
+		this.handleHandshake(pkt)
 	case protocol.C_PKT_ID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.handleHandshakeAck()
 	default:
@@ -158,8 +159,9 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 }
 
 //  处理握手消息
-func (this *ScoConn) handleHandshake(data []byte) {
+func (this *ScoConn) handleHandshake(pkt *Packet) {
 	var err error
+	var data []byte
 
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
@@ -167,6 +169,14 @@ func (this *ScoConn) handleHandshake(data []byte) {
 	}
 
 	// 消息解码
+	key := pkt.ReadString()     //握手方式
+	netType := pkt.ReadUint32() // 网络方式
+
+	fmt.Println("key:", key)
+	fmt.Println("netType:", netType)
+
+	return
+
 	req := &protocol.HandshakeReq{}
 	err = msgpack.Unmarshal(data, req)
 	if nil != err {

@@ -38,6 +38,7 @@ const (
 	C_CONN_STATE_SHAKE                  // 握手状态
 	C_CONN_STATE_WAIT_ACK               // 等待客户端握手ACK
 	C_CONN_STATE_WORKING                // 工作中
+	C_CONN_STATE_CLOSING                // 正在关闭
 	C_CONN_STATE_CLOSED                 // 关闭状态
 )
 

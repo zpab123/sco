@@ -143,7 +143,7 @@ func (this *NetServer) OnNewWsConn(wsconn *websocket.Conn) {
 	if this.connNum.Load() >= this.option.MaxConn {
 		wsconn.Close()
 
-		zaplog.Debugf("Acceptor 达到最大连接数，关闭新连接。当前连接数=%d", this.connNum.Load())
+		zaplog.Warnf("Acceptor 达到最大连接数，关闭新连接。当前连接数=%d", this.connNum.Load())
 	}
 
 	// 参数设置
