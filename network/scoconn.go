@@ -78,10 +78,13 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 func (this *ScoConn) Close() error {
 	var err error
 
-	if !this.stateMgr.SwapState(C_CONN_STATE_WORKING, C_CONN_STATE_CLOSING) {
-		err = errors.New("ScoConn 关闭失败：它不在工作中")
+	// 关闭中
+	if this.stateMgr.GetState() == C_CONN_STATE_CLOSING {
+		err = errors.New("ScoConn 关闭失败：它正在关闭")
 
 		return err
+	} else {
+		this.stateMgr.SetState(C_CONN_STATE_CLOSING)
 	}
 
 	err = this.packetSocket.Close()
@@ -115,6 +118,10 @@ func (this *ScoConn) SendPacketRelease(pkt *Packet) error {
 
 //  发送心跳数据
 func (this *ScoConn) SendHeartbeat() {
+	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
+		return
+	}
+
 	zaplog.Debugf("ScoConn %s 发送心跳", this)
 
 	// 发送心跳数据
