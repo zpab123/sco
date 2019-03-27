@@ -52,12 +52,12 @@ func NewServerSession(socket network.ISocket, mgr ISessionManage, opt *TServerSe
 
 // 启动 session
 func (this *ServerSession) Run() (err error) {
-	err = this.session.Run()
-
 	if this.sesssionMgr != nil {
 		// 将 session 添加到管理器, 在线程处理前添加到管理器(分配id), 避免ID还未分配,就开始使用id的竞态问题
 		this.sesssionMgr.OnNewSession(this)
 	}
+
+	err = this.session.Run()
 
 	return
 }

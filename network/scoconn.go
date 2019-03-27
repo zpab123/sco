@@ -117,16 +117,21 @@ func (this *ScoConn) SendPacketRelease(pkt *Packet) error {
 }
 
 //  发送心跳数据
-func (this *ScoConn) SendHeartbeat() {
+func (this *ScoConn) SendHeartbeat() error {
+	var err error
 	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
-		return
+		err = errors.New("发送心跳失败，ScoConn 状态不在工作中")
+
+		return err
 	}
 
 	zaplog.Debugf("ScoConn %s 发送心跳", this)
 
 	// 发送心跳数据
 	pkt := NewPacket(protocol.C_PKT_ID_HEARTBEAT)
-	this.SendPacket(pkt)
+	err = this.SendPacket(pkt)
+
+	return err
 }
 
 // 发送通用数据

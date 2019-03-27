@@ -57,7 +57,7 @@ func NewSession(socket network.ISocket, opt *TSessionOpt) *Session {
 	return ss
 }
 
-// 启动 session [ISession 接口]
+// 启动 session
 func (this *Session) Run() (err error) {
 	// 状态效验
 	if !this.stateMgr.SwapState(state.C_INIT, state.C_RUNING) {
@@ -74,18 +74,14 @@ func (this *Session) Run() (err error) {
 
 	// 计时器 goroutine
 	if this.timeOut > 0 {
-		this.ticker = time.NewTicker(this.timeOut)
+		this.ticker = time.NewTicker(this.option.Heartbeat)
 		go this.mainLoop()
 	}
 
 	// 改变状态： 工作中
-	if !this.stateMgr.SwapState(state.C_RUNING, state.C_WORKING) {
-		err = errors.Errorf("Session 启动失败，状态错误。当前状态=%d，正确状态=%d", this.stateMgr.GetState(), state.C_RUNING)
+	this.stateMgr.SetState(state.C_WORKING)
 
-		return
-	}
-
-	// 接收循环，这里不能 go this.recvLoop()，会导致websocket连接直接断开
+	// 接收循环，这里不能 go this.recvLoop()，会导致 websocket 连接直接断开
 	this.recvLoop()
 
 	return
@@ -108,12 +104,8 @@ func (this *Session) Stop() (err error) {
 		return
 	}
 
-	// 状态改变为关闭完成
-	if !this.stateMgr.SwapState(state.C_CLOSEING, state.C_CLOSED) {
-		err = errors.Errorf("Session %s 关闭失败，状态错误。当前状态=%d, 正确状态=%d", this, this.stateMgr.GetState(), state.C_CLOSEING)
-
-		return
-	}
+	// 状态: 关闭完成
+	this.stateMgr.SetState(state.C_CLOSED)
 
 	return
 }
@@ -124,17 +116,23 @@ func (this *Session) String() string {
 }
 
 // 发送心跳消息
-func (this *Session) SendHeartbeat() {
-	this.scoConn.SendHeartbeat()
+func (this *Session) SendHeartbeat() error {
+	this.lastSendTime = time.Now()
+
+	return this.scoConn.SendHeartbeat()
 }
 
 // 发送通用消息
 func (this *Session) SendData(data []byte) {
+	this.lastSendTime = time.Now()
+
 	this.scoConn.SendData(data)
 }
 
 // 接收线程
 func (this *Session) recvLoop() {
+	this.lastSendTime = time.Now()
+
 	defer func() {
 		this.Stop()
 
@@ -151,6 +149,8 @@ func (this *Session) recvLoop() {
 
 		// 消息处理
 		if nil != pkt {
+			this.lastRecvTime = time.Now()
+
 			if this.msgHandler != nil {
 				this.msgHandler.OnSessionMessage(this, pkt) // 这里还需要增加异常处理
 			}
@@ -187,27 +187,40 @@ func (this *Session) mainLoop() {
 	for {
 		select {
 		case <-this.ticker.C:
-			this.checkRecvTime() // 检查接收是否超时
-			this.checkSendTime() // 检查发送是否超时
+			if this.checkRecvTime() { // 检查接收是否超时
+				return
+			}
+
+			if err := this.checkSendTime(); nil != err { // 检查发送是否超时
+				return
+			}
 		}
 	}
 
 }
 
 // 检查接收是否超时
-func (this *Session) checkRecvTime() {
+func (this *Session) checkRecvTime() bool {
 	if time.Now().After(this.lastRecvTime.Add(this.timeOut)) {
 		zaplog.Errorf("Session %s 接收消息超时，关闭连接", this)
 
+		this.ticker.Stop()
+
 		this.Stop()
+
+		return true
 	}
+
+	return false
 }
 
 // 检查发送是否超时
-func (this *Session) checkSendTime() {
+func (this *Session) checkSendTime() error {
+	var err error
 	if time.Now().After(this.lastSendTime.Add(this.timeOut)) {
-		zaplog.Debugf("Session %s 发送心跳", this)
 
-		this.SendHeartbeat()
+		err = this.SendHeartbeat()
 	}
+
+	return err
 }

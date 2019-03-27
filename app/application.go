@@ -167,6 +167,11 @@ func (this *Application) Stop() {
 	os.Exit(0)
 }
 
+// 获取组件管理
+func (this *Application) GetCmptMgr() *ComponentManager {
+	return this.componentMgr
+}
+
 // 启动所有组件
 func (this *Application) runComponent() {
 	for _, cpt := range this.componentMgr.componentMap {
