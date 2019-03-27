@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"          // 异常
 	"github.com/zpab123/sco/network" // 网络
-	"github.com/zpab123/sco/sccerr"  // 异常
+	"github.com/zpab123/sco/scoerr"  // 异常
 	"github.com/zpab123/sco/state"   // 状态管理
 	"github.com/zpab123/zaplog"      // 日志
 )
@@ -138,7 +138,7 @@ func (this *Session) recvLoop() {
 	defer func() {
 		this.Stop()
 
-		if err := recover(); nil != err && !wderr.IsConnectionError(err.(error)) {
+		if err := recover(); nil != err && !scoerr.IsConnectionError(err.(error)) {
 			zaplog.TraceError("Session %s 接收数据出现错误：%s", this, err.(error))
 		} else {
 			zaplog.Debugf("Session %s 断开连接", this)
@@ -151,8 +151,8 @@ func (this *Session) recvLoop() {
 		pkt, err := this.scoConn.RecvPacket()
 
 		// 错误处理
-		if nil != err && !wderr.IsTimeoutError(err) {
-			if wderr.IsConnectionError(err) {
+		if nil != err && !scoerr.IsTimeoutError(err) {
+			if scoerr.IsConnectionError(err) {
 				break
 			} else {
 				panic(err)

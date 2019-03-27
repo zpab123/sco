@@ -115,7 +115,7 @@ func configLogger(app *Application) {
 func setCmptOpt(app *Application) {
 	// netServer 组件
 	if nil == app.componentMgr.GetNetServerOpt() {
-		opt := netserver.NewTNetServerOpt()
+		opt := netserver.NewTNetServerOpt(app.appDelegate)
 		app.componentMgr.SetNetServerOpt(opt)
 	}
 }

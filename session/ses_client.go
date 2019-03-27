@@ -37,9 +37,9 @@ func NewClientSession(socket network.ISocket, mgr ISessionManage, opt *TClientSe
 		opt = NewTClientSessionOpt(nil)
 	}
 	sesOpt := &TSessionOpt{
-		Heartbeat:    opt.Heartbeat,
-		WorldConnOpt: opt.WorldConnOpt,
-		MsgHandler:   cs,
+		Heartbeat:  opt.Heartbeat,
+		ScoConnOpt: opt.ScoConnOpt,
+		MsgHandler: cs,
 	}
 	ses := NewSession(socket, sesOpt)
 

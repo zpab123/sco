@@ -4,11 +4,11 @@
 package network
 
 import (
-	"github.com/pkg/errors"           // 异常库
+	"github.com/pkg/errors"           // 异常
 	"github.com/vmihailenco/msgpack"  // []byte<->struct 转化
 	"github.com/zpab123/sco/protocol" // world 内部通信协议
 	"github.com/zpab123/sco/state"    // 状态管理
-	"github.com/zpab123/zaplog"       // 日志库
+	"github.com/zpab123/zaplog"       // 日志
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ func NewScoConn(socket ISocket, opt *TScoConnOpt) *ScoConn {
 	st := state.NewStateManager()
 
 	// 创建 packetSocket
-	bufSocket := NewBufferSocket(socket, opt.BuffSocketOpts)
+	bufSocket := NewBufferSocket(socket, opt.BuffSocketOpt)
 	pktSocket := NewPacketSocket(bufSocket)
 
 	// 创建对象

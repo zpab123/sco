@@ -5,6 +5,8 @@ package app
 
 import (
 	"time"
+
+	"github.com/zpab123/sco/session" // session 管理
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -23,6 +25,7 @@ type IAppDelegate interface {
 	OnInit(app *Application)  // app 初始化成功
 	OnRun(app *Application)   // app 开始运行
 	OnStop(app *Application)  // app 停止运行
+	session.IMsgHandler       // 接口继承：消息管理
 }
 
 // /////////////////////////////////////////////////////////////////////////////

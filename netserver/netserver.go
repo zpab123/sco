@@ -11,12 +11,11 @@ import (
 	"github.com/pkg/errors"          // 异常
 	"github.com/zpab123/sco/model"   // 全局模型
 	"github.com/zpab123/sco/network" // 网络
-
-	//"github.com/zpab123/sco/session" // session 组件
-	"github.com/zpab123/sco/state" // 状态管理
-	"github.com/zpab123/syncutil"  // 原子操作工具
-	"github.com/zpab123/zaplog"    // log 日志库
-	"golang.org/x/net/websocket"   // websocket
+	"github.com/zpab123/sco/session" // session 组件
+	"github.com/zpab123/sco/state"   // 状态管理
+	"github.com/zpab123/syncutil"    // 原子操作工具
+	"github.com/zpab123/zaplog"      // log 日志库
+	"golang.org/x/net/websocket"     // websocket
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -24,12 +23,13 @@ import (
 
 // 网络服务器
 type NetServer struct {
-	cmptName  string                // 组件名字
-	stopGroup sync.WaitGroup        // 停止等待组
-	acceptor  network.IAcceptor     // acceptor 连接器
-	stateMgr  *state.StateManager   // 状态管理
-	connNum   syncutil.AtomicUint32 // 当前连接数
-	option    *TNetServerOpt        // 配置参数
+	cmptName   string                  // 组件名字
+	stopGroup  sync.WaitGroup          // 停止等待组
+	acceptor   network.IAcceptor       // acceptor 连接器
+	stateMgr   *state.StateManager     // 状态管理
+	connNum    syncutil.AtomicUint32   // 当前连接数
+	option     *TNetServerOpt          // 配置参数
+	sessionMgr *session.SessionManager // session 管理对象
 }
 
 // 新建1个 NetServer 对象
@@ -39,17 +39,19 @@ func NewNetServer(addr *network.TLaddr, opt *TNetServerOpt) (model.IComponent, e
 
 	// 参数效验
 	if nil == opt {
-		opt = NewTNetServerOpt()
+		opt = NewTNetServerOpt(nil)
 	}
 
 	// 创建对象
 	sm := state.NewStateManager()
+	sesMgr := session.NewSessionManager()
 
 	// 创建 NetServer
 	actor := &NetServer{
-		cmptName: C_CMPT_NAME,
-		stateMgr: sm,
-		option:   opt,
+		cmptName:   C_CMPT_NAME,
+		stateMgr:   sm,
+		option:     opt,
+		sessionMgr: sesMgr,
 	}
 
 	// 创建 NetServer
@@ -153,23 +155,21 @@ func (this *NetServer) OnNewWsConn(wsconn *websocket.Conn) {
 
 // 创建 session 对象
 func (this *NetServer) createSession(netconn net.Conn, isWebSocket bool) {
-	/*
-		// 创建 socket
-		socket := &network.Socket{
-			Conn: netconn,
-		}
+	// 创建 socket
+	socket := &network.Socket{
+		Conn: netconn,
+	}
 
-		// 创建 session
-		if this.option.ForClient {
-			cses := session.NewClientSession(socket, this.sessionMgr, this.option.ClientSesOpt)
+	// 创建 session
+	if this.option.ForClient {
+		cses := session.NewClientSession(socket, this.sessionMgr, this.option.ClientSesOpt)
 
-			cses.Run()
-		} else {
-			sses := session.NewServerSession(socket, this.sessionMgr, this.option.ServerSesOpt)
+		cses.Run()
+	} else {
+		sses := session.NewServerSession(socket, this.sessionMgr, this.option.ServerSesOpt)
 
-			sses.Run()
-		}
+		sses.Run()
+	}
 
-		this.connNum.Add(1)
-	*/
+	this.connNum.Add(1)
 }
