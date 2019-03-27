@@ -4,6 +4,8 @@
 package network
 
 import (
+	"net"
+
 	"golang.org/x/net/websocket" // websocket 库
 )
 
@@ -18,10 +20,16 @@ const (
 	C_ACCEPTOR_NAME_COM = "composite"    // 同时支持 tcp 和 websocket
 )
 
-// server 常量
+// socket_buff 常量
 const (
-	C_NET_SERVER_CMPT_NAME = "network.NetServer" // 组件名字
-	C_NET_SERVER_MAX_CONN  = 100000              // server 默认最大连接数
+	C_BUFF_READ_SIZE  = 16384 // scoket 读取类 buff 长度
+	C_BUFF_WRITE_SIZE = 16384 // scoket 写入类 buff 长度
+)
+
+// packet 常量
+const (
+	C_PKT_HEAD_LEN = 6                // 消息头大小:字节 type(2字节) + length(4字节)
+	C_PKT_MAX_LEN  = 25 * 1024 * 1024 // 最大单个 packet 数据，= head + body = 25M
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -43,6 +51,12 @@ type IConnManager interface {
 	IWsConnManager // websocket 连接管理
 }
 
+// socket 组件
+type ISocket interface {
+	net.Conn // 接口继承： 符合 Conn 的对象
+	Flush() error
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 // Laddr 对象
 
@@ -55,27 +69,20 @@ type TLaddr struct {
 }
 
 // /////////////////////////////////////////////////////////////////////////////
-// TNetServerOpt 对象
+// TBufferSocketOpt 对象
 
-// NetServer 组件配置参数
-type TNetServerOpt struct {
-	Enable       bool   // 是否启动 connector
-	AcceptorName string // 接收器名字
-	MaxConn      uint32 // 最大连接数量，超过此数值后，不再接收新连接
-	ForClient    bool   // 是否面向客户端
+// BufferSocket 配置参数
+type TBufferSocketOpt struct {
+	ReadBufferSize  int // 读取 buffer 字节大小
+	WriteBufferSize int // 写入 buffer 字节大小
 }
 
-// 创建1个新的 TServerOpt
-func NewTNetServerOpt() *TNetServerOpt {
-	// 创建对象
-
-	// 创建 TServerOpt
-	opt := &TNetServerOpt{
-		Enable:       true,
-		AcceptorName: C_ACCEPTOR_NAME_WS,
-		MaxConn:      C_NET_SERVER_MAX_CONN,
-		ForClient:    true,
+// 新建1个 TBufferSocketOpt 对象
+func NewTBufferSocketOpt() *TBufferSocketOpt {
+	bs := &TBufferSocketOpt{
+		ReadBufferSize:  C_BUFF_READ_SIZE,
+		WriteBufferSize: C_BUFF_WRITE_SIZE,
 	}
 
-	return opt
+	return bs
 }

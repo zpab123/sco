@@ -4,6 +4,7 @@
 package app
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -12,9 +13,9 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/config" // 配置管理
-	"github.com/zpab123/sco/path"   // 路径库
+	"github.com/zpab123/sco/path"   // 路径
 	"github.com/zpab123/sco/state"  // 状态管理
-	"github.com/zpab123/zaplog"     // log 库
+	"github.com/zpab123/zaplog"     // log
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -29,6 +30,8 @@ type Application struct {
 	serverInfo   *config.TServerInfo // 配置信息
 	componentMgr *ComponentManager   // 组件管理
 	signalChan   chan os.Signal      // 操作系统信号
+	ctx          context.Context     // 上下文
+	cancel       context.CancelFunc  // 退出通知函数
 }
 
 // 创建1个新的 Application 对象
@@ -92,6 +95,9 @@ func (this *Application) Init() {
 	}
 	this.baseInfo.MainPath = dir
 
+	// 退出通知
+	this.ctx, this.cancel = context.WithCancel(context.Background())
+
 	// 默认设置
 	defaultConfig(this)
 
@@ -101,12 +107,22 @@ func (this *Application) Init() {
 	// 状态： 初始化
 	this.stateMgr.SetState(state.C_INIT)
 
-	zaplog.Debugf("app 状态：init完成 ...")
+	zaplog.Infof("app 状态：init完成 ...")
 }
 
 // 启动 app
 func (this *Application) Run() {
 	// 状态效验
+	if !this.stateMgr.SwapState(state.C_INIT, state.C_RUNING) {
+		if !this.stateMgr.SwapState(state.C_STOPED, state.C_RUNING) {
+			st := this.stateMgr.GetState()
+			zaplog.Fatalf("app 启动失败，状态错误。当前状态=%d，正确状态=%d或%d", st, state.C_INIT, state.C_STOPED)
+
+			os.Exit(1)
+		}
+	}
+
+	zaplog.Infof("app 状态：正在启动中 ...")
 
 	// 设置随机种子
 	rand.Seed(time.Now().UnixNano())
@@ -123,6 +139,11 @@ func (this *Application) Run() {
 	// 系统信号侦听
 	this.waitStopSignal()
 
+	// 状态：工作中
+	this.stateMgr.SetState(state.C_WORKING)
+
+	zaplog.Infof("app 状态：启动成功，工作中 ...")
+
 	// 等待停止
 	this.stopGroup.Wait()
 
@@ -134,8 +155,17 @@ func (this *Application) Run() {
 
 // 停止 app
 func (this *Application) Stop() {
+	// 状态效验
+	if !this.stateMgr.SwapState(state.C_WORKING, state.C_STOPING) {
+		zaplog.Fatalf("app 启动失败，状态错误。当前状态=%d，正确状态=%d", this.stateMgr.GetState(), state.C_WORKING)
+	}
+
 	// 停止所有组件
 	this.stopComponent()
+
+	// 等待完成
+
+	this.stateMgr.SetState(state.C_STOPED)
 }
 
 // 启动所有组件
@@ -146,7 +176,7 @@ func (this *Application) runComponent() {
 		go func() {
 			defer this.stopGroup.Done()
 
-			cpt.Run()
+			cpt.Run(this.ctx)
 		}()
 	}
 }

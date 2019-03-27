@@ -4,9 +4,9 @@
 package app
 
 import (
-	"github.com/zpab123/sco/model"   // 全局模型
-	"github.com/zpab123/sco/network" // 网络
-	"github.com/zpab123/zaplog"      // log
+	"github.com/zpab123/sco/model"     // 全局模型
+	"github.com/zpab123/sco/netserver" // 网络服务器
+	"github.com/zpab123/zaplog"        // log
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@ import (
 // app 组件管理
 type ComponentManager struct {
 	componentMap map[string]model.IComponent // 名字-> 组件 集合
-	netServerOpt *network.TNetServerOpt      // server 组件配置参数
+	netServerOpt *netserver.TNetServerOpt    // server 组件配置参数
 }
 
 // 新建1个 ComponentManager
@@ -58,11 +58,11 @@ func (this *ComponentManager) GetComponentByName(name string) model.IComponent {
 }
 
 // 获取 netServer 组件参数
-func (this *ComponentManager) GetNetServerOpt() *network.TNetServerOpt {
+func (this *ComponentManager) GetNetServerOpt() *netserver.TNetServerOpt {
 	return this.netServerOpt
 }
 
 // 设置 netServer 组件参数
-func (this *ComponentManager) SetNetServerOpt(opt *network.TNetServerOpt) {
+func (this *ComponentManager) SetNetServerOpt(opt *netserver.TNetServerOpt) {
 	this.netServerOpt = opt
 }

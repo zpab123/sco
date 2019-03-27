@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zpab123/sco/config"  // 配置管理
-	"github.com/zpab123/sco/network" // 网络库
-	"github.com/zpab123/zaplog"      // log 库
+	"github.com/zpab123/sco/config"    // 配置管理
+	"github.com/zpab123/sco/netserver" // 网络服务器组件
+	"github.com/zpab123/sco/network"   // 网络
+	"github.com/zpab123/zaplog"        // log
 )
 
 // 完成 app 的默认设置
@@ -114,7 +115,7 @@ func configLogger(app *Application) {
 func setCmptOpt(app *Application) {
 	// netServer 组件
 	if nil == app.componentMgr.GetNetServerOpt() {
-		opt := network.NewTNetServerOpt()
+		opt := netserver.NewTNetServerOpt()
 		app.componentMgr.SetNetServerOpt(opt)
 	}
 }
@@ -154,7 +155,7 @@ func newNetServer(app *Application) {
 	}
 
 	// 创建 NetServer
-	s, err := network.NewNetServer(laddr, opt)
+	s, err := netserver.NewNetServer(laddr, opt)
 	if nil != err {
 		return
 	}
