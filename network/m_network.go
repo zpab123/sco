@@ -32,6 +32,15 @@ const (
 	C_PKT_MAX_LEN  = 25 * 1024 * 1024 // 最大单个 packet 数据，= head + body = 25M
 )
 
+// ScoConn 状态
+const (
+	C_CONN_STATE_INIT     uint32 = iota // 初始化状态
+	C_CONN_STATE_SHAKE                  // 握手状态
+	C_CONN_STATE_WAIT_ACK               // 等待客户端握手ACK
+	C_CONN_STATE_WORKING                // 工作中
+	C_CONN_STATE_CLOSED                 // 关闭状态
+)
+
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
@@ -85,4 +94,26 @@ func NewTBufferSocketOpt() *TBufferSocketOpt {
 	}
 
 	return bs
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// TScoConnOpt 对象
+
+// ScoConn 配置参数
+type TScoConnOpt struct {
+	ShakeKey      string            // 握手key
+	Heartbeat     uint32            // 心跳间隔，单位：秒。0=不设置心跳
+	BuffSocketOpt *TBufferSocketOpt // BufferSocket 配置参数
+}
+
+// 新建1个 WorldConnection 对象
+func NewTScoConnOpt() *TScoConnOpt {
+	// 创建 buff opt
+	buffOpt := NewTBufferSocketOpt()
+
+	opt := &TScoConnOpt{
+		BuffSocketOpt: buffOpt,
+	}
+
+	return opt
 }

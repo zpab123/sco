@@ -6,11 +6,11 @@ package session
 import (
 	"time"
 
-	"github.com/pkg/errors"            // 异常库
-	"github.com/zpab123/world/network" // 网络库
-	"github.com/zpab123/world/state"   // 状态管理
-	"github.com/zpab123/world/wderr"   // 异常库
-	"github.com/zpab123/zaplog"        // 日志库
+	"github.com/pkg/errors"          // 异常
+	"github.com/zpab123/sco/network" // 网络
+	"github.com/zpab123/sco/sccerr"  // 异常
+	"github.com/zpab123/sco/state"   // 状态管理
+	"github.com/zpab123/zaplog"      // 日志
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -21,14 +21,14 @@ import (
 
 // 面向服务器连接的 session 对象
 type Session struct {
-	option       *TSessionOpt             // 配置参数
-	stateMgr     *state.StateManager      // 状态管理
-	worldConn    *network.WorldConnection // world 引擎连接对象
-	msgHandler   ISessionMsgHandler       // 消息处理器
-	ticker       *time.Ticker             // 心跳计时器
-	timeOut      time.Duration            // 心跳超时时间
-	lastRecvTime time.Time                // 上次接收消息的时间
-	lastSendTime time.Time                // 上次发送消息的时间
+	option       *TSessionOpt        // 配置参数
+	stateMgr     *state.StateManager // 状态管理
+	scoConn      *network.ScoConn    // sco 引擎连接对象
+	msgHandler   ISessionMsgHandler  // 消息处理器
+	ticker       *time.Ticker        // 心跳计时器
+	timeOut      time.Duration       // 心跳超时时间
+	lastRecvTime time.Time           // 上次接收消息的时间
+	lastSendTime time.Time           // 上次发送消息的时间
 }
 
 // 创建1个新的 Session 对象
@@ -36,17 +36,17 @@ func NewSession(socket network.ISocket, opt *TSessionOpt) *Session {
 	// 创建 StateManager
 	st := state.NewStateManager()
 
-	// 创建 WorldConnection
+	// 创建 ScoConn
 	if nil == opt {
 		opt = NewTSessionOpt(nil)
 	}
-	wc := network.NewWorldConnection(socket, opt.WorldConnOpt)
+	wc := network.NewScoConn(socket, opt.ScoConnOpt)
 
 	// 创建对象
 	ss := &Session{
 		option:     opt,
 		stateMgr:   st,
-		worldConn:  wc,
+		scoConn:    wc,
 		msgHandler: opt.MsgHandler,
 		timeOut:    opt.Heartbeat * 2,
 	}
@@ -101,7 +101,7 @@ func (this *Session) Stop() (err error) {
 	}
 
 	// 关闭连接
-	err = this.worldConn.Close()
+	err = this.scoConn.Close()
 	if nil != err {
 		err = errors.Errorf("Session %s 关闭失败。错误=%s", this, err)
 
@@ -120,17 +120,17 @@ func (this *Session) Stop() (err error) {
 
 // 打印信息
 func (this *Session) String() string {
-	return this.worldConn.String()
+	return this.scoConn.String()
 }
 
 // 发送心跳消息
 func (this *Session) SendHeartbeat() {
-	this.worldConn.SendHeartbeat()
+	this.scoConn.SendHeartbeat()
 }
 
 // 发送通用消息
 func (this *Session) SendData(data []byte) {
-	this.worldConn.SendData(data)
+	this.scoConn.SendData(data)
 }
 
 // 接收线程
@@ -148,7 +148,7 @@ func (this *Session) recvLoop() {
 	// 这里有bug 不应该在这里监测状态
 	for this.stateMgr.GetState() == state.C_WORKING {
 		// 接收消息
-		pkt, err := this.worldConn.RecvPacket()
+		pkt, err := this.scoConn.RecvPacket()
 
 		// 错误处理
 		if nil != err && !wderr.IsTimeoutError(err) {
@@ -176,7 +176,7 @@ func (this *Session) sendLoop() {
 	var err error
 
 	for this.stateMgr.GetState() == state.C_WORKING {
-		err = this.worldConn.Flush() // 刷新缓冲区
+		err = this.scoConn.Flush() // 刷新缓冲区
 
 		if nil != err {
 			break

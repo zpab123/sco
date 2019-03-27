@@ -136,21 +136,16 @@ func (this *Application) Run() {
 	// 启动所有组件
 	this.runComponent()
 
-	// 系统信号侦听
-	this.waitStopSignal()
+	// 侦听系统信号
+	//this.waitSysSignal()
 
 	// 状态：工作中
 	this.stateMgr.SetState(state.C_WORKING)
 
 	zaplog.Infof("app 状态：启动成功，工作中 ...")
 
-	// 等待停止
-	this.stopGroup.Wait()
-
-	// 停止完成
-	zaplog.Infof("%s 服务器，优雅退出", this.baseInfo.Name)
-
-	os.Exit(0)
+	// 侦听结束信号
+	this.waitStopSignal()
 }
 
 // 停止 app
@@ -164,8 +159,12 @@ func (this *Application) Stop() {
 	this.stopComponent()
 
 	// 等待完成
-
+	this.stopGroup.Wait()
 	this.stateMgr.SetState(state.C_STOPED)
+
+	zaplog.Infof("%s 服务器，优雅退出", this.baseInfo.Name)
+
+	os.Exit(0)
 }
 
 // 启动所有组件
@@ -188,8 +187,8 @@ func (this *Application) stopComponent() {
 	}
 }
 
-// 系统信号侦听
-func (this *Application) waitStopSignal() {
+// 侦听系统信号
+func (this *Application) waitSysSignal() {
 	// 排除信号
 	signal.Ignore(syscall.Signal(10), syscall.Signal(12), syscall.SIGPIPE, syscall.SIGHUP)
 	signal.Notify(this.signalChan, syscall.SIGINT, syscall.SIGTERM)
@@ -211,4 +210,27 @@ func (this *Application) waitStopSignal() {
 			}
 		}
 	}()
+}
+
+// 侦听结束信号
+func (this *Application) waitStopSignal() {
+	// 排除信号
+	signal.Ignore(syscall.Signal(10), syscall.Signal(12), syscall.SIGPIPE, syscall.SIGHUP)
+	signal.Notify(this.signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		sig := <-this.signalChan
+		if syscall.SIGINT == sig || syscall.SIGTERM == sig {
+			zaplog.Infof("%s 服务器，正在停止中，请等待 ...", this.baseInfo.Name)
+
+			this.Stop()
+
+			time.Sleep(C_STOP_OUT_TIME)
+			zaplog.Warnf("%s 服务器，超过 %v 秒未优雅关闭，强制关闭", this.baseInfo.Name, C_STOP_OUT_TIME)
+
+			os.Exit(1)
+		} else {
+			zaplog.Errorf("异常的操作系统信号=%s", sig)
+		}
+	}
 }

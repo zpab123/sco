@@ -6,7 +6,7 @@ package session
 import (
 	"time"
 
-	"github.com/zpab123/world/network" // 网络库
+	"github.com/zpab123/sco/network" // 网络库
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -68,21 +68,21 @@ type IMsgHandler interface {
 
 // Session 配置参数
 type TSessionOpt struct {
-	Heartbeat    time.Duration          // 心跳周期
-	WorldConnOpt *network.TWorldConnOpt // WorldConnection 配置参数
-	MsgHandler   ISessionMsgHandler     // 消息处理对象
+	Heartbeat  time.Duration        // 心跳周期
+	ScoConnOpt *network.TScoConnOpt // ScoConn 配置参数
+	MsgHandler ISessionMsgHandler   // 消息处理对象
 }
 
 // 创建1个新的 TSessionOpts
 func NewTSessionOpt(handler ISessionMsgHandler) *TSessionOpt {
-	// 创建 WorldConnection
-	wc := network.NewTWorldConnOpt()
+	// 创建 ScoConn
+	sc := network.NewTScoConnOpt()
 
 	// 创建 TServerSessionOpt
 	opt := &TSessionOpt{
-		Heartbeat:    C_HEARTBEAT,
-		MsgHandler:   handler,
-		WorldConnOpt: wc,
+		Heartbeat:  C_HEARTBEAT,
+		MsgHandler: handler,
+		ScoConnOpt: sc,
 	}
 
 	return opt
@@ -93,21 +93,21 @@ func NewTSessionOpt(handler ISessionMsgHandler) *TSessionOpt {
 
 // ClientSession 配置参数
 type TClientSessionOpt struct {
-	Heartbeat    time.Duration          // 心跳周期
-	WorldConnOpt *network.TWorldConnOpt // WorldConnection 配置参数
-	MsgHandler   IClientMsgHandler      // 消息处理对象
+	Heartbeat  time.Duration        // 心跳周期
+	ScoConnOpt *network.TScoConnOpt // WorldConnection 配置参数
+	MsgHandler IClientMsgHandler    // 消息处理对象
 }
 
 // 创建1个新的 TClientSessionOpt
 func NewTClientSessionOpt(handler IClientMsgHandler) *TClientSessionOpt {
-	// 创建 WorldConnection
-	wc := network.NewTWorldConnOpt()
+	// 创建 ScoConn
+	sc := network.NewTScoConnOpt()
 
 	// 创建 TClientSessionOpt
 	opt := &TClientSessionOpt{
-		Heartbeat:    C_HEARTBEAT,
-		WorldConnOpt: wc,
-		MsgHandler:   handler,
+		Heartbeat:  C_HEARTBEAT,
+		ScoConnOpt: sc,
+		MsgHandler: handler,
 	}
 
 	return opt
@@ -118,21 +118,21 @@ func NewTClientSessionOpt(handler IClientMsgHandler) *TClientSessionOpt {
 
 // ServerSession 配置参数
 type TServerSessionOpt struct {
-	Heartbeat    time.Duration          // 心跳周期
-	WorldConnOpt *network.TWorldConnOpt // WorldConnection 配置参数
-	MsgHandler   IServerMsgHandler      // 消息处理对象
+	Heartbeat  time.Duration        // 心跳周期
+	ScoConnOpt *network.TScoConnOpt // WorldConnection 配置参数
+	MsgHandler IServerMsgHandler    // 消息处理对象
 }
 
 // 创建1个新的 TServerSessionOpt
 func NewTServerSessionOpt(handler IServerMsgHandler) *TServerSessionOpt {
-	// 创建 WorldConnection
-	wc := network.NewTWorldConnOpt()
+	// 创建 ScoConn
+	sc := network.NewTScoConnOpt()
 
 	// 创建 TServerSessionOpt
 	opt := &TServerSessionOpt{
-		Heartbeat:    C_HEARTBEAT,
-		MsgHandler:   handler,
-		WorldConnOpt: wc,
+		Heartbeat:  C_HEARTBEAT,
+		MsgHandler: handler,
+		ScoConnOpt: sc,
 	}
 
 	return opt
