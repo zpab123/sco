@@ -69,9 +69,6 @@ func (this *Session) Run() (err error) {
 	}
 	// 变量重置？ 状态? 发送队列？
 
-	// 接收循环，这里不能 go this.recvLoop()，会导致连接直接断开
-	this.recvLoop()
-
 	// 开启发送 goroutine
 	go this.sendLoop()
 
@@ -87,6 +84,9 @@ func (this *Session) Run() (err error) {
 
 		return
 	}
+
+	// 接收循环，这里不能 go this.recvLoop()，会导致websocket连接直接断开
+	this.recvLoop()
 
 	return
 }
@@ -173,7 +173,7 @@ func (this *Session) recvLoop() {
 func (this *Session) sendLoop() {
 	var err error
 
-	for this.stateMgr.GetState() == state.C_WORKING {
+	for {
 		err = this.scoConn.Flush() // 刷新缓冲区
 
 		if nil != err {

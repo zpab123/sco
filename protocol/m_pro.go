@@ -22,7 +22,7 @@ const (
 
 // 通用消息码(1-1000)
 const (
-	ERROR uint32 = iota // 误类消息 0
+	ERROR uint32 = iota // 错误类消息 0
 	OK                  // 成功类消息 1
 )
 

@@ -4,10 +4,7 @@
 package network
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"           // 异常
-	"github.com/vmihailenco/msgpack"  // []byte<->struct 转化
 	"github.com/zpab123/sco/protocol" // world 内部通信协议
 	"github.com/zpab123/sco/state"    // 状态管理
 	"github.com/zpab123/zaplog"       // 日志
@@ -160,41 +157,24 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 
 //  处理握手消息
 func (this *ScoConn) handleHandshake(pkt *Packet) {
-	var err error
-	var data []byte
-
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
 		return
 	}
 
 	// 消息解码
-	key := pkt.ReadString()     //握手方式
-	netType := pkt.ReadUint32() // 网络方式
-
-	fmt.Println("key:", key)
-	fmt.Println("netType:", netType)
-
-	return
-
-	req := &protocol.HandshakeReq{}
-	err = msgpack.Unmarshal(data, req)
-	if nil != err {
-		zaplog.Errorf("ScoConn %s 解码握手消息出错，关闭该连接", this)
-
-		this.Close()
-	}
+	key := pkt.ReadString() // 握手方式
+	//netType := pkt.ReadUint32() // 网络方式
 
 	// 回复消息
 	res := &protocol.HandshakeRes{
 		Code:      protocol.OK,
 		Heartbeat: this.option.Heartbeat,
 	}
-	var buf []byte
 	var sucess bool = true
 
 	// 版本验证
-	if this.option.ShakeKey != "" && req.Key != this.option.ShakeKey {
+	if this.option.ShakeKey != "" && key != this.option.ShakeKey {
 		res.Code = protocol.SHAKE_KEY_ERROR
 		sucess = false
 	}
@@ -202,12 +182,7 @@ func (this *ScoConn) handleHandshake(pkt *Packet) {
 	// 通信方式验证,后续添加
 
 	// 回复处理结果
-	buf, err = msgpack.Marshal(res)
-	if nil != err {
-		zaplog.Errorf("ScoConn %s 返回握手消息失败，编码握手消息出错", this)
-	} else {
-		this.handshakeResponse(sucess, buf)
-	}
+	this.handshakeResponse(sucess, res)
 
 	// 握手失败，关闭连接
 	if sucess == false {
@@ -216,7 +191,7 @@ func (this *ScoConn) handleHandshake(pkt *Packet) {
 }
 
 //  返回握手消息
-func (this *ScoConn) handshakeResponse(sucess bool, data []byte) {
+func (this *ScoConn) handshakeResponse(sucess bool, res *protocol.HandshakeRes) {
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
 		return
@@ -224,7 +199,8 @@ func (this *ScoConn) handshakeResponse(sucess bool, data []byte) {
 
 	// 返回数据
 	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
-	pkt.AppendBytes(data)
+	pkt.AppendUint32(res.Code)        // 结果
+	pkt.AppendUint32(res.Heartbeat)   // 心跳
 	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
 
 	// 状态： 等待握手 ack
