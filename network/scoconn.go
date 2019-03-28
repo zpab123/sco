@@ -4,6 +4,8 @@
 package network
 
 import (
+	"encoding/json"
+
 	"github.com/pkg/errors"           // 异常
 	"github.com/zpab123/sco/protocol" // world 内部通信协议
 	"github.com/zpab123/sco/state"    // 状态管理
@@ -157,7 +159,7 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 	// 根据类型处理数据
 	switch pkt.pktId {
 	case protocol.C_PKT_ID_HANDSHAKE: // 客户端握手请求
-		this.handleHandshake(pkt)
+		this.handleHandshake(pkt.GetBody())
 	case protocol.C_PKT_ID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.handleHandshakeAck()
 	default:
@@ -168,18 +170,24 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 }
 
 //  处理握手消息
-func (this *ScoConn) handleHandshake(pkt *Packet) {
+func (this *ScoConn) handleHandshake(body []byte) {
+	var err error
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
 		return
 	}
 
-	// 消息解码
-	key := pkt.ReadString() // 握手方式
-	//netType := pkt.ReadUint32() // 网络方式
+	// 解码消息
+	req := &protocol.HandshakeReq{}
+	err = json.Unmarshal(body, req)
+	if nil != err {
+		this.Close()
+
+		return
+	}
 
 	// 版本验证
-	if this.option.ShakeKey != "" && key != this.option.ShakeKey {
+	if this.option.ShakeKey != "" && req.Key != this.option.ShakeKey {
 		this.handshakeFail(protocol.C_CODE_SHAKE_KEY_ERROR)
 
 		return
@@ -199,10 +207,20 @@ func (this *ScoConn) handshakeOk() {
 	}
 
 	// 返回数据
+	res := &protocol.HandshakeOk{
+		Code:      protocol.C_CODE_OK,
+		Heartbeat: this.option.Heartbeat,
+	}
+	data, err := json.Marshal(res)
+	if nil != err {
+		zaplog.Error("握手成功，但服务器未返回消息：编码握手消息出错")
+
+		return
+	}
+
 	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
-	pkt.AppendUint32(protocol.C_CODE_OK)    // 结果
-	pkt.AppendUint32(this.option.Heartbeat) // 心跳
-	this.packetSocket.SendPacket(pkt)       // 越过工作状态发送消息
+	pkt.AppendBytes(data)
+	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
 
 	// 状态： 等待握手 ack
 	this.stateMgr.SetState(C_CONN_STATE_WAIT_ACK)
@@ -210,17 +228,27 @@ func (this *ScoConn) handshakeOk() {
 
 //  握手失败
 func (this *ScoConn) handshakeFail(code uint32) {
+	defer this.Close()
+
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_INIT {
 		return
 	}
 
 	// 返回数据
-	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
-	pkt.AppendUint32(code)
-	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
+	res := &protocol.HandshakeFail{
+		Code: code,
+	}
+	data, err := json.Marshal(res)
+	if nil != err {
+		zaplog.Error("握手失败，但服务器未返回消息：编码握手消息出错")
 
-	this.Close()
+		return
+	}
+
+	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
+	pkt.AppendBytes(data)
+	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
 }
 
 //  处理握手ACK

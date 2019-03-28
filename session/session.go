@@ -199,7 +199,7 @@ func (this *Session) mainLoop() {
 
 }
 
-// 检查接收是否超时
+// 检查接收是否超时（这里会导致连接断开，2个线程同时访问时间变量，是否需要加锁？）
 func (this *Session) checkRecvTime() bool {
 	if time.Now().After(this.lastRecvTime.Add(this.timeOut)) {
 		zaplog.Errorf("Session %s 接收消息超时，关闭连接", this)
@@ -217,7 +217,7 @@ func (this *Session) checkRecvTime() bool {
 // 检查发送是否超时
 func (this *Session) checkSendTime() error {
 	var err error
-	if time.Now().After(this.lastSendTime.Add(this.timeOut)) {
+	if time.Now().After(this.lastSendTime.Add(this.option.Heartbeat)) {
 
 		err = this.SendHeartbeat()
 	}
