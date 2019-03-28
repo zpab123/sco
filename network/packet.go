@@ -77,11 +77,6 @@ func (this *Packet) GetBody() []byte {
 	return this.bytes[_HEAD_LEN:end]
 }
 
-// 获取 bytes
-func (this *Packet) GetBytes() []byte {
-	return this.bytes
-}
-
 // 获取 packet 的 body 字节长度
 func (this *Packet) GetBodyLen() uint32 {
 	bodyLen := *(*uint32)(unsafe.Pointer(&this.bytes[_LEN_POS])) & _BODY_LEN_MASK
@@ -92,7 +87,7 @@ func (this *Packet) GetBodyLen() uint32 {
 // 在 Packet 的 bytes 后面添加1个 byte 数据
 func (this *Packet) AppendByte(b byte) {
 	// 申请buffer
-	this.AllocBuffer(1)
+	this.allocCap(1)
 
 	// 赋值
 	wPos := this.getWirtePos()
@@ -133,7 +128,7 @@ func (this *Packet) ReadBool() bool {
 // 在 Packet 的 bytes 后面，添加1个 uint16 数据
 func (this *Packet) AppendUint16(v uint16) {
 	// 申请buffer
-	this.AllocBuffer(2)
+	this.allocCap(2)
 
 	// 赋值
 	wPos := this.getWirtePos()
@@ -158,7 +153,7 @@ func (this *Packet) ReadUint16() (v uint16) {
 // 在 Packet 的 bytes 后面，添加1个 uint32 数据
 func (this *Packet) AppendUint32(v uint32) {
 	// 申请buffer
-	this.AllocBuffer(4)
+	this.allocCap(4)
 
 	// 赋值
 	wPos := this.getWirtePos()
@@ -183,7 +178,7 @@ func (this *Packet) ReadUint32() (v uint32) {
 // 在 Packet 的 bytes 后面，添加1个 uint64 数据
 func (this *Packet) AppendUint64(v uint64) {
 	// 申请内存
-	this.AllocBuffer(8)
+	this.allocCap(8)
 
 	// 添加数据
 	wPos := this.getWirtePos()
@@ -248,17 +243,17 @@ func (this *Packet) ReadFloat64() float64 {
 // 在 Packet 的 bytes 后面，添加1个固定大小的 []byte 数据
 func (this *Packet) AppendBytes(v []byte) {
 	// byte 长度
-	bytesLen := uint32(len(v))
+	le := uint32(len(v))
 
 	// 申请内存
-	this.AllocBuffer(bytesLen)
+	this.allocCap(le)
 
 	// 复制数据
 	wPos := this.getWirtePos()
-	copy(this.bytes[wPos:wPos+bytesLen], v)
+	copy(this.bytes[wPos:wPos+le], v)
 
 	// 记录长度
-	this.addBodyLen(bytesLen)
+	this.addBodyLen(le)
 }
 
 // 从 Packet 的 bytes 中读取1个固定 size 大小的 []byte 数据
@@ -270,7 +265,7 @@ func (this *Packet) ReadBytes(size uint32) []byte {
 
 	// 越界错误
 	if pPos > uint32(len(this.bytes)) || (pPos+size) > uint32(len(this.bytes)) {
-		zaplog.Panicf("从 Packet 包中读取 Bytes 出错。Bytes 大小超过 packet 剩余可读数据大小")
+		zaplog.Panicf("从 Packet 包中读取 Bytes 出错：Bytes 大小超过 packet 剩余可读数据大小")
 	}
 
 	// 读取数据
@@ -283,6 +278,7 @@ func (this *Packet) ReadBytes(size uint32) []byte {
 }
 
 // 在 Packet 的 bytes 后面，添加1个可变大小 []byte 数据
+// 用 uint32 记录 v 的长度
 func (this *Packet) AppendVarBytes(v []byte) {
 	// 记录 v 长度
 	this.AppendUint32(uint32(len(v)))
@@ -301,6 +297,7 @@ func (this *Packet) ReadVarBytes() []byte {
 }
 
 // 在 Packet 的 bytes 后面，添加1个 string 数据
+// 用 uint32 记录 s 的长度
 func (this *Packet) AppendString(s string) {
 	// 数据转换
 	bytes := []byte(s)
@@ -315,14 +312,7 @@ func (this *Packet) ReadString() string {
 	varBytes := this.ReadVarBytes()
 
 	// 数据转化
-	s := string(varBytes)
-
-	return s
-}
-
-// 添加1个任意数据
-func (this *Packet) AppendData(msg interface{}) {
-
+	return string(varBytes)
 }
 
 // 将1个 Packet包中的数据初始化，并存入 对象池
@@ -336,11 +326,13 @@ func (this *Packet) Release() {
 		payloadLn := this.getPayloadCap() // 有效载荷长度
 		if payloadLn > _MIN_PAYLOAD_CAP {
 			// 初始化
-			buffer := this.bytes
+			buf := this.bytes
 			this.bytes = this.initBytes[:]
 
 			// 放回对象池
-			bufferPools[uint32(payloadLn)].Put(buffer)
+			if pool, ok := bufferPools[payloadLn]; ok {
+				pool.Put(buf)
+			}
 		}
 
 		// 将 pakcet 放回对象池
@@ -358,8 +350,8 @@ func (this *Packet) Data() []byte {
 	return this.bytes[0:end]
 }
 
-// 根据 need 数量， 为 packet 的 bytes 扩大内存，并完成旧数据复制
-func (this *Packet) AllocBuffer(need uint32) {
+// 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
+func (this *Packet) allocCap(need uint32) {
 	// 现有长度满足需求
 	newLen := this.GetBodyLen() + need //body 新长度 = 旧长度 + size
 	payloadCap := this.getPayloadCap() // 有效容量

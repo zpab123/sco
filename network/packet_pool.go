@@ -19,7 +19,7 @@ var (
 	// buffer 容量切片，比如 [256 512 2048 ...] 容量
 	buffCapSlice []uint32
 
-	// Packet 对象池
+	// Packet 对象池，并发安全
 	packetPool = sync.Pool{
 		New: newPacket,
 	}
@@ -67,6 +67,7 @@ func getPacketFromPool() *Packet {
 }
 
 // 根据 need ，计算需要从 bufferPools 中取出哪个对象池
+// 只读不写，所以并发安全
 func getPoolKey(need uint32) uint32 {
 	for _, ln := range buffCapSlice {
 		if ln >= need {

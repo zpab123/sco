@@ -28,7 +28,7 @@ const (
 
 // packet 常量
 const (
-	C_PKT_HEAD_LEN = 6                // 消息头大小:字节 type(2字节) + length(4字节)
+	C_PKT_HEAD_LEN = 6                // 消息头大小:字节 main_id(2字节) + length(4字节)
 	C_PKT_MAX_LEN  = 25 * 1024 * 1024 // 最大单个 packet 数据，= head + body = 25M
 )
 
