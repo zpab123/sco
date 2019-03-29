@@ -96,28 +96,6 @@ func (this *ScoConn) Close() error {
 	return err
 }
 
-// 发送1个 packet 消息
-func (this *ScoConn) SendPacket(pkt *Packet) error {
-	var err error
-
-	// 状态效验
-	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
-		err = errors.Errorf("ScoConn %s 发送 Packet 数据失败：状态不在 working 中", this)
-
-		return err
-	}
-
-	return this.packetSocket.SendPacket(pkt)
-}
-
-// 发送1个 packet 消息，然后将 packet 放回对象池
-func (this *ScoConn) SendPacketRelease(pkt *Packet) error {
-	err := this.SendPacket(pkt)
-	pkt.Release()
-
-	return err
-}
-
 //  发送心跳数据
 func (this *ScoConn) SendHeartbeat() error {
 	var err error
@@ -131,7 +109,7 @@ func (this *ScoConn) SendHeartbeat() error {
 
 	// 发送心跳数据
 	pkt := NewPacket(protocol.C_PKT_ID_HEARTBEAT)
-	err = this.SendPacket(pkt)
+	err = this.sendPacket(pkt)
 
 	return err
 }
@@ -141,7 +119,7 @@ func (this *ScoConn) SendData(data []byte) {
 	pkt := NewPacket(protocol.C_PKT_ID_DATA)
 	pkt.AppendBytes(data)
 
-	this.SendPacket(pkt)
+	this.sendPacket(pkt)
 }
 
 // 刷新缓冲区
@@ -154,8 +132,24 @@ func (this *ScoConn) String() string {
 	return this.packetSocket.String()
 }
 
+// 发送1个 packet 消息
+func (this *ScoConn) sendPacket(pkt *Packet) error {
+	var err error
+
+	// 状态效验
+	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
+		err = errors.Errorf("ScoConn %s 发送 Packet 数据失败：状态不在 working 中", this)
+
+		return err
+	}
+
+	return this.packetSocket.SendPacket(pkt)
+}
+
 // 处理 Packet 消息
 func (this *ScoConn) handlePacket(pkt *Packet) {
+	defer pkt.Release()
+
 	// 根据类型处理数据
 	switch pkt.pktId {
 	case protocol.C_PKT_ID_HANDSHAKE: // 客户端握手请求
