@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"           // 错误
 	"github.com/zpab123/sco/ioutil"   // io工具
 	"github.com/zpab123/sco/protocol" // 通信协议
-	"github.com/zpab123/zaplog"       // 日志
+	// "github.com/zpab123/zaplog"       // 日志
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -88,7 +88,7 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 		// 长度效验
 		if bodylen > _MAX_BODY_LENGTH {
 			err := errors.Errorf("接收 packet 出错：消息头标记长度=%d，可允许最大长度=%d", bodylen, _MAX_BODY_LENGTH)
-			zaplog.Errorf("%s", err)
+			// zaplog.Errorf("%s", err)
 
 			this.resetRecvStates()
 			this.Close()
@@ -128,7 +128,7 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 		return packet, nil
 	} else if this.recvedBodyLen > this.bodylen {
 		err := errors.Errorf("接收 packet 出错：接收长度超过body长度。接收长度=%d，body长度=%d", this.recvedBodyLen, this.bodylen)
-		zaplog.Errorf("%s", err)
+		// zaplog.Errorf("%s", err)
 
 		this.resetRecvStates()
 
