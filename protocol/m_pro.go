@@ -8,10 +8,10 @@ package protocol
 
 // sco 框架消息 (1-100)
 const (
-	C_PKT_ID_INVALID       uint16 = iota // 无效消息
-	C_PKT_ID_HANDSHAKE                   // 握手消息ID
-	C_PKT_ID_HANDSHAKE_ACK               // 握手 ACK
-	C_PKT_ID_SCO                         // 分界线： 以上由 SocConn 处理的消息
+	C_MID_INVALID       uint16 = iota // 无效消息
+	C_MID_HANDSHAKE                   // 握手消息ID
+	C_MID_HANDSHAKE_ACK               // 握手 ACK
+	C_MID_SCO                         // 分界线： 以上由 SocConn 处理的消息
 )
 
 // sco 框架消息 (101-)

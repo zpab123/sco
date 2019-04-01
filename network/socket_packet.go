@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"             // 错误
-	"github.com/zpab123/sco/ioutil"     // io工具
-	"github.com/zpab123/world/protocol" // 通信协议
-	"github.com/zpab123/zaplog"         // 日志
+	"github.com/pkg/errors"           // 错误
+	"github.com/zpab123/sco/ioutil"   // io工具
+	"github.com/zpab123/sco/protocol" // 通信协议
+	"github.com/zpab123/zaplog"       // 日志
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ type PacketSocket struct {
 	recvedHeadLen int             // 从 socket 的 readbuffer 中已经读取的 head 数据大小：字节（用于消息读取记录）
 	recvedBodyLen int             // 从 socket 的 readbuffer 中已经读取的 body 数据大小：字节（用于消息读取记录）
 	headBuff      [_HEAD_LEN]byte // 存放消息头二进制数据
-	pktId         uint16          // packet id 用于记录消息类型
+	mid           uint16          // packet id 用于记录消息主id
 	bodylen       int             // 本次 pcket body 总大小
 	packet        *Packet         // 用于存储本次即将接收的 Packet 对象
 }
@@ -77,7 +77,7 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 		}
 
 		// 收到消息头: 保存本次 packet 消息 id
-		this.pktId = NETWORK_ENDIAN.Uint16(this.headBuff[0:_LEN_POS])
+		this.mid = NETWORK_ENDIAN.Uint16(this.headBuff[0:_LEN_POS])
 
 		// 收到消息头: 保存本次 packet 消息 body 总大小
 		bodylen := NETWORK_ENDIAN.Uint32(this.headBuff[_LEN_POS:])
@@ -98,7 +98,7 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 
 		// 创建新的 packet 对象
 		this.recvedBodyLen = 0 // 重置，准备记录 body
-		this.packet = NewPacket(this.pktId)
+		this.packet = NewPacket(this.mid)
 		this.packet.allocCap(bodylen)
 	}
 
@@ -230,7 +230,7 @@ func (this *PacketSocket) String() string {
 func (this *PacketSocket) resetRecvStates() {
 	this.recvedHeadLen = 0
 	this.recvedBodyLen = 0
-	this.pktId = protocol.C_PKT_ID_INVALID
+	this.mid = protocol.C_MID_INVALID
 	this.bodylen = 0
 	this.packet = nil
 }

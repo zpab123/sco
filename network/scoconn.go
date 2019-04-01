@@ -58,7 +58,7 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 	}
 
 	// 内部 packet
-	if pkt.pktId < protocol.C_PKT_ID_SCO {
+	if pkt.mid < protocol.C_MID_SCO {
 		this.handlePacket(pkt)
 
 		return nil, err
@@ -151,13 +151,13 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 	defer pkt.Release()
 
 	// 根据类型处理数据
-	switch pkt.pktId {
-	case protocol.C_PKT_ID_HANDSHAKE: // 客户端握手请求
+	switch pkt.mid {
+	case protocol.C_MID_HANDSHAKE: // 客户端握手请求
 		this.handleHandshake(pkt.GetBody())
-	case protocol.C_PKT_ID_HANDSHAKE_ACK: // 客户端握手 ACK
+	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.handleHandshakeAck()
 	default:
-		zaplog.Errorf("ScoConn &s 收到无效消息类型=%d，关闭连接", this, pkt.pktId)
+		zaplog.Errorf("ScoConn &s 收到无效消息mid=%d，关闭连接", this, pkt.mid)
 
 		this.Close()
 	}
@@ -212,7 +212,7 @@ func (this *ScoConn) handshakeOk() {
 		return
 	}
 
-	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE)
 	pkt.AppendBytes(data)
 	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
 
@@ -240,7 +240,7 @@ func (this *ScoConn) handshakeFail(code uint32) {
 		return
 	}
 
-	pkt := NewPacket(protocol.C_PKT_ID_HANDSHAKE)
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE)
 	pkt.AppendBytes(data)
 	this.packetSocket.SendPacket(pkt) // 越过工作状态发送消息
 }
