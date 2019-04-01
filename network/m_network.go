@@ -20,6 +20,14 @@ const (
 	C_ACCEPTOR_NAME_COM = "composite"    // 同时支持 tcp 和 websocket
 )
 
+// server 名字
+const (
+	C_SERVER_NAME_TCP = "tcpAcceptor"  // 支持 tcp
+	C_SERVER_NAME_WS  = "wsServer"     // 支持 websocket
+	C_SERVER_NAME_MUL = "multiformity" // tcpAcceptor + wsAcceptor 组合
+	C_SERVER_NAME_COM = "composite"    // 同时支持 tcp 和 websocket
+)
+
 // socket_buff 常量
 const (
 	C_BUFF_READ_SIZE  = 16384 // scoket 读取类 buff 长度
@@ -45,6 +53,12 @@ const (
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
+// Server 接口
+type IServer interface {
+	Run() error  // 组件开始运行
+	Stop() error // 组件停止运行
+}
+
 // acceptor 接口
 type IAcceptor interface {
 	Run() error  // 组件开始运行
@@ -65,6 +79,15 @@ type IConnManager interface {
 type ISocket interface {
 	net.Conn // 接口继承： 符合 Conn 的对象
 	Flush() error
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// TWsServerOpt 对象
+
+// WsServer 配置参数
+type TWsServerOpt struct {
+	CertFile string // TLS加密文件
+	KeyFile  string // TLS解密key
 }
 
 // /////////////////////////////////////////////////////////////////////////////

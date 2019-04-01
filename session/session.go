@@ -60,8 +60,8 @@ func NewSession(socket network.ISocket, opt *TSessionOpt) *Session {
 // 启动 session
 func (this *Session) Run() (err error) {
 	// 状态效验
-	if !this.stateMgr.SwapState(state.C_INIT, state.C_RUNING) {
-		if !this.stateMgr.SwapState(state.C_STOPED, state.C_RUNING) {
+	if !this.stateMgr.CompareAndSwap(state.C_INIT, state.C_RUNING) {
+		if !this.stateMgr.CompareAndSwap(state.C_STOPED, state.C_RUNING) {
 			err = errors.Errorf("Session 启动失败，状态错误。当前状态=%d，正确状态=%d或%d", this.stateMgr.GetState(), state.C_INIT, state.C_STOPED)
 
 			return
@@ -90,7 +90,7 @@ func (this *Session) Run() (err error) {
 // 关闭 session [ISession 接口]
 func (this *Session) Stop() (err error) {
 	// 状态改变为关闭中
-	if !this.stateMgr.SwapState(state.C_WORKING, state.C_CLOSEING) {
+	if !this.stateMgr.CompareAndSwap(state.C_WORKING, state.C_CLOSEING) {
 		err = errors.Errorf("Session %s 关闭失败，状态错误。当前状态=%d, 正确状态=%d", this, this.stateMgr.GetState(), state.C_WORKING)
 
 		return

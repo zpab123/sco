@@ -113,8 +113,8 @@ func (this *Application) Init() {
 // 启动 app
 func (this *Application) Run() {
 	// 状态效验
-	if !this.stateMgr.SwapState(state.C_INIT, state.C_RUNING) {
-		if !this.stateMgr.SwapState(state.C_STOPED, state.C_RUNING) {
+	if !this.stateMgr.CompareAndSwap(state.C_INIT, state.C_RUNING) {
+		if !this.stateMgr.CompareAndSwap(state.C_STOPED, state.C_RUNING) {
 			st := this.stateMgr.GetState()
 			zaplog.Fatalf("app 启动失败，状态错误。当前状态=%d，正确状态=%d或%d", st, state.C_INIT, state.C_STOPED)
 
@@ -151,7 +151,7 @@ func (this *Application) Run() {
 // 停止 app
 func (this *Application) Stop() {
 	// 状态效验
-	if !this.stateMgr.SwapState(state.C_WORKING, state.C_STOPING) {
+	if !this.stateMgr.CompareAndSwap(state.C_WORKING, state.C_STOPING) {
 		zaplog.Fatalf("app 启动失败，状态错误。当前状态=%d，正确状态=%d", this.stateMgr.GetState(), state.C_WORKING)
 	}
 

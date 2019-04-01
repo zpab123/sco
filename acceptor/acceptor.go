@@ -1,7 +1,7 @@
 // /////////////////////////////////////////////////////////////////////////////
-// net 服务器
+// 网络连接服务器
 
-package netserver
+package acceptor
 
 import (
 	"context"
@@ -19,10 +19,11 @@ import (
 )
 
 // /////////////////////////////////////////////////////////////////////////////
-// NetServer 组件
+// Acceptor 组件
 
 // 网络服务器
-type NetServer struct {
+type Acceptor struct {
+	server     network.IServer         // 网络服务器组件
 	cmptName   string                  // 组件名字
 	stopGroup  sync.WaitGroup          // 停止等待组
 	acceptor   network.IAcceptor       // acceptor 连接器
@@ -32,7 +33,7 @@ type NetServer struct {
 	sessionMgr *session.SessionManager // session 管理对象
 }
 
-// 新建1个 NetServer 对象
+// 新建1个 Acceptor 对象
 func NewNetServer(addr *network.TLaddr, opt *TNetServerOpt) (model.IComponent, error) {
 	var err error
 	var a network.IAcceptor
@@ -46,15 +47,15 @@ func NewNetServer(addr *network.TLaddr, opt *TNetServerOpt) (model.IComponent, e
 	sm := state.NewStateManager()
 	sesMgr := session.NewSessionManager()
 
-	// 创建 NetServer
-	actor := &NetServer{
+	// 创建 Acceptor
+	actor := &Acceptor{
 		cmptName:   C_CMPT_NAME,
 		stateMgr:   sm,
 		option:     opt,
 		sessionMgr: sesMgr,
 	}
 
-	// 创建 NetServer
+	// 创建 Acceptor
 	a, err = network.NewAcceptor(opt.AcceptorName, addr, actor)
 	if nil != err {
 		return nil, err
@@ -68,14 +69,14 @@ func NewNetServer(addr *network.TLaddr, opt *TNetServerOpt) (model.IComponent, e
 	return actor, err
 }
 
-// 启动 NetServer
-func (this *NetServer) Run(ctx context.Context) {
+// 启动 Acceptor
+func (this *Acceptor) Run(ctx context.Context) {
 	var err error
 
 	// 改变状态： 启动中
 	if !this.stateMgr.CompareAndSwap(state.C_INIT, state.C_RUNING) {
 		if !this.stateMgr.CompareAndSwap(state.C_STOPED, state.C_RUNING) {
-			err = errors.Errorf("network.NetServer 组件启动失败，状态错误。当前状态=%d，正确状态=%d或=%d", this.stateMgr.GetState(), state.C_INIT, state.C_STOPED)
+			err = errors.Errorf("network.Acceptor 组件启动失败，状态错误。当前状态=%d，正确状态=%d或=%d", this.stateMgr.GetState(), state.C_INIT, state.C_STOPED)
 		}
 
 		return
@@ -83,7 +84,7 @@ func (this *NetServer) Run(ctx context.Context) {
 
 	// acceptor 检查
 	if nil == this.acceptor {
-		err = errors.New("network.NetServer 组件启动失败。acceptor=nil")
+		err = errors.New("network.Acceptor 组件启动失败。acceptor=nil")
 
 		return
 	}
@@ -95,19 +96,19 @@ func (this *NetServer) Run(ctx context.Context) {
 
 	this.stateMgr.SetState(state.C_WORKING)
 
-	zaplog.Infof("NetServer 组件启动成功")
+	zaplog.Infof("Acceptor 组件启动成功")
 
 	// 等待结束信号
 	// <-ctx.Done()
 }
 
-// 停止 NetServer
-func (this *NetServer) Stop() {
+// 停止 Acceptor
+func (this *Acceptor) Stop() {
 	var err error
 
 	// 状态效验
 	if !this.stateMgr.CompareAndSwap(state.C_WORKING, state.C_STOPING) {
-		err = errors.Errorf("network.NetServer 组件停止失败，状态错误。当前状态=%d，正确状态=%d", this.stateMgr.GetState(), state.C_WORKING)
+		err = errors.Errorf("network.Acceptor 组件停止失败，状态错误。当前状态=%d，正确状态=%d", this.stateMgr.GetState(), state.C_WORKING)
 
 		return
 	}
@@ -125,18 +126,18 @@ func (this *NetServer) Stop() {
 	// 改变状态：关闭完成
 	this.stateMgr.SetState(state.C_STOPED)
 
-	zaplog.Infof("network.NetServer 组件停止成功")
+	zaplog.Infof("network.Acceptor 组件停止成功")
 
 	return
 }
 
 // 获取组件名字
-func (this *NetServer) Name() string {
+func (this *Acceptor) Name() string {
 	return this.cmptName
 }
 
 // 收到1个新的 websocket 连接对象
-func (this *NetServer) OnNewWsConn(wsconn *websocket.Conn) {
+func (this *Acceptor) OnNewWsConn(wsconn *websocket.Conn) {
 	zaplog.Debugf("收到1个新的 websocket 连接。ip=%s", wsconn.RemoteAddr())
 
 	// 超过最大连接数
@@ -154,7 +155,7 @@ func (this *NetServer) OnNewWsConn(wsconn *websocket.Conn) {
 }
 
 // 创建 session 对象
-func (this *NetServer) createSession(netconn net.Conn, isWebSocket bool) {
+func (this *Acceptor) createSession(netconn net.Conn, isWebSocket bool) {
 	// 创建 socket
 	socket := &network.Socket{
 		Conn: netconn,

@@ -248,7 +248,7 @@ func (this *ScoConn) handshakeFail(code uint32) {
 //  处理握手ACK
 func (this *ScoConn) handleHandshakeAck() {
 	// 状态：工作中
-	if !this.stateMgr.SwapState(C_CONN_STATE_WAIT_ACK, C_CONN_STATE_WORKING) {
+	if !this.stateMgr.CompareAndSwap(C_CONN_STATE_WAIT_ACK, C_CONN_STATE_WORKING) {
 
 		return
 	}

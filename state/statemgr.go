@@ -35,7 +35,7 @@ func (this *StateManager) GetState() uint32 {
 	return this.state.Load()
 }
 
-// 交换状态
-func (this *StateManager) SwapState(old uint32, newv uint32) bool {
-	return this.state.CompareAndSwap(old, newv)
+// 对比并交换状态
+func (this *StateManager) CompareAndSwap(oldv uint32, newv uint32) bool {
+	return this.state.CompareAndSwap(oldv, newv)
 }
