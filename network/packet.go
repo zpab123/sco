@@ -65,7 +65,7 @@ func (this *Packet) SetMid(v uint16) {
 }
 
 // 获取 Packet 的 id
-func (this *Packet) GetId() uint16 {
+func (this *Packet) GetMid() uint16 {
 	return this.mid
 }
 
