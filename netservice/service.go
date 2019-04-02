@@ -124,6 +124,7 @@ func (this *NetService) Stop() {
 	}
 
 	// 关闭所有 session
+	this.sessionMgr.CloseAllSession()
 
 	// 阻塞-等待停止
 	// this.stopGroup.Wait()

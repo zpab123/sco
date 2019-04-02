@@ -7,7 +7,10 @@ package network
 // public api
 
 // 根据名字创建1个新的 Acceptor
-func NewAcceptor(name string, addr *TLaddr, mgr IConnManager) (aptor IAcceptor, err error) {
+func NewAcceptor(name string, addr *TLaddr, mgr IConnManager) (IAcceptor, error) {
+	var err error
+	var aptor IAcceptor
+
 	switch name {
 	case C_ACCEPTOR_NAME_TCP: // tcp
 		//aptor, err = NewTcpAcceptor(addr, mgr)
@@ -20,5 +23,5 @@ func NewAcceptor(name string, addr *TLaddr, mgr IConnManager) (aptor IAcceptor, 
 	default:
 	}
 
-	return
+	return aptor, err
 }

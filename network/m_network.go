@@ -53,12 +53,6 @@ const (
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
-// Server 接口
-type IServer interface {
-	Run() error  // 组件开始运行
-	Stop() error // 组件停止运行
-}
-
 // acceptor 接口
 type IAcceptor interface {
 	Run() error  // 组件开始运行

@@ -75,8 +75,10 @@ func (this *SessionManager) SetIDStart(start int64) {
 // 返回 nil=不存在
 func (this *SessionManager) GetSession(id int64) ISession {
 	// 遍历查找
-	if ses, ok := this.sesMap.Load(id); ok {
-		return ses.(ISession)
+	if v, ok := this.sesMap.Load(id); ok {
+		if ses, ok_ses := ses.(ISession); ok_ses {
+			return ses
+		}
 	}
 
 	return nil
