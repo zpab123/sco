@@ -76,7 +76,7 @@ func (this *SessionManager) SetIDStart(start int64) {
 func (this *SessionManager) GetSession(id int64) ISession {
 	// 遍历查找
 	if v, ok := this.sesMap.Load(id); ok {
-		if ses, ok_ses := ses.(ISession); ok_ses {
+		if ses, is_ses := v.(ISession); is_ses {
 			return ses
 		}
 	}

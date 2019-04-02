@@ -25,17 +25,17 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Option       *Option             // 配置参数
-	stateMgr     *state.StateManager // 状态管理
-	baseInfo     *TBaseInfo          // 基础信息
-	delegate     IDelegate           // 代理对象
-	stopGroup    sync.WaitGroup      // stop 等待组
-	serverInfo   *config.TServerInfo // 配置信息
-	signalChan   chan os.Signal      // 操作系统信号
-	ctx          context.Context     // 上下文
-	cancel       context.CancelFunc  // 退出通知函数
-	componentMgr *ComponentManager   // 组件管理
-	// handlerChan	// handler 消息通道
+	Option       *Option                // 配置参数
+	stateMgr     *state.StateManager    // 状态管理
+	baseInfo     TBaseInfo              // 基础信息
+	delegate     IDelegate              // 代理对象
+	stopGroup    sync.WaitGroup         // stop 等待组
+	serverInfo   *config.TServerInfo    // 配置信息
+	signalChan   chan os.Signal         // 操作系统信号
+	ctx          context.Context        // 上下文
+	cancel       context.CancelFunc     // 退出通知函数
+	componentMgr *ComponentManager      // 组件管理
+	handlerChan  chan session.ClientMsg // handler 消息通道
 	// remoteChan	// handler rpc消息通道
 }
 
@@ -129,6 +129,9 @@ func (this *Application) Run() {
 
 	// 记录启动时间
 	this.baseInfo.RunTime = time.Now()
+
+	// 消息通道
+	this.handlerChan = make(chan session.ClientMsg, this.Option.ClentMsgChanSize)
 
 	// 创建组件
 	createComponent(this)
@@ -237,7 +240,12 @@ func (this *Application) waitStopSignal() {
 
 // 主循环
 func (this *Application) mainLoop() {
-
+	for {
+		select {
+		case cm := <-this.handlerChan:
+			this.delegate.OnClentMsg(cm)
+		}
+	}
 }
 
 // 收到1个新的客户端消息
@@ -245,6 +253,13 @@ func (this *Application) OnClientMessage(ses *session.ClientSession, packet *net
 	// 主id相同 -- 加入本地chan
 
 	// 主id不同 -- 加入远程chan
+
+	msg := session.ClientMsg{
+		Session: ses,
+		Packet:  packet,
+	}
+
+	this.handlerChan <- msg
 }
 
 // 收到1个新的服务器消息
