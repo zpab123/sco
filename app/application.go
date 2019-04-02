@@ -12,10 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zpab123/sco/config" // 配置管理
-	"github.com/zpab123/sco/path"   // 路径
-	"github.com/zpab123/sco/state"  // 状态管理
-	"github.com/zpab123/zaplog"     // log
+	"github.com/zpab123/sco/config"     // 配置管理
+	"github.com/zpab123/sco/netservice" // 网络服务
+	"github.com/zpab123/sco/path"       // 路径
+	"github.com/zpab123/sco/state"      // 状态管理
+	"github.com/zpab123/zaplog"         // log
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -23,16 +24,18 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	stateMgr     *state.StateManager // 状态管理
-	baseInfo     *TBaseInfo          // 基础信息
-	appDelegate  IAppDelegate        // 代理对象
-	stopGroup    sync.WaitGroup      // stop 等待组
-	serverInfo   *config.TServerInfo // 配置信息
-	componentMgr *ComponentManager   // 组件管理
-	signalChan   chan os.Signal      // 操作系统信号
-	ctx          context.Context     // 上下文
-	cancel       context.CancelFunc  // 退出通知函数
-	NetService   INetService         // 网络服务组件
+	Option       *Option                // 配置选项
+	stateMgr     *state.StateManager    // 状态管理
+	baseInfo     *TBaseInfo             // 基础信息
+	appDelegate  IAppDelegate           // 代理对象
+	stopGroup    sync.WaitGroup         // stop 等待组
+	serverInfo   *config.TServerInfo    // 配置信息
+	componentMgr *ComponentManager      // 组件管理
+	signalChan   chan os.Signal         // 操作系统信号
+	ctx          context.Context        // 上下文
+	cancel       context.CancelFunc     // 退出通知函数
+	NetService   netservice.INetService // 网络服务
+	//Handler	客户端消息处理器
 }
 
 // 创建1个新的 Application 对象

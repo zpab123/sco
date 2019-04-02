@@ -19,19 +19,6 @@ const (
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
-// 组件接口
-type IComponent interface {
-	Init(app *Application)   // 组件初始化
-	Run(ctx context.Context) // 组件开始运行
-	Stop()                   // 组件停止运行
-	Name() string            // 获取组件名字
-}
-
-// 接收器接口
-type INetService interface {
-	IComponent // 接口继承：组件接口
-}
-
 // App 代理
 type IAppDelegate interface {
 	OnCreat(app *Application) // app 创建成功
