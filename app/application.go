@@ -12,10 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zpab123/sco/config" // 配置管理
-	"github.com/zpab123/sco/path"   // 路径
-	"github.com/zpab123/sco/state"  // 状态管理
-	"github.com/zpab123/zaplog"     // log
+	"github.com/zpab123/sco/config"  // 配置管理
+	"github.com/zpab123/sco/network" // 网络
+	"github.com/zpab123/sco/path"    // 路径
+	"github.com/zpab123/sco/session" // 会话
+	"github.com/zpab123/sco/state"   // 状态管理
+	"github.com/zpab123/zaplog"      // log
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -23,47 +25,49 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
+	Option       *Option             // 配置参数
 	stateMgr     *state.StateManager // 状态管理
 	baseInfo     *TBaseInfo          // 基础信息
-	appDelegate  IAppDelegate        // 代理对象
+	delegate     IDelegate           // 代理对象
 	stopGroup    sync.WaitGroup      // stop 等待组
 	serverInfo   *config.TServerInfo // 配置信息
-	componentMgr *ComponentManager   // 组件管理
 	signalChan   chan os.Signal      // 操作系统信号
 	ctx          context.Context     // 上下文
 	cancel       context.CancelFunc  // 退出通知函数
+	componentMgr *ComponentManager   // 组件管理
 	// handlerChan	// handler 消息通道
 	// remoteChan	// handler rpc消息通道
 }
 
 // 创建1个新的 Application 对象
-func NewApplication(appType string, delegate IAppDelegate) *Application {
+func NewApplication(appType string, delegate IDelegate) *Application {
 	// 参数验证
 	if "" == appType {
-		zaplog.Error("app 创建失败。 appType为空")
+		zaplog.Error("app 创建失败: 参数 appType 为空")
 
 		os.Exit(1)
 	}
 
 	if nil == delegate {
-		zaplog.Error("app 创建失败。 delegate=nil")
+		zaplog.Error("app 创建失败: 参数 delegate=nil")
 
 		os.Exit(1)
 	}
 
 	// 创建对象
 	st := state.NewStateManager()
-	base := &TBaseInfo{}
+	sigChan := make(chan os.Signal, 1)
+	ctx, cancel := context.WithCancel(context.Background())
 	cmptMgr := NewComponentManager()
-	signal := make(chan os.Signal, 1)
 
 	// 创建 app
 	app := &Application{
 		stateMgr:     st,
-		baseInfo:     base,
-		appDelegate:  delegate,
+		delegate:     delegate,
+		signalChan:   sigChan,
+		ctx:          ctx,
+		cancel:       cancel,
 		componentMgr: cmptMgr,
-		signalChan:   signal,
 	}
 
 	// 设置类型
@@ -72,9 +76,6 @@ func NewApplication(appType string, delegate IAppDelegate) *Application {
 	// 设置为无效状态
 	app.stateMgr.SetState(state.C_INVALID)
 
-	// 通知代理
-	app.appDelegate.OnCreat(app)
-
 	return app
 }
 
@@ -82,6 +83,7 @@ func NewApplication(appType string, delegate IAppDelegate) *Application {
 func (this *Application) Init() {
 	// 状态效验
 	if this.stateMgr.GetState() != state.C_INVALID {
+		st := this.stateMgr.GetState()
 		zaplog.Fatal("app Init 失败，状态错误。当前状态=%d，正确状态=%d", st, state.C_INVALID)
 
 		os.Exit(1)
@@ -96,14 +98,11 @@ func (this *Application) Init() {
 	}
 	this.baseInfo.MainPath = dir
 
-	// 退出通知
-	this.ctx, this.cancel = context.WithCancel(context.Background())
-
 	// 默认设置
 	defaultConfig(this)
 
 	// 通知代理
-	this.appDelegate.OnInit(this)
+	this.delegate.Init(this)
 
 	// 状态： 初始化
 	this.stateMgr.SetState(state.C_INIT)
@@ -166,11 +165,6 @@ func (this *Application) Stop() {
 	zaplog.Infof("%s 服务器，优雅退出", this.baseInfo.Name)
 
 	os.Exit(0)
-}
-
-// 获取组件管理
-func (this *Application) GetCmptMgr() *ComponentManager {
-	return this.componentMgr
 }
 
 // 启动所有组件
@@ -239,4 +233,23 @@ func (this *Application) waitStopSignal() {
 			zaplog.Errorf("异常的操作系统信号=%s", sig)
 		}
 	}
+}
+
+// 主循环
+func (this *Application) mainLoop() {
+
+}
+
+// 收到1个新的客户端消息
+func (this *Application) OnClientMessage(ses *session.ClientSession, packet *network.Packet) {
+	// 主id相同 -- 加入本地chan
+
+	// 主id不同 -- 加入远程chan
+}
+
+// 收到1个新的服务器消息
+func (this *Application) OnServerMessage(ses *session.ServerSession, packet *network.Packet) {
+	// 主id相同 -- 加入本地chan
+
+	// 主id不同 -- 加入远程chan
 }

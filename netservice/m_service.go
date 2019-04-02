@@ -33,7 +33,6 @@ type INetService interface {
 type TNetServiceOpt struct {
 	Enable       bool                       // 是否启动 connector
 	AcceptorName string                     // 接收器名字
-	Acceptor     network.IAcceptor          // 接收器
 	MaxConn      uint32                     // 最大连接数量，超过此数值后，不再接收新连接
 	ForClient    bool                       // 是否面向客户端
 	TcpConnOpt   *model.TTcpConnOpt         // tcpSocket 配置参数
@@ -42,12 +41,12 @@ type TNetServiceOpt struct {
 }
 
 // 创建1个新的 TNetServiceOpt
-func NewTNetServiceOpt(handler session.IMsgHandler) *TNetServiceOpt {
+func NewTNetServiceOpt() *TNetServiceOpt {
 	// 创建对象
 	tcpOpt := model.NewTTcpConnOpt()
 
-	csOpt := session.NewTClientSessionOpt(handler)
-	ssOpt := session.NewTServerSessionOpt(handler)
+	csOpt := session.NewTClientSessionOpt()
+	ssOpt := session.NewTServerSessionOpt()
 
 	// 创建 TServerOpt
 	opt := &TNetServiceOpt{

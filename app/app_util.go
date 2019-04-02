@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zpab123/sco/config"    // 配置管理
-	"github.com/zpab123/sco/netserver" // 网络服务器组件
-	"github.com/zpab123/sco/network"   // 网络
-	"github.com/zpab123/zaplog"        // log
+	"github.com/zpab123/sco/config"     // 配置管理
+	"github.com/zpab123/sco/netservice" // 网络服务
+	"github.com/zpab123/sco/network"    // 网络
+	"github.com/zpab123/zaplog"         // log
 )
 
 // 完成 app 的默认设置
@@ -25,8 +25,8 @@ func defaultConfig(app *Application) {
 	// 设置 log 信息
 	configLogger(app)
 
-	// 设置组件参数
-	setCmptOpt(app)
+	// 设置 app 默认参数
+	setdDfaultOpt(app)
 }
 
 // 解析 命令行参数
@@ -111,57 +111,12 @@ func configLogger(app *Application) {
 	zaplog.SetOutput(outputs)
 }
 
-// 设置组件默认参数
-func setCmptOpt(app *Application) {
-	// netServer 组件
-	if nil == app.componentMgr.GetNetServerOpt() {
-		opt := netserver.NewTNetServerOpt(app.appDelegate)
-		app.componentMgr.SetNetServerOpt(opt)
-	}
-}
-
 // 创建默认组件
 func createComponent(app *Application) {
-	// 网络连接组件
-	opt := app.componentMgr.GetNetServerOpt()
-	if nil != opt && opt.Enable {
-		newNetServer(app)
-	}
-}
-
-// 创建 Server 组件
-func newNetServer(app *Application) {
-	// 创建地址
-	serverInfo := app.serverInfo
-	opt := app.componentMgr.GetNetServerOpt()
-
-	var tcpAddr string = ""
-	if opt.ForClient && serverInfo.CTcpPort > 0 {
-		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CTcpPort) // 面向客户端的 tcp 地址
-	} else if serverInfo.Port > 0 {
-		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 tcp 地址
-	}
-
-	var wsAddr string = ""
-	if opt.ForClient && serverInfo.CWsPort > 0 {
-		wsAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CWsPort) // 面向客户端的 websocket 地址
-	} else if serverInfo.Port > 0 {
-		wsAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 websocket 地址
-	}
-
-	laddr := &network.TLaddr{
-		TcpAddr: tcpAddr,
-		WsAddr:  wsAddr,
-	}
-
-	// 创建 NetServer
-	s, err := netserver.NewNetServer(laddr, opt)
-	if nil != err {
-		return
-	}
-
-	if nil != s {
-		app.componentMgr.AddComponent(s)
+	// 网络服务
+	nsOpt := app.Option.NetServiceOpt
+	if nil != nsOpt && nsOpt.Enable {
+		newNetService(app)
 	}
 }
 
@@ -169,7 +124,7 @@ func newNetServer(app *Application) {
 func newNetService(app *Application) {
 	// 创建地址
 	serverInfo := app.serverInfo
-	opt := app.componentMgr.GetNetServerOpt()
+	opt := app.Option.NetServiceOpt
 
 	var tcpAddr string = ""
 	if opt.ForClient && serverInfo.CTcpPort > 0 {
@@ -191,12 +146,12 @@ func newNetService(app *Application) {
 	}
 
 	// 创建 NetServer
-	s, err := netserver.NewNetServer(laddr, opt)
+	ns, err := netservice.NewNetService(laddr, app, opt)
 	if nil != err {
-		return
+		zaplog.Fatal("app 创建 NetService 失败: %s", err.Error())
+
+		os.Exit(1)
 	}
 
-	if nil != s {
-		app.componentMgr.AddComponent(s)
-	}
+	app.componentMgr.Add(ns)
 }

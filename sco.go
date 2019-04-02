@@ -13,7 +13,7 @@ import (
 // 创建1个新的 Application 对象
 //
 // appType=server.json 中配置的类型
-func CreateApp(appType string, delegate app.IAppDelegate) *app.Application {
+func CreateApp(appType string, delegate app.IDelegate) *app.Application {
 	// 创建 app
 	app := app.NewApplication(appType, delegate)
 	app.Init()

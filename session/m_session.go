@@ -70,18 +70,16 @@ type IMsgHandler interface {
 type TSessionOpt struct {
 	Heartbeat  time.Duration        // 心跳周期
 	ScoConnOpt *network.TScoConnOpt // ScoConn 配置参数
-	MsgHandler ISessionMsgHandler   // 消息处理对象
 }
 
 // 创建1个新的 TSessionOpts
-func NewTSessionOpt(handler ISessionMsgHandler) *TSessionOpt {
+func NewTSessionOpt() *TSessionOpt {
 	// 创建 ScoConn
 	sc := network.NewTScoConnOpt()
 
 	// 创建 TServerSessionOpt
 	opt := &TSessionOpt{
 		Heartbeat:  C_HEARTBEAT,
-		MsgHandler: handler,
 		ScoConnOpt: sc,
 	}
 
@@ -95,11 +93,10 @@ func NewTSessionOpt(handler ISessionMsgHandler) *TSessionOpt {
 type TClientSessionOpt struct {
 	Heartbeat  time.Duration        // 心跳周期
 	ScoConnOpt *network.TScoConnOpt // WorldConnection 配置参数
-	MsgHandler IClientMsgHandler    // 消息处理对象
 }
 
 // 创建1个新的 TClientSessionOpt
-func NewTClientSessionOpt(handler IClientMsgHandler) *TClientSessionOpt {
+func NewTClientSessionOpt() *TClientSessionOpt {
 	// 创建 ScoConn
 	sc := network.NewTScoConnOpt()
 
@@ -107,7 +104,6 @@ func NewTClientSessionOpt(handler IClientMsgHandler) *TClientSessionOpt {
 	opt := &TClientSessionOpt{
 		Heartbeat:  C_HEARTBEAT,
 		ScoConnOpt: sc,
-		MsgHandler: handler,
 	}
 
 	return opt
@@ -120,18 +116,16 @@ func NewTClientSessionOpt(handler IClientMsgHandler) *TClientSessionOpt {
 type TServerSessionOpt struct {
 	Heartbeat  time.Duration        // 心跳周期
 	ScoConnOpt *network.TScoConnOpt // WorldConnection 配置参数
-	MsgHandler IServerMsgHandler    // 消息处理对象
 }
 
 // 创建1个新的 TServerSessionOpt
-func NewTServerSessionOpt(handler IServerMsgHandler) *TServerSessionOpt {
+func NewTServerSessionOpt() *TServerSessionOpt {
 	// 创建 ScoConn
 	sc := network.NewTScoConnOpt()
 
 	// 创建 TServerSessionOpt
 	opt := &TServerSessionOpt{
 		Heartbeat:  C_HEARTBEAT,
-		MsgHandler: handler,
 		ScoConnOpt: sc,
 	}
 

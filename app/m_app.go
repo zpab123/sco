@@ -20,12 +20,11 @@ const (
 // 接口
 
 // App 代理
-type IAppDelegate interface {
-	OnCreat(app *Application) // app 创建成功
-	OnInit(app *Application)  // app 初始化成功
-	OnRun(app *Application)   // app 开始运行
-	OnStop(app *Application)  // app 停止运行
-	session.IMsgHandler       // 接口继承：消息管理
+type IDelegate interface {
+	Init(app *Application)   // app 初始化
+	OnRun(app *Application)  // app 开始运行
+	OnStop(app *Application) // app 停止运行
+	session.IMsgHandler      // 接口继承：消息管理
 }
 
 // /////////////////////////////////////////////////////////////////////////////

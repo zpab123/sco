@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"          // 异常
-	"github.com/zpab123/sco/model"   // 全局模型
 	"github.com/zpab123/sco/network" // 网络
 	"github.com/zpab123/sco/session" // session 组件
 	"github.com/zpab123/sco/state"   // 状态管理
@@ -30,16 +29,23 @@ type NetService struct {
 	connNum    syncutil.AtomicUint32   // 当前连接数
 	option     *TNetServiceOpt         // 配置参数
 	sessionMgr *session.SessionManager // session 管理对象
+	handler    session.IMsgHandler     // 消息处理
 }
 
 // 新建1个 NetService 对象
-func NewNetService(addr *network.TLaddr, opt *TNetServiceOpt) (INetService, error) {
+func NewNetService(laddr *network.TLaddr, handler session.IMsgHandler, opt *TNetServiceOpt) (INetService, error) {
 	var err error
 	var a network.IAcceptor
 
 	// 参数效验
+	if nil == handler {
+		err = errors.New("创建 NetService 失败：参数 handler=nil")
+
+		return nil, err
+	}
+
 	if nil == opt {
-		opt = NewTNetServerOpt(nil)
+		opt = NewTNetServiceOpt()
 	}
 
 	// 创建对象
@@ -55,7 +61,7 @@ func NewNetService(addr *network.TLaddr, opt *TNetServiceOpt) (INetService, erro
 	}
 
 	// 创建 NetService
-	a, err = network.NewAcceptor(opt.AcceptorName, addr, ns)
+	a, err = network.NewAcceptor(opt.AcceptorName, laddr, ns)
 	if nil != err {
 		return nil, err
 	} else {
@@ -162,13 +168,21 @@ func (this *NetService) createSession(netconn net.Conn, isWebSocket bool) {
 
 	// 创建 session
 	if this.option.ForClient {
-		cses := session.NewClientSession(socket, this.sessionMgr, this.option.ClientSesOpt)
+		cses, err := session.NewClientSession(socket, this.sessionMgr, this.handler, this.option.ClientSesOpt)
 
-		cses.Run()
+		if nil != err {
+			zaplog.Error(err.Error())
+		} else {
+			cses.Run()
+		}
 	} else {
-		sses := session.NewServerSession(socket, this.sessionMgr, this.option.ServerSesOpt)
+		sses, err := session.NewServerSession(socket, this.sessionMgr, this.handler, this.option.ServerSesOpt)
 
-		sses.Run()
+		if nil != err {
+			zaplog.Error(err.Error())
+		} else {
+			sses.Run()
+		}
 	}
 
 	this.connNum.Add(1)
