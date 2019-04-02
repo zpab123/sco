@@ -32,6 +32,7 @@ type Application struct {
 	signalChan   chan os.Signal      // 操作系统信号
 	ctx          context.Context     // 上下文
 	cancel       context.CancelFunc  // 退出通知函数
+	NetService   INetService         // 网络服务组件
 }
 
 // 创建1个新的 Application 对象
