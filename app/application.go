@@ -32,6 +32,8 @@ type Application struct {
 	signalChan   chan os.Signal      // 操作系统信号
 	ctx          context.Context     // 上下文
 	cancel       context.CancelFunc  // 退出通知函数
+	// handlerChan	// handler 消息通道
+	// remoteChan	// handler rpc消息通道
 }
 
 // 创建1个新的 Application 对象
@@ -79,8 +81,7 @@ func NewApplication(appType string, delegate IAppDelegate) *Application {
 // 初始化 Application
 func (this *Application) Init() {
 	// 状态效验
-	st := this.stateMgr.GetState()
-	if st != state.C_INVALID {
+	if this.stateMgr.GetState() != state.C_INVALID {
 		zaplog.Fatal("app Init 失败，状态错误。当前状态=%d，正确状态=%d", st, state.C_INVALID)
 
 		os.Exit(1)

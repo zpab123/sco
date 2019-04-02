@@ -47,7 +47,7 @@ func NewNetService(addr *network.TLaddr, opt *TNetServiceOpt) (INetService, erro
 	sesMgr := session.NewSessionManager()
 
 	// 创建 NetService
-	s := &NetService{
+	ns := &NetService{
 		cmptName:   C_CMPT_NAME,
 		stateMgr:   sm,
 		option:     opt,
@@ -55,17 +55,17 @@ func NewNetService(addr *network.TLaddr, opt *TNetServiceOpt) (INetService, erro
 	}
 
 	// 创建 NetService
-	a, err = network.NewAcceptor(opt.AcceptorName, addr, s)
+	a, err = network.NewAcceptor(opt.AcceptorName, addr, ns)
 	if nil != err {
 		return nil, err
 	} else {
-		s.acceptor = a
+		ns.acceptor = a
 	}
 
 	// 设置为初始状态
-	s.stateMgr.SetState(state.C_INIT)
+	ns.stateMgr.SetState(state.C_INIT)
 
-	return s, err
+	return ns, err
 }
 
 // 启动 NetService

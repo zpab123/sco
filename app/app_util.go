@@ -164,3 +164,39 @@ func newNetServer(app *Application) {
 		app.componentMgr.AddComponent(s)
 	}
 }
+
+// 创建 NetService 组件
+func newNetService(app *Application) {
+	// 创建地址
+	serverInfo := app.serverInfo
+	opt := app.componentMgr.GetNetServerOpt()
+
+	var tcpAddr string = ""
+	if opt.ForClient && serverInfo.CTcpPort > 0 {
+		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CTcpPort) // 面向客户端的 tcp 地址
+	} else if serverInfo.Port > 0 {
+		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 tcp 地址
+	}
+
+	var wsAddr string = ""
+	if opt.ForClient && serverInfo.CWsPort > 0 {
+		wsAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CWsPort) // 面向客户端的 websocket 地址
+	} else if serverInfo.Port > 0 {
+		wsAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 websocket 地址
+	}
+
+	laddr := &network.TLaddr{
+		TcpAddr: tcpAddr,
+		WsAddr:  wsAddr,
+	}
+
+	// 创建 NetServer
+	s, err := netserver.NewNetServer(laddr, opt)
+	if nil != err {
+		return
+	}
+
+	if nil != s {
+		app.componentMgr.AddComponent(s)
+	}
+}
