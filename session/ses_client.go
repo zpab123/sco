@@ -4,6 +4,7 @@
 package session
 
 import (
+	"github.com/pkg/errors"          // 异常
 	"github.com/zpab123/sco/network" // 网络
 	"github.com/zpab123/syncutil"    // 原子变量
 )
@@ -24,28 +25,54 @@ type ClientSession struct {
 }
 
 // 创建1个新的 ClientSession 对象
-func NewClientSession(socket network.ISocket, mgr ISessionManage, opt *TClientSessionOpt) ISession {
+func NewClientSession(socket network.ISocket, mgr ISessionManage, handler IClientMsgHandler, opt *TClientSessionOpt) (ISession, error) {
+	var err error
+
+	// 参数效验
+	if nil == socket {
+		err = errors.New("创建 ClientSession 失败：参数 socket=nil")
+
+		return nil, err
+	}
+
+	if nil == mgr {
+		err = errors.New("创建 ClientSession 失败：参数 mgr=nil")
+
+		return nil, err
+	}
+
+	if nil == handler {
+		err = errors.New("创建 ClientSession 失败：参数 handler=nil")
+
+		return nil, err
+	}
+
 	// 创建 ClientSession
 	cs := &ClientSession{
 		option:      opt,
 		sesssionMgr: mgr,
-		msgHandler:  opt.MsgHandler,
+		msgHandler:  handler,
 	}
 
 	// 创建 session
 	if opt == nil {
-		opt = NewTClientSessionOpt(nil)
+		opt = NewTClientSessionOpt()
 	}
 	sesOpt := &TSessionOpt{
 		Heartbeat:  opt.Heartbeat,
 		ScoConnOpt: opt.ScoConnOpt,
-		MsgHandler: cs,
 	}
-	ses := NewSession(socket, sesOpt)
+
+	var ses *Session
+	ses, err = NewSession(socket, cs, sesOpt)
+
+	if nil != err {
+		return nil, err
+	}
 
 	cs.session = ses
 
-	return cs
+	return cs, nil
 }
 
 // 启动 session

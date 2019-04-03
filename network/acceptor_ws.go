@@ -31,11 +31,11 @@ type WsAcceptor struct {
 }
 
 // 创建1个新的 wsAcceptor 对象
-func NewWsAcceptor(addr string, mgr IWsConnManager) (IAcceptor, error) {
+func NewWsAcceptor(laddr string, mgr IWsConnManager) (IAcceptor, error) {
 	var err error
 	// 参数效验
-	if addr == "" {
-		err = errors.New("创建 WsAcceptor 失败。参数 addr 为空")
+	if laddr == "" {
+		err = errors.New("创建 WsAcceptor 失败。参数 laddr 为空")
 
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func NewWsAcceptor(addr string, mgr IWsConnManager) (IAcceptor, error) {
 	// 创建接收器
 	aptor := &WsAcceptor{
 		name:     C_ACCEPTOR_NAME_WS,
-		laddr:    addr,
+		laddr:    laddr,
 		connMgr:  mgr,
 		stateMgr: st,
 	}
@@ -101,8 +101,6 @@ func (this *WsAcceptor) Stop() error {
 		return err
 	}
 
-	zaplog.Debugf("主动关闭 WsAcceptor 服务。ip=%s", this.laddr)
-
 	err = this.httpServer.Close()
 	if nil != err {
 		this.listener.Close()
@@ -147,6 +145,6 @@ func (this *WsAcceptor) accept() {
 
 	// 错误信息
 	if nil != err {
-		zaplog.Debugf("WsAcceptor 停止侦听新连接。ip=%s，err=%s", this.laddr, err)
+		zaplog.Debugf("WsAcceptor 停止侦听新连接，goroutine 退出。ip=%s，err=%s", this.laddr, err)
 	}
 }

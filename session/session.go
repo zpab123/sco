@@ -32,13 +32,28 @@ type Session struct {
 }
 
 // 创建1个新的 Session 对象
-func NewSession(socket network.ISocket, opt *TSessionOpt) *Session {
+func NewSession(socket network.ISocket, handler ISessionMsgHandler, opt *TSessionOpt) (*Session, error) {
+	var err error
+
+	// 参数效验
+	if nil == socket {
+		err = errors.New("创建 Session 失败：参数 socket=nil")
+
+		return nil, err
+	}
+
+	if nil == handler {
+		err = errors.New("创建 Session 失败：参数 handler=nil")
+
+		return nil, err
+	}
+
 	// 创建 StateManager
 	st := state.NewStateManager()
 
 	// 创建 ScoConn
 	if nil == opt {
-		opt = NewTSessionOpt(nil)
+		opt = NewTSessionOpt()
 	}
 	wc := network.NewScoConn(socket, opt.ScoConnOpt)
 
@@ -47,14 +62,14 @@ func NewSession(socket network.ISocket, opt *TSessionOpt) *Session {
 		option:     opt,
 		stateMgr:   st,
 		scoConn:    wc,
-		msgHandler: opt.MsgHandler,
+		msgHandler: handler,
 		timeOut:    opt.Heartbeat * 2,
 	}
 
 	// 修改为初始化状态
 	ss.stateMgr.SetState(state.C_INIT)
 
-	return ss
+	return ss, nil
 }
 
 // 启动 session

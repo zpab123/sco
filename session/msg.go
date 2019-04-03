@@ -12,28 +12,8 @@ import (
 
 // ClientSession 消息
 type ClientMsg struct {
-	session *ClientSession  // session 对象
-	packet  *network.Packet // packet 数据包
-}
-
-// 创建1个 ClientMsg
-func NewClientMsg(ses *ClientSession, pkt *network.Packet) *ClientMsg {
-	msg := &ClientMsg{
-		session: ses,
-		packet:  pkt,
-	}
-
-	return msg
-}
-
-// 获取 session 对象
-func (this *ClientMsg) GetSession() *ClientSession {
-	return this.session
-}
-
-// 获取 packet 对象
-func (this *ClientMsg) GetPacket() *network.Packet {
-	return this.packet
+	Session *ClientSession  // session 对象
+	Packet  *network.Packet // packet 数据包
 }
 
 // /////////////////////////////////////////////////////////////////////////////

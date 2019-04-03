@@ -4,6 +4,7 @@
 package session
 
 import (
+	"github.com/pkg/errors"          // 异常
 	"github.com/zpab123/sco/network" // 网络
 	"github.com/zpab123/syncutil"    // 原子变量
 )
@@ -24,30 +25,51 @@ type ServerSession struct {
 }
 
 // 创建1个新的 ServerSession 对象
-func NewServerSession(socket network.ISocket, mgr ISessionManage, opt *TServerSessionOpt) ISession {
+func NewServerSession(socket network.ISocket, mgr ISessionManage, handler IServerMsgHandler, opt *TServerSessionOpt) (ISession, error) {
+	var err error
+
+	// 参数效验
+	if nil == socket {
+		err = errors.New("创建 ServerSession 失败：参数 socket=nil")
+
+		return nil, err
+	}
+
+	if nil == mgr {
+		err = errors.New("创建 ServerSession 失败：参数 mgr=nil")
+
+		return nil, err
+	}
+
+	if nil == handler {
+		err = errors.New("创建 ServerSession 失败：参数 handler=nil")
+
+		return nil, err
+	}
+
 	// 创建 ServerSession
 	ss := &ServerSession{
 		option:      opt,
 		sesssionMgr: mgr,
-		msgHandler:  opt.MsgHandler,
+		msgHandler:  handler,
 	}
 
 	// 创建 session
 	if opt == nil {
-		opt = NewTServerSessionOpt(nil)
+		opt = NewTServerSessionOpt()
 	}
 
 	sesOpt := &TSessionOpt{
 		Heartbeat:  opt.Heartbeat,
 		ScoConnOpt: opt.ScoConnOpt,
-		MsgHandler: ss,
 	}
 
-	ses := NewSession(socket, sesOpt)
+	var ses *Session
+	ses, err = NewSession(socket, ss, sesOpt)
 
 	ss.session = ses
 
-	return ss
+	return ss, nil
 }
 
 // 启动 session

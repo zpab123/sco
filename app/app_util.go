@@ -9,7 +9,10 @@ import (
 	"os"
 
 	"github.com/zpab123/sco/config"     // 配置管理
+<<<<<<< HEAD
 	"github.com/zpab123/sco/netserver"  // 网络服务器组件
+=======
+>>>>>>> develop
 	"github.com/zpab123/sco/netservice" // 网络服务
 	"github.com/zpab123/sco/network"    // 网络
 	"github.com/zpab123/zaplog"         // log
@@ -26,8 +29,8 @@ func defaultConfig(app *Application) {
 	// 设置 log 信息
 	configLogger(app)
 
-	// 设置组件参数
-	setCmptOpt(app)
+	// 设置 app 默认参数
+	setdDfaultOpt(app)
 }
 
 // 解析 命令行参数
@@ -112,29 +115,20 @@ func configLogger(app *Application) {
 	zaplog.SetOutput(outputs)
 }
 
-// 设置组件默认参数
-func setCmptOpt(app *Application) {
-	// netServer 组件
-	if nil == app.componentMgr.GetNetServerOpt() {
-		opt := netserver.NewTNetServerOpt(app.appDelegate)
-		app.componentMgr.SetNetServerOpt(opt)
-	}
-}
-
 // 创建默认组件
 func createComponent(app *Application) {
-	// 网络连接组件
-	opt := app.componentMgr.GetNetServerOpt()
-	if nil != opt && opt.Enable {
-		newNetServer(app)
+	// 网络服务
+	nsOpt := app.Option.NetServiceOpt
+	if nil != nsOpt && nsOpt.Enable {
+		newNetService(app)
 	}
 }
 
-// 创建 Server 组件
-func newNetServer(app *Application) {
+// 创建 NetService 组件
+func newNetService(app *Application) {
 	// 创建地址
 	serverInfo := app.serverInfo
-	opt := app.componentMgr.GetNetServerOpt()
+	opt := app.Option.NetServiceOpt
 
 	var tcpAddr string = ""
 	if opt.ForClient && serverInfo.CTcpPort > 0 {
@@ -156,14 +150,14 @@ func newNetServer(app *Application) {
 	}
 
 	// 创建 NetServer
-	s, err := netserver.NewNetServer(laddr, opt)
+	ns, err := netservice.NewNetService(laddr, app, opt)
 	if nil != err {
-		return
+		zaplog.Fatal("app 创建 NetService 失败: %s", err.Error())
+
+		os.Exit(1)
 	}
 
-	if nil != s {
-		app.componentMgr.AddComponent(s)
-	}
+	app.componentMgr.Add(ns)
 }
 
 // 创建 netService 服务
