@@ -1,9 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-<<<<<<< HEAD
-// app 配置选项
-=======
 // app 可选参数
->>>>>>> develop
 
 package app
 
@@ -14,30 +10,6 @@ import (
 // /////////////////////////////////////////////////////////////////////////////
 // Option 对象
 
-<<<<<<< HEAD
-// app 自定义参数
-type Option struct {
-	App           *Application               // app 对象
-	NetServiceOpt *netservice.TNetServiceOpt // 网络服务配置
-}
-
-// 新建1个默认配置
-func NewOption(app *Application) *Option {
-	opt := &Option{
-		App: app,
-	}
-
-	opt.NetServiceOpt = newNetServiceOpt(opt.App)
-
-	return opt
-}
-
-// 新建网络服务参数
-func newNetServiceOpt(app *Application) *netservice.TNetServiceOpt {
-	ns := netservice.NewTNetServiceOpt(app.appDelegate)
-
-	return ns
-=======
 // app 配置参数
 type Option struct {
 	NetServiceOpt     *netservice.TNetServiceOpt // 网络服务参数
@@ -57,5 +29,4 @@ func setdDfaultOpt(app *Application) {
 	}
 
 	app.Option = opt
->>>>>>> develop
 }

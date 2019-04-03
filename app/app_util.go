@@ -9,10 +9,6 @@ import (
 	"os"
 
 	"github.com/zpab123/sco/config"     // 配置管理
-<<<<<<< HEAD
-	"github.com/zpab123/sco/netserver"  // 网络服务器组件
-=======
->>>>>>> develop
 	"github.com/zpab123/sco/netservice" // 网络服务
 	"github.com/zpab123/sco/network"    // 网络
 	"github.com/zpab123/zaplog"         // log
@@ -158,41 +154,4 @@ func newNetService(app *Application) {
 	}
 
 	app.componentMgr.Add(ns)
-}
-
-// 创建 netService 服务
-func newNetService(app *Application) {
-	// 创建地址
-	serverInfo := app.serverInfo
-	opt := app.componentMgr.GetNetServerOpt()
-
-	var tcpAddr string = ""
-	if opt.ForClient && serverInfo.CTcpPort > 0 {
-		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CTcpPort) // 面向客户端的 tcp 地址
-	} else if serverInfo.Port > 0 {
-		tcpAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 tcp 地址
-	}
-
-	var wsAddr string = ""
-	if opt.ForClient && serverInfo.CWsPort > 0 {
-		wsAddr = fmt.Sprintf("%s:%d", serverInfo.ClientHost, serverInfo.CWsPort) // 面向客户端的 websocket 地址
-	} else if serverInfo.Port > 0 {
-		wsAddr = fmt.Sprintf("%s:%d", serverInfo.Host, serverInfo.Port) // 面向服务器的 websocket 地址
-	}
-
-	laddr := &network.TLaddr{
-		TcpAddr: tcpAddr,
-		WsAddr:  wsAddr,
-	}
-
-	// 创建 netService
-	s, err := netserver.NewNetServer(laddr, opt)
-	// ns, err := netservice.NewNetService(laddr, )
-	if nil != err {
-		return
-	}
-
-	if nil != s {
-		app.componentMgr.AddComponent(s)
-	}
 }

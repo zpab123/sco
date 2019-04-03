@@ -12,7 +12,6 @@ import (
 
 // 组件接口
 type IComponent interface {
-	Init()                   // 组件初始化
 	Run(ctx context.Context) // 组件开始运行
 	Stop()                   // 组件停止运行
 	Name() string            // 获取组件名字
