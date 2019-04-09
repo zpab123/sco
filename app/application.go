@@ -37,6 +37,7 @@ type Application struct {
 	componentMgr *ComponentManager      // 组件管理
 	handlerChan  chan session.ClientMsg // handler 消息通道
 	// remoteChan	// handler rpc消息通道
+	//discovery	// 服务发现
 }
 
 // 创建1个新的 Application 对象
