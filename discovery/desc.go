@@ -10,7 +10,7 @@ import (
 // 注册到服务发现的服务描述
 type ServiceDesc struct {
 	Name string            // 服务名字
-	Mid  string            // 服务主Id，整个集群唯一
+	Mid  uint16            // 服务主Id，整个集群唯一
 	Host string            // 监听地址
 	Port int               // 监听端口
 	Tags []string          // 分类标签
