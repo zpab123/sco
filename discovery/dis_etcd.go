@@ -27,6 +27,7 @@ type etcdDiscovery struct {
 
 // 新建1个 etcdDiscovery 对象
 func NewEtcdDiscovery(endpoints []string) (IDiscovery, error) {
+
 	ed := &etcdDiscovery{
 		serverMapByType: make(map[string]map[uint16]*ServiceDesc),
 	}
@@ -49,12 +50,13 @@ func (this *etcdDiscovery) Run() {
 		}
 	}
 
-	ch := this.client.Watch(context.Background(), C_ETCD_SERVER_DIR, clientv3.WithPrefix())
-	go this.watchEtcdChanges(ch)
+	go this.watchEtcdChanges()
 }
 
 // 观察信息变化
-func (this *etcdDiscovery) watchEtcdChanges(wChan clientv3.WatchChan) {
+func (this *etcdDiscovery) watchEtcdChanges() {
+	wChan := this.client.Watch(context.Background(), C_ETCD_SERVER_DIR, clientv3.WithPrefix())
+
 	for {
 		select {
 		case wRes := <-wChan:
