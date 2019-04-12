@@ -111,3 +111,10 @@ func (this *etcdDiscovery) writeLockScope(f func()) {
 func (this *etcdDiscovery) notifyListeners(act int, sd *ServiceDesc) {
 
 }
+
+// 注册1个服务
+func (this *etcdDiscovery) registerService(svcDesc *ServiceDesc) error {
+	_, err := this.client.Put(context.TODO())
+
+	return err
+}
