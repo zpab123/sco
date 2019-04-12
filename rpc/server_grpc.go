@@ -13,14 +13,14 @@ var (
 	// sco 底层 rpc 方法
 	methods = []grpc.MethodDesc{
 		{
-			MethodName: C_SVC_CALL,
+			MethodName: C_METHOD_CALL,
 			Handler:    _ScoCallHandler(),
 		},
 	}
 
 	// sco 引擎底层 rpc 服务描述
 	scoServiceDesc = grpc.ServiceDesc{
-		ServiceName: C_SCO_SERVICE,
+		ServiceName: C_SVC_NAME,
 		HandlerType: (*IScoService)(nil),
 		Methods:     methods,
 		Streams:     []grpc.StreamDesc{},
@@ -51,6 +51,13 @@ func (this *GrpcServer) Run() error {
 	go this.server.Serve(ln)
 
 	return nil
+}
+
+// graceful: stops the server from accepting new connections and RPCs and
+// blocks until all the pending RPCs are finished.
+// source: https://godoc.org/google.golang.org/grpc#Server.GracefulStop
+func (this *GrpcServer) Stop() {
+	this.server.GracefulStop()
 }
 
 // 设置引擎服务

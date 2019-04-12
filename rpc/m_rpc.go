@@ -11,8 +11,8 @@ import (
 // /////////////////////////////////////////////////////////////////////////////
 // 常量
 const (
-	C_SCO_SERVICE = "rpc.scoService" // sco rpc服务名称
-	C_SVC_CALL    = "Call"           // sco Call 方法
+	C_SVC_NAME    = "sco.rpcService" // sco rpc服务名称
+	C_METHOD_CALL = "Call"           // sco Call 方法
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -26,4 +26,9 @@ type IServer interface {
 // sco 引擎服务
 type IScoService interface {
 	Call(ctx context.Context, req *protocol.RpcRequest) (*protocol.RpcResponse, error) // 方法调用
+}
+
+// 连接对象接口
+type IConn interface {
+	Call() // 远程调用
 }
