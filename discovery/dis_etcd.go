@@ -6,6 +6,7 @@ package discovery
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/zpab123/zaplog" // log
 	"go.etcd.io/etcd/clientv3"  // etcd 客户端
@@ -16,20 +17,27 @@ import (
 
 // ectd 服务发现
 type etcdDiscovery struct {
-	client          *clientv3.Client                   // etcd 客户端
-	leaseID         clientv3.LeaseID                   // 未知
-	endpoints       []string                           // 注册中心地址集合
-	serverMapByID   sync.Map                           // 服务器集群信息集合
-	serverMapByType map[string]map[uint16]*ServiceDesc // 服务器集群信息集合
-	rwMutex         sync.RWMutex                       // 读写锁
-	serverDesc      *ServiceDesc                       // 自身服务器信息
+	client             *clientv3.Client                   // etcd 客户端
+	endpoints          []string                           // 注册中心地址集合
+	heartbeatTTL       time.Duration                      // 心跳周期
+	leaseID            clientv3.LeaseID                   // 租约id
+	renewLeaseTimeout  time.Duration                      // 重新续约超时时间
+	renewLeaseMacCount int                                // 重新续约最大次数
+	renewLeaseInterval time.Duration                      // 重新续约间隔
+	svcMapByName       sync.Map                           // 服务器集群信息集合
+	svcMapByType       map[string]map[string]*ServiceDesc // 服务器集群信息集合
+	rwMutex            sync.RWMutex                       // 读写锁
+	serverDesc         *ServiceDesc                       // 自身服务器信息
+	updateInterval     time.Duration                      // 服务更新周期
+	revokeTimeout      time.Duration                      // 废除超时
 }
 
 // 新建1个 etcdDiscovery 对象
 func NewEtcdDiscovery(endpoints []string) (IDiscovery, error) {
 
 	ed := &etcdDiscovery{
-		serverMapByType: make(map[string]map[uint16]*ServiceDesc),
+		endpoints:    endpoints,
+		svcMapByType: make(map[string]map[string]*ServiceDesc),
 	}
 
 	return ed, nil
@@ -38,6 +46,7 @@ func NewEtcdDiscovery(endpoints []string) (IDiscovery, error) {
 // 启动服务发现
 func (this *etcdDiscovery) Run() {
 	var err error
+	// 建立连接
 	if this.client == nil {
 		conf := clientv3.Config{
 			Endpoints:   this.endpoints,
@@ -50,50 +59,172 @@ func (this *etcdDiscovery) Run() {
 		}
 	}
 
+	// 建立租约
+	this.grantLease()
+
+	// 同步服务
+	this.syncService()
+
+	// 服务更新
+	go this.update()
+
+	// 侦听etcd事件
 	go this.watchEtcdChanges()
 }
 
-// 观察信息变化
-func (this *etcdDiscovery) watchEtcdChanges() {
-	wChan := this.client.Watch(context.Background(), C_ETCD_SERVER_DIR, clientv3.WithPrefix())
+// 从 etcd 更新所有服务信息
+func (this *etcdDiscovery) UpdateService() error {
+	keys, err := this.client.Get(context.TODO(), C_ETCD_SERVER_DIR, clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	if nil != err {
+		return err
+	}
+
+	// 保存有效
+	validName = make([]string, 0)
+	for _, kv := range keys.Kvs {
+		stype, name, err := parseServiceKey(string(kv.Key))
+		if nil != err {
+			// return err
+		}
+
+		validName = append(validName, name)
+
+		if _, ok := this.svcMapByName.Load(name); !ok {
+			svcDesc, err := this.getServiceFromEtcd(stype, name)
+			if nil != err {
+				continue
+			}
+
+			this.addService(svcDesc)
+		}
+	}
+
+	// 删除无效
+	this.deleteInvalid(validName)
+
+	return nil
+}
+
+// 建立租约
+func (this *etcdDiscovery) grantLease() error {
+	// 设置租约时间
+	resp, err := this.client.Grant(context.TODO(), int64(this.heartbeatTTL.Seconds()))
+	if err != nil {
+		return err
+	}
+	this.leaseID = resp.ID
+
+	// 设置续租
+	leaseChan, err := this.client.KeepAlive(context.TODO(), this.leaseID)
+	if err != nil {
+		return err
+	}
+
+	<-leaseChan
+	go this.watchLeaseChan(leaseChan)
+
+	return nil
+}
+
+// 监听租约通道
+func (this *etcdDiscovery) watchLeaseChan(leaseChan <-chan *clientv3.LeaseKeepAliveResponse) {
+	// 重新续约次数
+	renewCount := 0
 
 	for {
 		select {
-		case wRes := <-wChan:
-			for _, evt := range wRes.Events {
-				switch evt.Type {
-				case clientv3.EventTypePut: //增加服务
-					if sd, err := parseServer(evt.Kv.Value); err != nil {
-						zaplog.Warnf("etcdDiscovery 发现新服务，但是解析服务发现json信息失败。err=%s", err.Error())
+		case leaseResp := <-leaseChan:
+			// 续约成功
+			if leaseResp != nil {
+				renewCount = 0
+				continue
+			}
 
-						continue
+			// 重新签约
+			for {
+				err := this.renewLease()
+
+				if err != nil {
+					renewCount += 1
+
+					// 超时
+					if err == C_ERROR_LEASE_TIMEOUT {
+						return
 					}
 
-					this.addServer(sd)
-					zaplog.Debugf("etcdDiscovery 发现新服务，name=%s", evt.Kv.Key)
-				case clientv3.EventTypeDelete: // 删除服务
+					// 达到最大重连次数
+					if renewCount >= this.renewLeaseMacCount {
+						return
+					}
+
+					zaplog.Warnf("etcdDiscovery 签约失败，%d秒后重新签约", uint64(this.renewLeaseInterval.Seconds()))
+					time.Sleep(this.renewLeaseInterval)
+					continue
 				}
+
+				return
 			}
 		}
 	}
 }
 
+// 重新续约
+func (this *etcdDiscovery) renewLease() error {
+	ch := make(chan error)
+
+	// 异步连接
+	go func() {
+		defer close(ch)
+
+		err := this.grantLease()
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		err = this.syncService(this.serverDesc)
+		c <- err
+	}()
+
+	select {
+	case err := <-ch:
+		return err
+	case <-time.After(this.renewLeaseTimeout):
+		return C_ERROR_LEASE_TIMEOUT
+	}
+}
+
+// 获取服务
+func (this *etcdDiscovery) getServiceFromEtcd(stype, name string) (*ServiceDesc, error) {
+	k := getKey(stype, name)
+	v, err := this.client.Get(context.TODO(), k)
+	if nil != err {
+		return nil
+	}
+
+	if len(v.Kvs) == 0 {
+		return nil
+	}
+
+	return parseService(v.Kvs[0].Value)
+}
+
 // 增加1个服务信息
-func (this *etcdDiscovery) addServer(sd *ServiceDesc) {
-	if _, loaded := this.serverMapByID.LoadOrStore(sd.Mid, sd); !loaded {
+func (this *etcdDiscovery) addService(sd *ServiceDesc) {
+	if _, loaded := this.svcMapByName.LoadOrStore(sd.Name, sd); !loaded {
 		// 保存
 		this.writeLockScope(func() {
-			tMap, ok := this.serverMapByType[sd.Name]
+			nameMap, ok := this.svcMapByType[sd.Type]
 			if !ok {
-				tMap := make(map[uint16]*ServiceDesc)
-				this.serverMapByType[sd.Name] = tMap
+				nameMap = make(map[string]*ServiceDesc)
+				this.svcMapByType[sd.Type] = nameMap
 			}
 
-			tMap[sd.Mid] = sd
+			nameMap[sd.Name] = sd
 		})
 
 		// 通知
-		if sd.Mid != this.serverDesc.Mid {
+		if sd.Name != this.serverDesc.Name {
 			this.notifyListeners(C_SERVICE_ADD, sd)
 		}
 	}
@@ -112,9 +243,129 @@ func (this *etcdDiscovery) notifyListeners(act int, sd *ServiceDesc) {
 
 }
 
-// 注册1个服务
-func (this *etcdDiscovery) registerService(svcDesc *ServiceDesc) error {
-	_, err := this.client.Put(context.TODO())
+// 删除无效
+func (this *etcdDiscovery) deleteInvalid(validName []string) {
+	rangeFunc := func(key interface{}, value interface{}) bool {
+		name := key.(string)
+
+		// 是否存在
+		var have bool = false
+		for _, v := range validName {
+			if v == name {
+				have = true
+				break
+			}
+		}
+
+		if !have {
+			this.deleteService(name)
+		}
+
+		return true
+	}
+
+	this.svcMapByName.Range(rangeFunc)
+}
+
+// 删除某个服务
+func (this *etcdDiscovery) deleteService(name string) {
+	if v, ok := this.svcMapByName.Load(name); ok {
+		svc := v.(*ServiceDesc)
+
+		// 删除
+		this.svcMapByName.Delete(name)
+
+		// 删除
+		this.writeLockScope(func() {
+			if nMap, ok := this.svcMapByType[svc.Type]; ok {
+				delete(nMap, svc.Name)
+			}
+		})
+
+		// 通知
+		this.notifyListeners(C_SERVICE_DEL, svc)
+	}
+}
+
+// 同步服务
+func (this *etcdDiscovery) syncService(svcDesc *ServiceDesc) error {
+	// 推送服务
+	if err := this.putService(svcDesc); err != nil {
+		return err
+	}
+
+	// 更新服务
+	this.UpdateService()
+
+	return nil
+}
+
+// 将服务加入 etcd
+func (this *etcdDiscovery) putService(svcDesc *ServiceDesc) error {
+	// 使用租约id建立临时 key-value 存储
+	_, err := this.client.Put(context.TODO(), svcDesc.Key(), svcDesc.JsonString(), clientv3.WithLease(this.leaseID))
 
 	return err
+}
+
+// 定时更新
+func (this *etcdDiscovery) update() {
+	ticker := time.NewTicker(this.updateInterval)
+	for {
+		select {
+		case <-ticker.C:
+			err := this.UpdateService()
+			if nil != err {
+
+			}
+		}
+	}
+}
+
+// 观察信息变化
+func (this *etcdDiscovery) watchEtcdChanges() {
+	wChan := this.client.Watch(context.Background(), C_ETCD_SERVER_DIR, clientv3.WithPrefix())
+
+	for {
+		select {
+		case wRes := <-wChan:
+			for _, evt := range wRes.Events {
+				switch evt.Type {
+				case clientv3.EventTypePut: //增加服务
+					if sd, err := parseService(evt.Kv.Value); err != nil {
+						zaplog.Warnf("etcdDiscovery 发现新服务，但是解析服务发现json信息失败。err=%s", err.Error())
+
+						continue
+					}
+
+					this.addService(sd)
+					zaplog.Debugf("etcdDiscovery 发现新服务，name=%s", evt.Kv.Key)
+				case clientv3.EventTypeDelete: // 删除服务
+					_, name, err := parseServiceKey(string(evt.Kv.Key))
+					if nil != err {
+						continue
+					}
+
+					this.deleteService(name)
+				}
+			}
+		}
+	}
+}
+
+// 废除服务
+func (this *etcdDiscovery) revoke() {
+	c := make(chan error)
+
+	go func() {
+		_, err := this.client.Revoke(context.TODO(), this.leaseID)
+		c <- err
+	}()
+
+	select {
+	case err <- c:
+		return err
+	case <-time.After(this.revokeTimeout):
+		return nil
+	}
 }
