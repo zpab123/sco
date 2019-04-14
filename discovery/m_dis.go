@@ -6,7 +6,6 @@ package discovery
 import (
 	"time"
 
-	"github.com/pkg/errors"        // 异常库
 	"github.com/zpab123/sco/model" // 全局模型
 )
 
@@ -23,11 +22,6 @@ const (
 const (
 	C_SERVICE_ADD = iota // 服务添加
 	C_SERVICE_DEL        // 服务删除
-)
-
-// 错误
-const (
-	C_ERROR_LEASE_TIMEOUT = errors.New("etcdDiscovery 重连服务器超时")
 )
 
 // /////////////////////////////////////////////////////////////////////////////

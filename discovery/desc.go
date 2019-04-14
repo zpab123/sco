@@ -23,7 +23,7 @@ type ServiceDesc struct {
 
 // 获取监听地址，格式: 127.0.0.1:8080 形式
 func (this *ServiceDesc) Address() string {
-	return fmt.Sprintf("%s:%d", self.Host, self.Port)
+	return fmt.Sprintf("%s:%d", this.Host, this.Port)
 }
 
 // 获取 key

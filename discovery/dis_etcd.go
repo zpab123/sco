@@ -8,8 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"     // 异常库
 	"github.com/zpab123/zaplog" // log
 	"go.etcd.io/etcd/clientv3"  // etcd 客户端
+)
+
+var (
+	ERROR_LEASE_TIMEOUT = errors.New("etcdDiscovery 重连服务器超时")
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -33,7 +38,7 @@ type etcdDiscovery struct {
 }
 
 // 新建1个 etcdDiscovery 对象
-func NewEtcdDiscovery(endpoints []string) (IDiscovery, error) {
+func NewEtcdDiscovery(endpoints []string) (*etcdDiscovery, error) {
 
 	ed := &etcdDiscovery{
 		endpoints:    endpoints,
@@ -80,7 +85,7 @@ func (this *etcdDiscovery) UpdateService() error {
 	}
 
 	// 保存有效
-	validName = make([]string, 0)
+	validName := make([]string, 0)
 	for _, kv := range keys.Kvs {
 		stype, name, err := parseServiceKey(string(kv.Key))
 		if nil != err {
@@ -148,7 +153,7 @@ func (this *etcdDiscovery) watchLeaseChan(leaseChan <-chan *clientv3.LeaseKeepAl
 					renewCount += 1
 
 					// 超时
-					if err == C_ERROR_LEASE_TIMEOUT {
+					if err == ERROR_LEASE_TIMEOUT {
 						return
 					}
 
@@ -182,15 +187,15 @@ func (this *etcdDiscovery) renewLease() error {
 			return
 		}
 
-		err = this.syncService(this.serverDesc)
-		c <- err
+		err = this.syncService()
+		ch <- err
 	}()
 
 	select {
 	case err := <-ch:
 		return err
 	case <-time.After(this.renewLeaseTimeout):
-		return C_ERROR_LEASE_TIMEOUT
+		return ERROR_LEASE_TIMEOUT
 	}
 }
 
@@ -199,11 +204,11 @@ func (this *etcdDiscovery) getServiceFromEtcd(stype, name string) (*ServiceDesc,
 	k := getKey(stype, name)
 	v, err := this.client.Get(context.TODO(), k)
 	if nil != err {
-		return nil
+		return nil, err
 	}
 
 	if len(v.Kvs) == 0 {
-		return nil
+		return nil, err
 	}
 
 	return parseService(v.Kvs[0].Value)
@@ -288,9 +293,9 @@ func (this *etcdDiscovery) deleteService(name string) {
 }
 
 // 同步服务
-func (this *etcdDiscovery) syncService(svcDesc *ServiceDesc) error {
+func (this *etcdDiscovery) syncService() error {
 	// 推送服务
-	if err := this.putService(svcDesc); err != nil {
+	if err := this.putService(this.serverDesc); err != nil {
 		return err
 	}
 
@@ -332,7 +337,9 @@ func (this *etcdDiscovery) watchEtcdChanges() {
 			for _, evt := range wRes.Events {
 				switch evt.Type {
 				case clientv3.EventTypePut: //增加服务
-					if sd, err := parseService(evt.Kv.Value); err != nil {
+					var sd *ServiceDesc
+					var err error
+					if sd, err = parseService(evt.Kv.Value); err != nil {
 						zaplog.Warnf("etcdDiscovery 发现新服务，但是解析服务发现json信息失败。err=%s", err.Error())
 
 						continue
@@ -354,8 +361,9 @@ func (this *etcdDiscovery) watchEtcdChanges() {
 }
 
 // 废除服务
-func (this *etcdDiscovery) revoke() {
+func (this *etcdDiscovery) revoke() error {
 	c := make(chan error)
+	defer close(c)
 
 	go func() {
 		_, err := this.client.Revoke(context.TODO(), this.leaseID)
@@ -363,7 +371,7 @@ func (this *etcdDiscovery) revoke() {
 	}()
 
 	select {
-	case err <- c:
+	case err := <-c:
 		return err
 	case <-time.After(this.revokeTimeout):
 		return nil
