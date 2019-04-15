@@ -22,26 +22,33 @@ var (
 
 // ectd 服务发现
 type etcdDiscovery struct {
-	client             *clientv3.Client                   // etcd 客户端
-	endpoints          []string                           // 注册中心地址集合
-	heartbeatTTL       time.Duration                      // 心跳周期
-	leaseID            clientv3.LeaseID                   // 租约id
-	renewLeaseTimeout  time.Duration                      // 重新续约超时时间
-	renewLeaseMacCount int                                // 重新续约最大次数
-	renewLeaseInterval time.Duration                      // 重新续约间隔
-	svcMapByName       sync.Map                           // 服务器集群信息集合
-	svcMapByType       map[string]map[string]*ServiceDesc // 服务器集群信息集合
-	rwMutex            sync.RWMutex                       // 读写锁
-	serverDesc         *ServiceDesc                       // 自身服务器信息
-	updateInterval     time.Duration                      // 服务更新周期
-	revokeTimeout      time.Duration                      // 废除超时
+	option       *TEtcdDiscoveryOpt                 // 配置参数
+	client       *clientv3.Client                   // etcd 客户端
+	endpoints    []string                           // 注册中心地址集合
+	leaseID      clientv3.LeaseID                   // 租约id
+	svcMapByName sync.Map                           // 服务器集群信息集合
+	svcMapByType map[string]map[string]*ServiceDesc // 服务器集群信息集合
+	rwMutex      sync.RWMutex                       // 读写锁
+	serviceDesc  *ServiceDesc                       // 自身服务器信息
 }
 
 // 新建1个 etcdDiscovery 对象
 func NewEtcdDiscovery(endpoints []string) (*etcdDiscovery, error) {
+	var err error
+
+	// 参数效验
+	if len(endpoints) <= 0 {
+		err = errors.New("创建 etcdDiscovery 失败。参数 endpoints 长度为0")
+
+		return nil, err
+	}
+
+	// 基础对象
+	opt := NewTEtcdDiscoveryOpt()
 
 	ed := &etcdDiscovery{
 		endpoints:    endpoints,
+		option:       opt,
 		svcMapByType: make(map[string]map[string]*ServiceDesc),
 	}
 
@@ -49,32 +56,51 @@ func NewEtcdDiscovery(endpoints []string) (*etcdDiscovery, error) {
 }
 
 // 启动服务发现
-func (this *etcdDiscovery) Run() {
+func (this *etcdDiscovery) Run() error {
 	var err error
 	// 建立连接
 	if this.client == nil {
 		conf := clientv3.Config{
 			Endpoints:   this.endpoints,
-			DialTimeout: C_DIAL_TIMEOUT,
+			DialTimeout: this.option.DialTimeout,
 		}
 
 		this.client, err = clientv3.New(conf)
 		if nil != err {
-			return
+			// err = errors.Errorf("etcdDiscovery 创建 clientv3 出错：%s", err.Error())
+			return err
 		}
 	}
 
 	// 建立租约
-	this.grantLease()
+	err = this.grantLease()
+	if nil != err {
+		return err
+	}
 
 	// 同步服务
-	this.syncService()
+	err = this.syncService()
+	if nil != err {
+		return err
+	}
 
 	// 服务更新
 	go this.update()
 
 	// 侦听etcd事件
 	go this.watchEtcdChanges()
+
+	return nil
+}
+
+// 获取 etcdDiscovery 可选参数
+func (this *etcdDiscovery) Option() *TEtcdDiscoveryOpt {
+	return this.option
+}
+
+// 设置 etcdDiscovery 自身服务信息
+func (this *etcdDiscovery) SetService(svcDesc *ServiceDesc) {
+	this.serviceDesc = svcDesc
 }
 
 // 从 etcd 更新所有服务信息
@@ -112,8 +138,8 @@ func (this *etcdDiscovery) UpdateService() error {
 
 // 建立租约
 func (this *etcdDiscovery) grantLease() error {
-	// 设置租约时间
-	resp, err := this.client.Grant(context.TODO(), int64(this.heartbeatTTL.Seconds()))
+	// 设置租约时间：如果这里没开通服务器的话，会一直卡住
+	resp, err := this.client.Grant(context.TODO(), int64(this.option.HeartbeatTTL.Seconds()))
 	if err != nil {
 		return err
 	}
@@ -158,12 +184,13 @@ func (this *etcdDiscovery) watchLeaseChan(leaseChan <-chan *clientv3.LeaseKeepAl
 					}
 
 					// 达到最大重连次数
-					if renewCount >= this.renewLeaseMacCount {
+					if renewCount >= this.option.RenewLeaseMacCount {
 						return
 					}
 
-					zaplog.Warnf("etcdDiscovery 签约失败，%d秒后重新签约", uint64(this.renewLeaseInterval.Seconds()))
-					time.Sleep(this.renewLeaseInterval)
+					zaplog.Warnf("etcdDiscovery 签约失败，%d秒后重新签约", uint64(this.option.RenewLeaseInterval.Seconds()))
+
+					time.Sleep(this.option.RenewLeaseInterval)
 					continue
 				}
 
@@ -194,7 +221,7 @@ func (this *etcdDiscovery) renewLease() error {
 	select {
 	case err := <-ch:
 		return err
-	case <-time.After(this.renewLeaseTimeout):
+	case <-time.After(this.option.RenewLeaseTimeout):
 		return ERROR_LEASE_TIMEOUT
 	}
 }
@@ -229,7 +256,7 @@ func (this *etcdDiscovery) addService(sd *ServiceDesc) {
 		})
 
 		// 通知
-		if sd.Name != this.serverDesc.Name {
+		if sd.Name != this.serviceDesc.Name {
 			this.notifyListeners(C_SERVICE_ADD, sd)
 		}
 	}
@@ -294,9 +321,12 @@ func (this *etcdDiscovery) deleteService(name string) {
 
 // 同步服务
 func (this *etcdDiscovery) syncService() error {
-	// 推送服务
-	if err := this.putService(this.serverDesc); err != nil {
-		return err
+	// 推送自己服务
+	if nil != this.serviceDesc {
+		err := this.putService(this.serviceDesc)
+		if nil != err {
+			return err
+		}
 	}
 
 	// 更新服务
@@ -315,7 +345,7 @@ func (this *etcdDiscovery) putService(svcDesc *ServiceDesc) error {
 
 // 定时更新
 func (this *etcdDiscovery) update() {
-	ticker := time.NewTicker(this.updateInterval)
+	ticker := time.NewTicker(this.option.UpdateInterval)
 	for {
 		select {
 		case <-ticker.C:
@@ -373,7 +403,7 @@ func (this *etcdDiscovery) revoke() error {
 	select {
 	case err := <-c:
 		return err
-	case <-time.After(this.revokeTimeout):
+	case <-time.After(this.option.RevokeTimeout):
 		return nil
 	}
 }
