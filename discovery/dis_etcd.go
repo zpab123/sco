@@ -22,6 +22,7 @@ var (
 
 // ectd 服务发现
 type etcdDiscovery struct {
+	name         string                             // 组件名字
 	option       *TEtcdDiscoveryOpt                 // 配置参数
 	client       *clientv3.Client                   // etcd 客户端
 	endpoints    []string                           // 注册中心地址集合
@@ -47,6 +48,7 @@ func NewEtcdDiscovery(endpoints []string) (*etcdDiscovery, error) {
 	opt := NewTEtcdDiscoveryOpt()
 
 	ed := &etcdDiscovery{
+		name:         C_ED_NAME,
 		endpoints:    endpoints,
 		option:       opt,
 		svcMapByType: make(map[string]map[string]*ServiceDesc),
@@ -56,7 +58,7 @@ func NewEtcdDiscovery(endpoints []string) (*etcdDiscovery, error) {
 }
 
 // 启动服务发现
-func (this *etcdDiscovery) Run() error {
+func (this *etcdDiscovery) Run(ctx context.Context) {
 	var err error
 	// 建立连接
 	if this.client == nil {
@@ -68,20 +70,20 @@ func (this *etcdDiscovery) Run() error {
 		this.client, err = clientv3.New(conf)
 		if nil != err {
 			// err = errors.Errorf("etcdDiscovery 创建 clientv3 出错：%s", err.Error())
-			return err
+			return
 		}
 	}
 
 	// 建立租约
 	err = this.grantLease()
 	if nil != err {
-		return err
+		return
 	}
 
 	// 同步服务
 	err = this.syncService()
 	if nil != err {
-		return err
+		return
 	}
 
 	// 服务更新
@@ -90,7 +92,17 @@ func (this *etcdDiscovery) Run() error {
 	// 侦听etcd事件
 	go this.watchEtcdChanges()
 
-	return nil
+	return
+}
+
+// 停止服务发现
+func (this *etcdDiscovery) Stop() {
+
+}
+
+// 获取组件名字
+func (this *etcdDiscovery) Name() string {
+	return this.name
 }
 
 // 获取 etcdDiscovery 可选参数
@@ -122,7 +134,7 @@ func (this *etcdDiscovery) UpdateService() error {
 
 		if _, ok := this.svcMapByName.Load(name); !ok {
 			svcDesc, err := this.getServiceFromEtcd(stype, name)
-			if nil != err {
+			if nil != err || nil == svcDesc {
 				continue
 			}
 

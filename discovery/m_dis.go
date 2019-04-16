@@ -14,14 +14,15 @@ import (
 
 // etcdDiscovery 常量
 const (
-	C_ETCD_SERVER_DIR = "sco.servers/"    // 数据库目录
-	C_ED_DT           = 2 * time.Second   // 连接注册中心超时时间
-	C_ED_HEARTBEAT    = 60 * time.Second  // 租约时间
-	C_ED_UI           = 120 * time.Second // 服务更新周期
-	C_ED_RLT          = 60 * time.Second  // 服务更新周期
-	C_ED_RLC          = 15                // 重新续约最大次数
-	C_ED_RLI          = 5 * time.Second   // 重新续约间隔
-	C_ED_RT           = 5 * time.Second   // 废除超时时间
+	C_ED_NAME         = "discovery.etcdDiscovery" // 组件名字
+	C_ETCD_SERVER_DIR = "sco.servers/"            // 数据库目录
+	C_ED_DT           = 2 * time.Second           // 连接注册中心超时时间
+	C_ED_HEARTBEAT    = 60 * time.Second          // 租约时间
+	C_ED_UI           = 120 * time.Second         // 服务更新周期
+	C_ED_RLT          = 60 * time.Second          // 服务更新周期
+	C_ED_RLC          = 15                        // 重新续约最大次数
+	C_ED_RLI          = 5 * time.Second           // 重新续约间隔
+	C_ED_RT           = 5 * time.Second           // 废除超时时间
 )
 
 //
@@ -43,6 +44,7 @@ type IDiscovery interface {
 
 // etcdDiscovery 配置参数
 type TEtcdDiscoveryOpt struct {
+	Enable             bool          // 是否启用
 	DialTimeout        time.Duration // 连接注册中心超时时间
 	HeartbeatTTL       time.Duration // 租约时间
 	UpdateInterval     time.Duration // 服务更新周期
@@ -55,6 +57,7 @@ type TEtcdDiscoveryOpt struct {
 // 新建1个 etcdDiscovery 对象
 func NewTEtcdDiscoveryOpt() *TEtcdDiscoveryOpt {
 	opt := &TEtcdDiscoveryOpt{
+		Enable:             true,
 		DialTimeout:        C_ED_DT,
 		HeartbeatTTL:       C_ED_HEARTBEAT,
 		UpdateInterval:     C_ED_UI,

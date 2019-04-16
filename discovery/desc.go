@@ -16,7 +16,7 @@ type ServiceDesc struct {
 	Name string            `json:"name"` // 服务名字
 	Mid  uint16            `json:"mid"`  // 服务主Id，与类型对应
 	Host string            `json:"host"` // 监听地址
-	Port int               `json:"port"` // 监听端口
+	Port uint              `json:"port"` // 监听端口
 	Tags []string          `json:"tags"` // 分类标签
 	Meta map[string]string `json:"meta"` // 细节配置
 }

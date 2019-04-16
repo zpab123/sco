@@ -12,12 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zpab123/sco/config"  // 配置管理
-	"github.com/zpab123/sco/network" // 网络
-	"github.com/zpab123/sco/path"    // 路径
-	"github.com/zpab123/sco/session" // 会话
-	"github.com/zpab123/sco/state"   // 状态管理
-	"github.com/zpab123/zaplog"      // log
+	"github.com/zpab123/sco/config"    // 配置管理
+	"github.com/zpab123/sco/discovery" // 服务发现
+	"github.com/zpab123/sco/network"   // 网络
+	"github.com/zpab123/sco/path"      // 路径
+	"github.com/zpab123/sco/session"   // 会话
+	"github.com/zpab123/sco/state"     // 状态管理
+	"github.com/zpab123/zaplog"        // log
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -25,17 +26,18 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Option       *Option                // 配置参数
-	stateMgr     *state.StateManager    // 状态管理
-	baseInfo     TBaseInfo              // 基础信息
-	delegate     IDelegate              // 代理对象
-	stopGroup    sync.WaitGroup         // stop 等待组
-	serverInfo   *config.TServerInfo    // 配置信息
-	signalChan   chan os.Signal         // 操作系统信号
-	ctx          context.Context        // 上下文
-	cancel       context.CancelFunc     // 退出通知函数
-	componentMgr *ComponentManager      // 组件管理
-	handlerChan  chan session.ClientMsg // handler 消息通道
+	Option           *Option                // 配置参数
+	stateMgr         *state.StateManager    // 状态管理
+	baseInfo         TBaseInfo              // 基础信息
+	delegate         IDelegate              // 代理对象
+	stopGroup        sync.WaitGroup         // stop 等待组
+	serverInfo       *config.TServerInfo    // 配置信息
+	signalChan       chan os.Signal         // 操作系统信号
+	ctx              context.Context        // 上下文
+	cancel           context.CancelFunc     // 退出通知函数
+	componentMgr     *ComponentManager      // 组件管理
+	handlerChan      chan session.ClientMsg // handler 消息通道
+	serviceDiscovery discovery.IDiscovery   // 服务发现
 	// remoteChan	// handler rpc消息通道
 	//discovery	// 服务发现
 }
