@@ -4,8 +4,12 @@
 package rpc
 
 import (
+	// goContext "context"
+
+	"github.com/zpab123/sco/model"    // 全局模型
 	"github.com/zpab123/sco/protocol" // 消息协议
 	"golang.org/x/net/context"        // golang 上下文
+	"google.golang.org/grpc"          // grpc
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -21,6 +25,7 @@ const (
 // rpc server 服务
 type IServer interface {
 	SetScoService(ss IScoService) // 设置引擎服务
+	model.IComponent              // 接口继承：组件
 }
 
 // sco 引擎服务
@@ -30,5 +35,5 @@ type IScoService interface {
 
 // 连接对象接口
 type IConn interface {
-	Call() // 远程调用
+	Call(ctx context.Context, req *protocol.RpcRequest, opts ...grpc.CallOption) (*protocol.RpcResponse, error) // 远程调用
 }

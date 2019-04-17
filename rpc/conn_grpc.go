@@ -32,7 +32,7 @@ func NewGrpcConn(conn *grpc.ClientConn) IConn {
 func (this *GrpcConn) Call(ctx context.Context, req *protocol.RpcRequest, opts ...grpc.CallOption) (*protocol.RpcResponse, error) {
 	res := new(protocol.RpcResponse)
 	method := fmt.Sprintf("/%s/%s", C_SVC_NAME, C_METHOD_CALL)
-	err := this.clinetConn.Invoke(ctx, method, req, res, opts)
+	err := this.clinetConn.Invoke(ctx, method, req, res, opts...)
 	if nil != err {
 		return nil, err
 	}
