@@ -24,8 +24,8 @@ const (
 
 // rpc server 服务
 type IServer interface {
-	SetScoService(ss IScoService) // 设置引擎服务
-	model.IComponent              // 接口继承：组件
+	SetRpcService(ss protocol.ScoGrpcServer) // 设置引擎服务
+	model.IComponent                         // 接口继承：组件
 }
 
 // sco 引擎服务

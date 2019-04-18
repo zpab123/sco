@@ -4,6 +4,7 @@
 package app
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/zpab123/sco/discovery"  // 服务发现
 	"github.com/zpab123/sco/netservice" // 网络服务
 	"github.com/zpab123/sco/network"    // 网络
+	"github.com/zpab123/sco/protocol"   // 消息协议
 	"github.com/zpab123/sco/rpc"        // rpc
 	"github.com/zpab123/zaplog"         // log
 )
@@ -197,12 +199,24 @@ func newDiscovery(app *Application) {
 	app.componentMgr.Add(dc)
 }
 
+type Remote struct {
+}
+
+func (this *Remote) Call(ctx context.Context, rq *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
+	return nil, nil
+}
+
 // 创建 rpcserver 组件
 func newRpcServer(app *Application) {
 	var laddr string = ""
 	laddr = fmt.Sprintf("%s:%d", app.serverInfo.Host, app.serverInfo.Port)
 
 	rs := rpc.NewGrpcServer(laddr)
+
+	// 测试
+	re := &Remote{}
+	rs.SetRpcService(re)
+	// 测试 end
 
 	app.componentMgr.Add(rs)
 }
