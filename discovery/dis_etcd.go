@@ -284,7 +284,7 @@ func (this *etcdDiscovery) writeLockScope(f func()) {
 
 // 通知
 func (this *etcdDiscovery) notifyListeners(act int, sd *ServiceDesc) {
-
+	zaplog.Debugf("服务%s，发生变化%d", sd.Name, act)
 }
 
 // 删除无效
@@ -339,6 +339,8 @@ func (this *etcdDiscovery) syncService() error {
 		if nil != err {
 			return err
 		}
+
+		zaplog.Debugf("111111111111111111111111")
 	}
 
 	// 更新服务
