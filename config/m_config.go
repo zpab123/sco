@@ -14,9 +14,10 @@ const (
 
 // 配置文件路径
 const (
-	C_PATH_SCO_INI = "/config/sco.ini"      // world.ini 配置文件路径
-	C_PATH_MASTER  = "/config/master.json"  // master 服务器配置文件路径
-	C_PATH_SERVER  = "/config/servers.json" // servers 服务器配置文件路径
+	C_PATH_SCO_INI = "/config/sco.ini"        // world.ini 配置文件路径
+	C_PATH_MASTER  = "/config/master.json"    // master 服务器配置文件路径
+	C_PATH_SERVER  = "/config/servers.json"   // servers 服务器配置文件路径
+	C_PATH_DIS     = "/config/discovery.json" // discovery.json 服务器配置文件路径
 )
 
 // 服务器类型
@@ -64,4 +65,12 @@ type TServerMap map[string][]*TServerInfo
 type TServerJson struct {
 	Development TServerMap // 开发环境 配置信息
 	Production  TServerMap // 运营环境 配置信息
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// discovery.json 配置文件
+
+type TDiscoveryJson struct {
+	Development map[string][]string
+	Production  map[string][]string
 }

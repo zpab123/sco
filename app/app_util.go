@@ -4,13 +4,17 @@
 package app
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 
 	"github.com/zpab123/sco/config"     // 配置管理
+	"github.com/zpab123/sco/discovery"  // 服务发现
 	"github.com/zpab123/sco/netservice" // 网络服务
 	"github.com/zpab123/sco/network"    // 网络
+	"github.com/zpab123/sco/protocol"   // 消息协议
+	"github.com/zpab123/sco/rpc"        // rpc
 	"github.com/zpab123/zaplog"         // log
 )
 
@@ -118,6 +122,20 @@ func createComponent(app *Application) {
 	if nil != nsOpt && nsOpt.Enable {
 		newNetService(app)
 	}
+
+	// 服务发现
+	if app.Option.Cluster {
+		dcOpt := app.Option.DiscoveryOpt
+		if nil != dcOpt && dcOpt.Enable {
+			newDiscovery(app)
+		}
+	}
+
+	// rpcserver
+	if app.Option.Cluster {
+		newRpcServer(app)
+	}
+
 }
 
 // 创建 NetService 组件
@@ -154,4 +172,51 @@ func newNetService(app *Application) {
 	}
 
 	app.componentMgr.Add(ns)
+}
+
+// 创建 服务发现 组件
+func newDiscovery(app *Application) {
+	disMap := config.GetDiscoveryMap()
+	endpoints := make([]string, 0)
+	if _, ok := disMap["etcd"]; ok {
+		endpoints = disMap["etcd"]
+	} else {
+		zaplog.Warnf("获取服务发现信息失败")
+
+		return
+	}
+
+	// 服务描述
+	svcDesc := &discovery.ServiceDesc{
+		Type: app.baseInfo.AppType,
+		Host: app.serverInfo.Host,
+		Port: app.serverInfo.Port,
+	}
+
+	dc, _ := discovery.NewEtcdDiscovery(endpoints)
+	dc.SetService(svcDesc)
+
+	app.componentMgr.Add(dc)
+}
+
+type Remote struct {
+}
+
+func (this *Remote) Call(ctx context.Context, rq *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
+	return nil, nil
+}
+
+// 创建 rpcserver 组件
+func newRpcServer(app *Application) {
+	var laddr string = ""
+	laddr = fmt.Sprintf("%s:%d", app.serverInfo.Host, app.serverInfo.Port)
+
+	rs := rpc.NewGrpcServer(laddr)
+
+	// 测试
+	re := &Remote{}
+	rs.SetRpcService(re)
+	// 测试 end
+
+	app.componentMgr.Add(rs)
 }

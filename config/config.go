@@ -17,11 +17,13 @@ import (
 
 // 变量
 var (
-	configMutex sync.Mutex                // 进程互斥锁
-	mainPath    string                    // 程序启动目录
-	scoIni      *TScoIni     = &TScoIni{} // sco 引擎配置信息
-	serverJSon  *TServerJson              // server.json 配置表
-	serverMap   TServerMap                // servers.json 中// 服务器 type -> *[]ServerInfo 信息集合
+	configMutex   sync.Mutex                       // 进程互斥锁
+	mainPath      string                           // 程序启动目录
+	scoIni        *TScoIni            = &TScoIni{} // sco 引擎配置信息
+	serverJSon    *TServerJson                     // server.json 配置表
+	serverMap     TServerMap                       // servers.json 中// 服务器 type -> *[]ServerInfo 信息集合
+	discoveryJson *TDiscoveryJson                  // discovery.json 配置信息
+	discoveryMap  map[string][]string              // 服务发现信息
 )
 
 // 初始化
@@ -37,6 +39,9 @@ func init() {
 
 	// 读取 servers.json 配置信息
 	readServerJson()
+
+	// 读取 discovery.json 配置信息
+	readDiscoveryJson()
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -55,6 +60,11 @@ func GetServerJson() *TServerJson {
 // 获取 当前环境的 服务器信息集合
 func GetServerMap() TServerMap {
 	return serverMap
+}
+
+// 获取 当前环境的 服务发现信息
+func GetDiscoveryMap() map[string][]string {
+	return discoveryMap
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -92,6 +102,35 @@ func readServerJson() {
 			serverMap = serverJSon.Development
 		} else {
 			serverMap = serverJSon.Production
+		}
+	}
+}
+
+func readDiscoveryJson() {
+	// 读取文件
+	if nil == discoveryJson {
+		// 获取 main 路径
+		if "" == mainPath {
+			zaplog.Fatal("读取 main 路径失败")
+
+			os.Exit(1)
+		}
+
+		// 创建对象
+		disJon := &TDiscoveryJson{
+			Development: make(map[string][]string),
+			Production:  make(map[string][]string),
+		}
+
+		// 加载文件
+		fPath := filepath.Join(mainPath, C_PATH_DIS)
+		LoadJsonToMap(fPath, disJon)
+
+		// 根据运行环境赋值
+		if C_ENV_DEV == scoIni.Env {
+			discoveryMap = disJon.Development
+		} else {
+			discoveryMap = disJon.Production
 		}
 	}
 }
