@@ -339,8 +339,6 @@ func (this *etcdDiscovery) syncService() error {
 		if nil != err {
 			return err
 		}
-
-		zaplog.Debugf("111111111111111111111111")
 	}
 
 	// 更新服务
