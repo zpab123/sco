@@ -4,7 +4,6 @@
 package app
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"github.com/zpab123/sco/config"     // 配置管理
 	"github.com/zpab123/sco/netservice" // 网络服务
 	"github.com/zpab123/sco/network"    // 网络
-	"github.com/zpab123/sco/protocol"   // 消息协议
 	"github.com/zpab123/zaplog"         // log
 )
 
@@ -120,12 +118,6 @@ func createComponent(app *Application) {
 	if nil != nsOpt && nsOpt.Enable {
 		newNetService(app)
 	}
-
-	// rpcserver
-	if app.Option.Cluster {
-		newRpcServer(app)
-	}
-
 }
 
 // 创建 NetService 组件
@@ -162,26 +154,4 @@ func newNetService(app *Application) {
 	}
 
 	app.componentMgr.Add(ns)
-}
-
-type Remote struct {
-}
-
-func (this *Remote) Call(ctx context.Context, rq *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
-	return nil, nil
-}
-
-// 创建 rpcserver 组件
-func newRpcServer(app *Application) {
-	var laddr string = ""
-	laddr = fmt.Sprintf("%s:%d", app.serverInfo.Host, app.serverInfo.Port)
-
-	rs := rpc.NewGrpcServer(laddr)
-
-	// 测试
-	re := &Remote{}
-	rs.SetRpcService(re)
-	// 测试 end
-
-	app.componentMgr.Add(rs)
 }
