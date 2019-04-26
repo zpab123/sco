@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/config"  // 配置管理
+	"github.com/zpab123/sco/model"   // 全局模型
 	"github.com/zpab123/sco/network" // 网络
 	"github.com/zpab123/sco/path"    // 路径
 	"github.com/zpab123/sco/session" // 会话
@@ -175,18 +176,20 @@ func (this *Application) runComponent() {
 	for _, cpt := range this.componentMgr.componentMap {
 		this.stopGroup.Add(1)
 
-		go func() {
+		go func(cmpt model.IComponent) {
 			defer this.stopGroup.Done()
 
-			cpt.Run(this.ctx)
-		}()
+			cmpt.Run(this.ctx)
+		}(cpt)
 	}
 }
 
 // 停止所有组件
 func (this *Application) stopComponent() {
 	for _, cpt := range this.componentMgr.componentMap {
-		go cpt.Stop()
+		go func(cmpt model.IComponent) {
+			cmpt.Stop()
+		}(cpt)
 	}
 }
 

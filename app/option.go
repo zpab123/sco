@@ -4,6 +4,7 @@
 package app
 
 import (
+	"github.com/zpab123/sco/discovery"  // 服务发现
 	"github.com/zpab123/sco/netservice" // 网络服务
 )
 
@@ -12,20 +13,25 @@ import (
 
 // app 配置参数
 type Option struct {
-	NetServiceOpt     *netservice.TNetServiceOpt // 网络服务参数
-	ClentMsgChanSize  int                        // 客户端消息通道长度
-	ServerMsgChanSize int                        // 服务器消息长度
+	NetServiceOpt     *netservice.TNetServiceOpt   // 网络服务参数
+	ClentMsgChanSize  int                          // 客户端消息通道长度
+	ServerMsgChanSize int                          // 服务器消息长度
+	Cluster           bool                         // 是否开启集群服务
+	DiscoveryOpt      *discovery.TEtcdDiscoveryOpt // 服务发现配置
 }
 
 // 设置 app 的默认参数
 func setdDfaultOpt(app *Application) {
 	// 网络服务
 	nsOpt := netservice.NewTNetServiceOpt()
+	disOpt := discovery.NewTEtcdDiscoveryOpt()
 
 	opt := &Option{
 		NetServiceOpt:     nsOpt,
 		ClentMsgChanSize:  C_CLIENT_MSG_CHAN_SIZE,
 		ServerMsgChanSize: C_SERVER_MSG_CHAN_SIZE,
+		Cluster:           false,
+		DiscoveryOpt:      disOpt,
 	}
 
 	app.Option = opt
