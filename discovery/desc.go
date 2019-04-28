@@ -28,7 +28,7 @@ func (this *ServiceDesc) Address() string {
 
 // 获取 key
 func (this *ServiceDesc) Key() string {
-	return fmt.Sprintf("%s/%s/%s", C_ETCD_SERVER_DIR, this.Type, this.Name)
+	return fmt.Sprintf("%s%s/%s", C_ETCD_SERVER_DIR, this.Type, this.Name)
 }
 
 // 按照 json 格式化后的字符串

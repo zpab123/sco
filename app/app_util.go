@@ -188,6 +188,7 @@ func newDiscovery(app *Application) {
 	// 服务描述
 	svcDesc := &discovery.ServiceDesc{
 		Type: app.baseInfo.AppType,
+		Name: app.baseInfo.Name,
 		Host: app.serverInfo.Host,
 		Port: app.serverInfo.Port,
 	}
