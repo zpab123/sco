@@ -125,7 +125,7 @@ func createComponent(app *Application) {
 
 	// 分布式组件
 	if app.Option.Cluster {
-		// rpcserver
+		// rpcServer
 		newRpcServer(app)
 
 		// rpcClient
