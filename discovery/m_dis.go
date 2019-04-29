@@ -39,6 +39,12 @@ type IDiscovery interface {
 	model.IComponent // 接口继承
 }
 
+// 服务发现事件侦听
+type IListener interface {
+	AddService(svcDec *ServiceDesc)    // 添加1个服务
+	RemoveService(svcDec *ServiceDesc) // 移除1个服务
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 

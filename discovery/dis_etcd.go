@@ -31,6 +31,7 @@ type etcdDiscovery struct {
 	svcMapByType map[string]map[string]*ServiceDesc // 服务器集群信息集合
 	rwMutex      sync.RWMutex                       // 读写锁
 	serviceDesc  *ServiceDesc                       // 自身服务器信息
+	listeners    []IListener                        // 服务发现事件侦听对象
 }
 
 // 新建1个 etcdDiscovery 对象
@@ -52,6 +53,7 @@ func NewEtcdDiscovery(endpoints []string) (*etcdDiscovery, error) {
 		endpoints:    endpoints,
 		option:       opt,
 		svcMapByType: make(map[string]map[string]*ServiceDesc),
+		listeners:    make([]IListener, 0),
 	}
 
 	return ed, nil
@@ -101,7 +103,7 @@ func (this *etcdDiscovery) Run(ctx context.Context) {
 
 // 停止服务发现
 func (this *etcdDiscovery) Stop() {
-
+	this.revoke()
 }
 
 // 获取组件名字
@@ -150,6 +152,11 @@ func (this *etcdDiscovery) UpdateService() error {
 	this.deleteInvalid(validName)
 
 	return nil
+}
+
+// 添加1个服务发现侦听对象
+func (this *etcdDiscovery) AddListener(ln IListener) {
+	this.listeners = append(this.listeners, ln)
 }
 
 // 建立租约
@@ -289,6 +296,16 @@ func (this *etcdDiscovery) writeLockScope(f func()) {
 // 通知
 func (this *etcdDiscovery) notifyListeners(act int, sd *ServiceDesc) {
 	zaplog.Debugf("服务%s，发生变化%d", sd.Name, act)
+
+	if C_SERVICE_ADD == act {
+		for _, ln := range this.listeners {
+			ln.AddService(sd)
+		}
+	} else if C_SERVICE_DEL == act {
+		for _, ln := range this.listeners {
+			ln.RemoveService(sd)
+		}
+	}
 }
 
 // 删除无效

@@ -16,6 +16,7 @@ import (
 	"github.com/zpab123/sco/model"   // 全局模型
 	"github.com/zpab123/sco/network" // 网络
 	"github.com/zpab123/sco/path"    // 路径
+	"github.com/zpab123/sco/rpc"     // 远程调用
 	"github.com/zpab123/sco/session" // 会话
 	"github.com/zpab123/sco/state"   // 状态管理
 	"github.com/zpab123/zaplog"      // log
@@ -36,6 +37,7 @@ type Application struct {
 	ctx          context.Context        // 上下文
 	cancel       context.CancelFunc     // 退出通知函数
 	componentMgr *ComponentManager      // 组件管理
+	rpcClient    rpc.IClient            // rpc 客户端
 	handlerChan  chan session.ClientMsg // handler 消息通道
 	// remoteChan	// handler rpc消息通道
 }

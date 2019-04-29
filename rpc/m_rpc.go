@@ -6,10 +6,11 @@ package rpc
 import (
 	// goContext "context"
 
-	"github.com/zpab123/sco/model"    // 全局模型
-	"github.com/zpab123/sco/protocol" // 消息协议
-	"golang.org/x/net/context"        // golang 上下文
-	"google.golang.org/grpc"          // grpc
+	"github.com/zpab123/sco/discovery" // 服务发现
+	"github.com/zpab123/sco/model"     // 全局模型
+	"github.com/zpab123/sco/protocol"  // 消息协议
+	"golang.org/x/net/context"         // golang 上下文
+	"google.golang.org/grpc"           // grpc
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -17,6 +18,7 @@ import (
 const (
 	C_SVC_NAME    = "sco.rpcService" // sco rpc服务名称
 	C_METHOD_CALL = "Call"           // sco Call 方法
+	C_RPC_GC      = "rpc.GrpcClient" // GrpcClient 组件名字
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -26,6 +28,12 @@ const (
 type IServer interface {
 	SetRpcService(ss protocol.ScoGrpcServer) // 设置引擎服务
 	model.IComponent                         // 接口继承：组件
+}
+
+// rpc client 服务
+type IClient interface {
+	model.IComponent    // 接口继承：组件
+	discovery.IListener // 接口继承：服务发现侦听
 }
 
 // sco 引擎服务

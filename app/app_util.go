@@ -123,17 +123,19 @@ func createComponent(app *Application) {
 		newNetService(app)
 	}
 
-	// 服务发现
+	// 分布式组件
 	if app.Option.Cluster {
+		// rpcserver
+		newRpcServer(app)
+
+		// rpcClient
+		newRpcClient(app)
+
+		// 服务发现
 		disOpt := app.Option.DiscoveryOpt
 		if nil != disOpt && disOpt.Enable {
 			newDiscovery(app)
 		}
-	}
-
-	// rpcserver
-	if app.Option.Cluster {
-		newRpcServer(app)
 	}
 }
 
@@ -173,6 +175,13 @@ func newNetService(app *Application) {
 	app.componentMgr.Add(ns)
 }
 
+// 创建 rpcClient
+func newRpcClient(app *Application) {
+	gc := rpc.NewGrpcClient()
+	app.componentMgr.Add(gc)
+	app.rpcClient = gc
+}
+
 // 创建服务发现组件
 func newDiscovery(app *Application) {
 	disMap := config.GetDiscoveryMap()
@@ -197,6 +206,10 @@ func newDiscovery(app *Application) {
 	dc.SetService(svcDesc)
 
 	app.componentMgr.Add(dc)
+
+	if nil != app.rpcClient {
+		dc.AddListener(app.rpcClient)
+	}
 }
 
 type Remote struct {
