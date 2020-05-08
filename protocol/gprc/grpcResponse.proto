@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package protocol;
-
-
-message GrpcResponse {
-	uint32	code = 1;   					// 通信版本，大小不能超过 uin32
-	uint32	heartbeat = 2;					// 心跳间隔，单位：秒。0=不设置心跳
-}

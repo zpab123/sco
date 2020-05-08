@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package protocol;
-
-
-message GrpcRequest {
-	string key = 1;   						// 通信版本，大小不能超过 uin32
-    uint32 acceptor = 2;    				// 1=tcp;2=websocket;3=;通信方式
-}
