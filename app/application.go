@@ -18,6 +18,7 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
+	Options    *Options       // 配置选项
 	signalChan chan os.Signal // 操作系统信号
 }
 
@@ -43,6 +44,12 @@ func (this *Application) Run() {
 
 	// 侦听结束信号
 	this.waitStopSignal()
+}
+
+// 初始化
+func (this *Application) Init() {
+	// 默认设置
+	defaultConfig(this)
 }
 
 // 停止 app

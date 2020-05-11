@@ -20,3 +20,8 @@ var scoApp *app.Application = app.NewApplication()
 func Run() {
 	scoApp.Run()
 }
+
+// 获取app
+func GetApp() *app.Application {
+	return scoApp
+}
