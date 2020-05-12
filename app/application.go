@@ -26,10 +26,12 @@ type Application struct {
 func NewApplication() *Application {
 	// 创建对象
 	sig := make(chan os.Signal, 1)
+	opt := NewOptions()
 
 	// 创建 app
 	a := Application{
 		signalChan: sig,
+		Options:    opt,
 	}
 
 	return &a

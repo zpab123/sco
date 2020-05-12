@@ -11,5 +11,7 @@ import (
 // 常量
 
 const (
-	C_STOP_OUT_TIME = 30 * time.Second // 关闭app的时候，超过此时间，就会强制关闭
+	C_STOP_OUT_TIME          = 30 * time.Second // 关闭app的时候，超过此时间，就会强制关闭
+	C_APP_TYPE_FRONTEND byte = 1                // 前端服务器
+	C_APP_TYPE_BACKEND  byte = 2                // 后端服务器
 )
