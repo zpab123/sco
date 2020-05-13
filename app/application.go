@@ -7,8 +7,11 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
+
+	"github.com/zpab123/sco/network"
 
 	"github.com/zpab123/zaplog"
 )
@@ -18,8 +21,10 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options    *Options       // 配置选项
-	signalChan chan os.Signal // 操作系统信号
+	Options        *Options                // 配置选项
+	clientAcceptor *network.ClientAcceptor // 客户端接收器
+	signalChan     chan os.Signal          // 操作系统信号
+	stopGroup      sync.WaitGroup          // 停止等待组
 }
 
 // 创建1个新的 Application 对象
@@ -41,6 +46,13 @@ func NewApplication() *Application {
 func (this *Application) Run() {
 	// 设置随机种子
 	rand.Seed(time.Now().UnixNano())
+
+	// 客户端网络
+	if C_APP_TYPE_FRONTEND == this.Options.AppType {
+		this.newClientAcceptor()
+		this.clientAcceptor.Run()
+		this.stopGroup.Add(1)
+	}
 
 	zaplog.Infof("服务器，启动成功...")
 
@@ -80,4 +92,19 @@ func (this *Application) waitStopSignal() {
 			zaplog.Warnf("异常的操作系统信号=%s", sig)
 		}
 	}
+}
+
+// 设置默认
+func (this *Application) defaultConfig() {
+
+}
+
+// 解析命令行参数
+func (this *Application) parseArgs() {
+
+}
+
+// 创建 clientAcceptor
+func (this *Application) newClientAcceptor() {
+	this.clientAcceptor = network.NewClientAcceptor()
 }

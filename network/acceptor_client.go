@@ -18,15 +18,22 @@ import (
 type ClientAcceptor struct {
 	acceptors []IAcceptor           // 接收器切片
 	stopGroup sync.WaitGroup        // 停止等待组
-	option    *TClientAcceptorOpt   // 配置参数
+	options   *TClientAcceptorOpt   // 配置参数
 	connNum   syncutil.AtomicUint32 // 当前连接数
 }
 
 // 新建1个客户端接收器
-func NewClientAcceptor() *ClientAcceptor {
+func NewClientAcceptor(opt *TClientAcceptorOpt) *ClientAcceptor {
+	if nil == opt {
+		opt = NewTClientAcceptorOpt()
+	}
+
 	acc := ClientAcceptor{
 		acceptors: make([]IAcceptor, 0),
+		options:   opt,
 	}
+
+	acc.init()
 
 	return &acc
 }
@@ -84,4 +91,15 @@ func (this *ClientAcceptor) OnNewWsConn(wsconn *websocket.Conn) {
 
 	// 创建 session 对象
 	// this.createSession(wsconn, true)
+}
+
+// 初始化
+func (this *ClientAcceptor) init() {
+	var err error
+	if this.options.WsAddr != "" {
+		ws, err := NewWsAcceptor(this.options.WsAddr, this)
+		if err == nil {
+			append(this.acceptors, ws)
+		}
+	}
 }

@@ -3,6 +3,10 @@
 
 package serverinit
 
-func init() {
+import (
+	"github.com/zpab123/sco"
+)
 
+func init() {
+	app := sco.GetApp()
 }

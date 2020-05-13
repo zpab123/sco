@@ -59,11 +59,12 @@ func NewTBufferSocketOpt() *TBufferSocketOpt {
 }
 
 // /////////////////////////////////////////////////////////////////////////////
-// TNetServiceOpt 对象
+// TClientAcceptorOpt 对象
 
-// NetServer 组件配置参数
+// ClientAcceptor 组件配置参数
 type TClientAcceptorOpt struct {
 	Enable  bool   // 是否启用
+	WsAddr  string // websocket 监听链接 格式 "192.168.1.222:8080"
 	MaxConn uint32 // 最大连接数量，超过此数值后，不再接收新连接
 }
 
