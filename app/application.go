@@ -63,11 +63,17 @@ func (this *Application) Run() {
 // 初始化
 func (this *Application) Init() {
 	// 默认设置
-	defaultConfig(this)
+	this.defaultConfig()
 }
 
 // 停止 app
 func (this *Application) Stop() {
+	if this.clientAcceptor != nil {
+		this.clientAcceptor.Stop()
+	}
+
+	zaplog.Infof("正在结束...")
+	this.stopGroup.Wait()
 	zaplog.Infof("服务器，优雅退出")
 	os.Exit(0)
 }
@@ -106,5 +112,5 @@ func (this *Application) parseArgs() {
 
 // 创建 clientAcceptor
 func (this *Application) newClientAcceptor() {
-	this.clientAcceptor = network.NewClientAcceptor()
+	this.clientAcceptor = network.NewClientAcceptor(this.Options.ClientAcceptorOpt)
 }

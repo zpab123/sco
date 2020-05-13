@@ -33,7 +33,7 @@ func NewWsAcceptor(laddr string, mgr IWsConnManager) (IAcceptor, error) {
 
 	// 参数效验
 	if "" == laddr {
-		err == errors.New("创建 WsAcceptor 失败:参数 laddr 为空")
+		err = errors.New("创建 WsAcceptor 失败:参数 laddr 为空")
 		return nil, err
 	}
 

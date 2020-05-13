@@ -6,6 +6,7 @@ package network
 import (
 	"sync"
 
+	"github.com/pkg/errors"       // 异常库
 	"github.com/zpab123/syncutil" // 原子操作工具
 	"github.com/zpab123/zaplog"   // log 日志库
 	"golang.org/x/net/websocket"  // websocket
@@ -41,7 +42,7 @@ func NewClientAcceptor(opt *TClientAcceptorOpt) *ClientAcceptor {
 // 添加1个接收器
 func (this *ClientAcceptor) Add(acc IAcceptor) {
 	if nil != acc {
-		append(this.acceptors, acc)
+		this.acceptors = append(this.acceptors, acc)
 	}
 }
 
@@ -60,27 +61,33 @@ func (this *ClientAcceptor) Run() {
 }
 
 // 停止
-func (this *ClientAcceptor) Stop() {
+func (this *ClientAcceptor) Stop() error {
+	var err error
 	if len(this.acceptors) <= 0 {
-		return
+		return nil
 	}
 
 	for _, acc := range this.acceptors {
-		err := acc.Stop()
+		err = acc.Stop()
 		if nil == err {
 			this.stopGroup.Add(-1)
+		} else {
+			err = errors.New("acc 退出错误")
+			return err
 		}
 	}
 
 	this.stopGroup.Wait()
 
 	zaplog.Debugf("ClientAcceptor 停止")
+
+	return nil
 }
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
 func (this *ClientAcceptor) OnNewWsConn(wsconn *websocket.Conn) {
 	// 超过最大连接数
-	if this.connNum.Load() >= this.option.MaxConn {
+	if this.connNum.Load() >= this.options.MaxConn {
 		wsconn.Close()
 
 		zaplog.Warnf("NetService 达到最大连接数，关闭新连接。当前连接数=%d", this.connNum.Load())
@@ -95,11 +102,11 @@ func (this *ClientAcceptor) OnNewWsConn(wsconn *websocket.Conn) {
 
 // 初始化
 func (this *ClientAcceptor) init() {
-	var err error
+	// var err error
 	if this.options.WsAddr != "" {
 		ws, err := NewWsAcceptor(this.options.WsAddr, this)
 		if err == nil {
-			append(this.acceptors, ws)
+			this.acceptors = append(this.acceptors, ws)
 		}
 	}
 }

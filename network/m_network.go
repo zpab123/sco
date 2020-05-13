@@ -70,7 +70,6 @@ type TClientAcceptorOpt struct {
 
 // 创建1个新的 TNetServiceOpt
 func NewTClientAcceptorOpt() *TClientAcceptorOpt {
-
 	// 创建 TServerOpt
 	opt := TClientAcceptorOpt{
 		Enable:  true,
