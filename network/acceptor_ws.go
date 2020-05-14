@@ -68,7 +68,7 @@ func (this *WsAcceptor) Run() error {
 func (this *WsAcceptor) Stop() error {
 	var err error
 	err = this.httpServer.Close()
-	if nil != err {
+	if nil == err {
 		this.listener.Close()
 	} else {
 		err = this.listener.Close()
@@ -84,7 +84,7 @@ func (this *WsAcceptor) accept() {
 	// 创建 mux
 	mux := http.NewServeMux()
 	handler := websocket.Handler(this.connMgr.OnNewWsConn) // 路由函数
-	mux.Handle("/ws", handler)                             // 客户端需要在url后面加上 /ws 路由
+	mux.Handle("/", handler)                               // 客户端需要在url后面加上 /ws 路由
 
 	// 创建 httpServer
 	this.httpServer = http.Server{

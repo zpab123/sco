@@ -98,6 +98,7 @@ func (this *ClientAcceptor) OnNewWsConn(wsconn *websocket.Conn) {
 
 	// 创建 session 对象
 	// this.createSession(wsconn, true)
+	zaplog.Debugf("新连接,ip=%s", wsconn.RemoteAddr())
 }
 
 // 初始化

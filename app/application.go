@@ -68,11 +68,17 @@ func (this *Application) Init() {
 
 // 停止 app
 func (this *Application) Stop() {
+	zaplog.Infof("正在结束...")
+	var err error
+
+	// 客户端接收
 	if this.clientAcceptor != nil {
-		this.clientAcceptor.Stop()
+		err = this.clientAcceptor.Stop()
+		if nil == err {
+			this.stopGroup.Done()
+		}
 	}
 
-	zaplog.Infof("正在结束...")
 	this.stopGroup.Wait()
 	zaplog.Infof("服务器，优雅退出")
 	os.Exit(0)
@@ -87,11 +93,8 @@ func (this *Application) waitStopSignal() {
 	for {
 		sig := <-this.signalChan
 		if syscall.SIGINT == sig || syscall.SIGTERM == sig {
-			zaplog.Infof("服务器，正在停止中，请等待 ...")
-			this.Stop()
-
+			go this.Stop()
 			time.Sleep(C_STOP_OUT_TIME)
-
 			zaplog.Warnf("服务器，超过 %v 秒未优雅关闭，强制关闭", C_STOP_OUT_TIME)
 			os.Exit(1)
 		} else {
