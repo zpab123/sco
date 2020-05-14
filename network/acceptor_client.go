@@ -98,6 +98,7 @@ func (this *ClientAcceptor) OnNewWsConn(wsconn *websocket.Conn) {
 
 	// 创建 session 对象
 	// this.createSession(wsconn, true)
+	// 创建代理
 	zaplog.Debugf("新连接,ip=%s", wsconn.RemoteAddr())
 }
 
@@ -110,4 +111,9 @@ func (this *ClientAcceptor) init() {
 			this.acceptors = append(this.acceptors, ws)
 		}
 	}
+}
+
+// 创建代理
+func (this *ClientAcceptor) newAgent() {
+
 }

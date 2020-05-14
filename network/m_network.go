@@ -19,6 +19,15 @@ const (
 	C_MAX_CONN        = 100000 // ClientAcceptor 默认最大连接数
 )
 
+// packet 常量
+const (
+	C_PKT_MID_LEN      uint16 = 2                              // packet 主 id 长度 (uin16)
+	C_PKT_LEN_LEN      uint16 = 2                              // packet 长度信息长度 (uin16)
+	C_PKT_HEAD_LEN     uint16 = C_PKT_MID_LEN + C_PKT_LEN_LEN  // 消息头大小:字节 main_id(2字节) + length(2字节)
+	C_PKT_MAX_LEN      uint16 = 65535                          // 最大单个 packet 数据，= head + body = 64k
+	C_PKT_BODY_MAX_LEN uint16 = C_PKT_MAX_LEN - C_PKT_HEAD_LEN // body 最大长度 （总长度-消息头）
+)
+
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
