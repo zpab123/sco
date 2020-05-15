@@ -38,6 +38,7 @@ func NewApplication() *Application {
 		signalChan: sig,
 		Options:    opt,
 	}
+	a.init()
 
 	return &a
 }
@@ -60,12 +61,6 @@ func (this *Application) Run() {
 	this.waitStopSignal()
 }
 
-// 初始化
-func (this *Application) Init() {
-	// 默认设置
-	this.defaultConfig()
-}
-
 // 停止 app
 func (this *Application) Stop() {
 	zaplog.Infof("正在结束...")
@@ -75,13 +70,23 @@ func (this *Application) Stop() {
 	if this.clientAcceptor != nil {
 		err = this.clientAcceptor.Stop()
 		if nil == err {
-			this.stopGroup.Done()
+			zaplog.Warnf("clientAcceptor 结束异常")
 		}
+
+		this.stopGroup.Done()
 	}
 
 	this.stopGroup.Wait()
 	zaplog.Infof("服务器，优雅退出")
 	os.Exit(0)
+}
+
+// 初始化
+func (this *Application) init() {
+	// 默认设置
+	this.defaultConfig()
+	// 解析参数
+	this.parseArgs()
 }
 
 // 侦听结束信号
