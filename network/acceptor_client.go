@@ -63,25 +63,25 @@ func (this *ClientAcceptor) Run() {
 // 停止
 func (this *ClientAcceptor) Stop() error {
 	var err error
+	var accerr error
 	if len(this.acceptors) <= 0 {
 		return nil
 	}
 
 	for _, acc := range this.acceptors {
-		err = acc.Stop()
-		if nil == err {
-			this.stopGroup.Add(-1)
-		} else {
-			err = errors.New("acc 退出错误")
-			return err
+		accerr = acc.Stop()
+		if nil != accerr && nil == err {
+			err = errors.New("ClientAcceptor 停止过程中出现错误")
 		}
+
+		this.stopGroup.Done()
 	}
 
 	this.stopGroup.Wait()
 
 	zaplog.Debugf("ClientAcceptor 停止")
 
-	return nil
+	return err
 }
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
