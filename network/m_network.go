@@ -38,6 +38,10 @@ const (
 	C_CONN_STATE_CLOSED                 // 关闭状态
 )
 
+const (
+	C_HEARTBEAT = 0 * time.Second // Agent 默认心跳周期
+)
+
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
@@ -82,17 +86,21 @@ func NewTBufferSocketOpt() *TBufferSocketOpt {
 
 // ClientAcceptor 组件配置参数
 type TClientAcceptorOpt struct {
-	Enable  bool   // 是否启用
-	WsAddr  string // websocket 监听链接 格式 "192.168.1.222:8080"
-	MaxConn uint32 // 最大连接数量，超过此数值后，不再接收新连接
+	Enable   bool       // 是否启用
+	WsAddr   string     // websocket 监听链接 格式 "192.168.1.222:8080"
+	MaxConn  uint32     // 最大连接数量，超过此数值后，不再接收新连接
+	AgentOpt *TAgentOpt // Agent 配置参数
 }
 
 // 创建1个新的 TNetServiceOpt
 func NewTClientAcceptorOpt() *TClientAcceptorOpt {
+	ao := NewTAgentOpt()
+
 	// 创建 TServerOpt
 	opt := TClientAcceptorOpt{
-		Enable:  true,
-		MaxConn: C_MAX_CONN,
+		Enable:   true,
+		MaxConn:  C_MAX_CONN,
+		AgentOpt: ao,
 	}
 
 	return &opt
@@ -124,5 +132,18 @@ func NewTScoConnOpt() *TScoConnOpt {
 
 // Agent 配置参数
 type TAgentOpt struct {
-	Heartbeat time.Duration // 心跳周期
+	Heartbeat  time.Duration // 心跳周期
+	ScoConnOpt *TScoConnOpt  // ScoConn 配置参数
+}
+
+// 创建1个默认的 TAgentOpt
+func NewTAgentOpt() *TAgentOpt {
+	so := NewTScoConnOpt()
+
+	ao := TAgentOpt{
+		Heartbeat:  C_HEARTBEAT,
+		ScoConnOpt: so,
+	}
+
+	return &ao
 }

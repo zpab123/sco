@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"           // 错误
@@ -32,8 +31,7 @@ var (
 // PacketSocket
 type PacketSocket struct {
 	socket        ISocket              // 符合 ISocket 的对象
-	mutex         sync.Mutex           // 线程互斥锁（发送队列使用）
-	sendQueue     []*Packet            // 发送队列
+	sendChan      chan *Packet         // 发送通道
 	headLen       int                  // 从 socket 的 readbuffer 中已经读取的 head 数据大小：字节（用于消息读取记录）
 	recvedBodyLen int                  // 从 socket 的 readbuffer 中已经读取的 body 数据大小：字节（用于消息读取记录）
 	headBuff      [C_PKT_HEAD_LEN]byte // 存放消息头二进制数据
@@ -44,8 +42,11 @@ type PacketSocket struct {
 
 // 创建1个新的 PacketSocket 对象
 func NewPacketSocket(socket ISocket) *PacketSocket {
+	sch := make(chan *Packet, 1000)
+
 	pktSocket := &PacketSocket{
-		socket: socket,
+		socket:   socket,
+		sendChan: sch,
 	}
 
 	return pktSocket
@@ -134,51 +135,18 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 
 // 发送1个 *Packe 数据
 func (this *PacketSocket) SendPacket(pkt *Packet) error {
-	// 状态效验
-
-	// 添加到消息队列
-	this.mutex.Lock()
-	this.sendQueue = append(this.sendQueue, pkt)
-	this.mutex.Unlock()
+	if nil != pkt {
+		this.sendChan <- pkt
+	}
 
 	return nil
 }
 
 // 将消息队列中的数据写入 writebuff
 func (this *PacketSocket) Flush() (err error) {
-	// 等待数据
-	this.mutex.Lock()
-	for len(this.sendQueue) == 0 {
-		this.mutex.Unlock()
-		return
-	}
-
-	// 复制数据
-	this.mutex.Lock()
-	packets := make([]*Packet, 0, len(this.sendQueue)) // 复制准备
-	packets, this.sendQueue = this.sendQueue, packets  // 交换数据, 并把原来的数据置空
-	this.mutex.Unlock()
-
-	// 刷新数据
-	if 1 == len(packets) {
-		pkt := packets[0]
-
-		// 将 data 写入 conn
-		err = ioutil.WriteAll(this.socket, pkt.Data())
-
-		pkt.release()
-
-		if nil == err {
-			err = this.socket.Flush()
-		}
-
-		return
-	}
-
-	for _, pkt := range packets {
-		err = ioutil.WriteAll(this.socket, pkt.Data())
-		pkt.release()
-	}
+	pkt := <-this.sendChan
+	err = ioutil.WriteAll(this.socket, pkt.Data())
+	pkt.release()
 
 	if nil == err {
 		err = this.socket.Flush()

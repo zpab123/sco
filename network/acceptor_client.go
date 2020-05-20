@@ -4,6 +4,7 @@
 package network
 
 import (
+	"net"
 	"sync"
 
 	"github.com/pkg/errors"       // 异常库
@@ -100,6 +101,7 @@ func (this *ClientAcceptor) OnNewWsConn(wsconn *websocket.Conn) {
 	// this.createSession(wsconn, true)
 	// 创建代理
 	zaplog.Debugf("新连接,ip=%s", wsconn.RemoteAddr())
+	this.newAgent(wsconn, true)
 }
 
 // 初始化
@@ -114,6 +116,19 @@ func (this *ClientAcceptor) init() {
 }
 
 // 创建代理
-func (this *ClientAcceptor) newAgent() {
+func (this *ClientAcceptor) newAgent(netconn net.Conn, isWebSocket bool) {
+	// 创建 socket
+	socket := Socket{
+		Conn: netconn,
+	}
 
+	a, err := NewAgent(socket, this.options.AgentOpt)
+	if nil != err {
+		zaplog.Error("创建 Agent 失败..")
+		return
+	}
+
+	a.Run()
+
+	this.connNum.Add(1)
 }
