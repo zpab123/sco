@@ -23,7 +23,7 @@ type Packet struct {
 	mid       uint16                                  // packet 主id
 	initBytes [C_PKT_HEAD_LEN + _MIN_PAYLOAD_CAP]byte // bytes 初始化时候的 buffer 4 + 128
 	bytes     []byte                                  // 用于存放需要通过网络 发送/接收 的数据 （head + body）
-	readCount uint16                                  // bytes 中已经读取的字节数
+	readCount uint32                                  // bytes 中已经读取的字节数
 }
 
 // 创建1个新的 packet 对象
@@ -63,8 +63,8 @@ func (this *Packet) GetBody() []byte {
 }
 
 // 获取 packet 的 body 字节长度
-func (this *Packet) GetBodyLen() uint16 {
-	ln := *(*uint16)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
+func (this *Packet) GetBodyLen() uint32 {
+	ln := *(*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
 
 	return ln
 }
@@ -228,28 +228,28 @@ func (this *Packet) ReadFloat64() float64 {
 // 在 Packet 的 bytes 后面，添加1个固定大小的 []byte 数据
 func (this *Packet) AppendBytes(v []byte) {
 	// byte 长度
-	le := uint16(len(v))
+	ln := uint32(len(v))
 
 	// 申请内存
-	this.allocCap(le)
+	this.allocCap(ln)
 
 	// 复制数据
 	wPos := this.getWirtePos()
-	copy(this.bytes[wPos:wPos+le], v)
+	copy(this.bytes[wPos:wPos+ln], v)
 
 	// 记录长度
-	this.addBodyLen(le)
+	this.addBodyLen(ln)
 }
 
 // 从 Packet 的 bytes 中读取1个固定 size 大小的 []byte 数据
 //
 // size=读取字节数量
-func (this *Packet) ReadBytes(size uint16) []byte {
+func (this *Packet) ReadBytes(size uint32) []byte {
 	// 读取位置
 	pPos := this.getReadPos()
 
 	// 越界错误
-	if pPos > uint16(len(this.bytes)) || (pPos+size) > uint16(len(this.bytes)) {
+	if pPos > uint32(len(this.bytes)) || (pPos+size) > uint32(len(this.bytes)) {
 		zaplog.Panicf("从 Packet 包中读取 Bytes 出错：Bytes 大小超过 packet 剩余可读数据大小")
 	}
 
@@ -263,10 +263,10 @@ func (this *Packet) ReadBytes(size uint16) []byte {
 }
 
 // 在 Packet 的 bytes 后面，添加1个可变大小 []byte 数据
-// 用 uint16 记录 v 的长度
+// 用 uint32 记录 v 的长度
 func (this *Packet) AppendVarBytes(v []byte) {
 	// 记录 v 长度
-	this.AppendUint16(uint16(len(v)))
+	this.AppendUint32(uint32(len(v)))
 
 	// 添加数据
 	this.AppendBytes(v)
@@ -275,7 +275,7 @@ func (this *Packet) AppendVarBytes(v []byte) {
 // 从 Packet 的 bytes 中读取1个可变大小 []byte 数据
 func (this *Packet) ReadVarBytes() []byte {
 	// 读取长度
-	ln := this.ReadUint16()
+	ln := this.ReadUint32()
 
 	// 读取 buff
 	return this.ReadBytes(ln)
@@ -308,7 +308,7 @@ func (this *Packet) Data() []byte {
 }
 
 // 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
-func (this *Packet) allocCap(need uint16) {
+func (this *Packet) allocCap(need uint32) {
 	// 现有长度满足需求
 	newLen := this.GetBodyLen() + need //body 新长度 = 旧长度 + size
 	pcap := this.getPayloadCap()       // 有效容量
@@ -340,27 +340,34 @@ func (this *Packet) allocCap(need uint16) {
 }
 
 // 获取 packet 的 bytes 中有效容量（总容量 - 消息头）
-func (this *Packet) getPayloadCap() uint16 {
+func (this *Packet) getPayloadCap() uint32 {
 	bl := len(this.bytes)
-	pcap := uint16(bl) - C_PKT_HEAD_LEN
+	pcap := uint32(bl) - C_PKT_HEAD_LEN
 
 	return pcap
 }
 
 // 增加 body 长度
-func (this *Packet) addBodyLen(ln uint16) {
-	bl := (*uint16)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
+func (this *Packet) addBodyLen(ln uint32) {
+	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
 
 	*bl += ln
 }
 
+// 设置 body 长度
+func (this *Packet) setBodyLen(ln uint32) {
+	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
+
+	*bl = ln
+}
+
 // 获取读取位置
-func (this *Packet) getReadPos() uint16 {
+func (this *Packet) getReadPos() uint32 {
 	return C_PKT_HEAD_LEN + this.readCount
 }
 
 // 获取写入位置
-func (this *Packet) getWirtePos() uint16 {
+func (this *Packet) getWirtePos() uint32 {
 	return C_PKT_HEAD_LEN + this.GetBodyLen()
 }
 
@@ -386,6 +393,7 @@ func (this *Packet) release() {
 
 		// 将 pakcet 放回对象池
 		this.readCount = 0
+		this.setBodyLen(0)
 		packetPool.Put(this)
 	} else if refcount < 0 {
 		// zaplog.Panicf("释放1个 packet 错误，剩余 refcount=%d", p.refcount)

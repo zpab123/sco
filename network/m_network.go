@@ -5,6 +5,7 @@ package network
 
 import (
 	"net"
+	"time"
 
 	"golang.org/x/net/websocket" // websocket 库
 )
@@ -21,11 +22,20 @@ const (
 
 // packet 常量
 const (
-	C_PKT_MID_LEN      uint16 = 2                              // packet 主 id 长度 (uin16)
-	C_PKT_LEN_LEN      uint16 = 2                              // packet 长度信息长度 (uin16)
-	C_PKT_HEAD_LEN     uint16 = C_PKT_MID_LEN + C_PKT_LEN_LEN  // 消息头大小:字节 main_id(2字节) + length(2字节)
-	C_PKT_MAX_LEN      uint16 = 65535                          // 最大单个 packet 数据，= head + body = 64k
-	C_PKT_BODY_MAX_LEN uint16 = C_PKT_MAX_LEN - C_PKT_HEAD_LEN // body 最大长度 （总长度-消息头）
+	C_PKT_MID_LEN      uint32 = 2                             // packet 主 id 长度
+	C_PKT_LEN_LEN      uint32 = 4                             // packet 长度信息长度
+	C_PKT_HEAD_LEN     uint32 = C_PKT_MID_LEN + C_PKT_LEN_LEN // 消息头大小:字节 main_id + length
+	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024              // body 最大长度 25M
+)
+
+// ScoConn 状态
+const (
+	C_CONN_STATE_INIT     uint32 = iota // 初始化状态
+	C_CONN_STATE_SHAKE                  // 握手状态
+	C_CONN_STATE_WAIT_ACK               // 等待远端握手ACK
+	C_CONN_STATE_WORKING                // 工作中
+	C_CONN_STATE_CLOSING                // 正在关闭
+	C_CONN_STATE_CLOSED                 // 关闭状态
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -86,4 +96,33 @@ func NewTClientAcceptorOpt() *TClientAcceptorOpt {
 	}
 
 	return &opt
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// TScoConnOpt 对象
+
+// ScoConn 配置参数
+type TScoConnOpt struct {
+	ShakeKey      string            // 握手key
+	Heartbeat     uint32            // 心跳间隔，单位：秒。0=不设置心跳
+	BuffSocketOpt *TBufferSocketOpt // BufferSocket 配置参数
+}
+
+// 新建1个 WorldConnection 对象
+func NewTScoConnOpt() *TScoConnOpt {
+	bufopt := NewTBufferSocketOpt()
+
+	opt := TScoConnOpt{
+		BuffSocketOpt: bufopt,
+	}
+
+	return &opt
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// TAgentOpt 对象
+
+// Agent 配置参数
+type TAgentOpt struct {
+	Heartbeat time.Duration // 心跳周期
 }
