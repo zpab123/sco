@@ -1,5 +1,7 @@
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/zpab123/syncutil v1.0.0 h1:2Q6aIJDqRbVzusc6tLMTnKDtMQa/o1vsaPqQ098U9gk=
+github.com/zpab123/syncutil v1.0.0/go.mod h1:yDlWY2QeVi8Abro1PDMSHkbeo15Dx3jC7jam7Crhuwk=
 github.com/zpab123/zaplog v1.0.0 h1:YJlzFl+TK850L9HZ8qdzk5SOgA9Zw5Si6o+3Q/xIrVw=
 github.com/zpab123/zaplog v1.0.0/go.mod h1:MbOLUa6/xzEHOk3kkIjwJ62I8jxQ/lOezD+S3TKdpOo=
 go.uber.org/atomic v1.3.2 h1:2Oa65PReHzfn29GpvgsYwloV9AVFHPDk8tYxt2c2tr4=
@@ -14,3 +16,5 @@ golang.org/x/net v0.0.0-20200506145744-7e3656a0809f/go.mod h1:qpuaurCH72eLCgpAm/
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+gopkg.in/eapache/queue.v1 v1.1.0 h1:EldqoJEGtXYiVCMRo2C9mePO2UUGnYn2+qLmlQSqPdc=
+gopkg.in/eapache/queue.v1 v1.1.0/go.mod h1:wNtmx1/O7kZSR9zNT1TTOJ7GLpm3Vn7srzlfylFbQwU=

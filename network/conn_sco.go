@@ -68,14 +68,12 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 	// 内部 packet
 	if pkt.mid < protocol.C_MID_SCO {
 		this.handlePacket(pkt)
-
-		return nil, err
+		return nil, nil
 	}
 
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
 		this.Close()
-
 		err = errors.Errorf("ScoConn %s 收到数据，但是状态错误。当前状态=%d，正确状态=%s", this, this.stateMgr.GetState(), C_CONN_STATE_WORKING)
 
 		return nil, err

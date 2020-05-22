@@ -53,12 +53,14 @@ func (this *Agent) Run() {
 
 // 停止 Agent
 func (this *Agent) Stop() {
-
+	this.scoConn.packetSocket.SendPacket(nil)
+	this.scoConn.Close()
 }
 
 // 接收线程
 func (this *Agent) recvLoop() {
 	defer func() {
+		zaplog.Debugf("recvLoop 结束")
 		this.Stop()
 	}()
 
@@ -84,7 +86,8 @@ func (this *Agent) recvLoop() {
 // 发送线程
 func (this *Agent) sendLoop() {
 	defer func() {
-		zaplog.Warnf("sendLoop 结束")
+		zaplog.Debugf("sendLoop 结束")
+		this.Stop()
 	}()
 
 	var err error

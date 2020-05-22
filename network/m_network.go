@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/pkg/errors"      // 异常库
 	"golang.org/x/net/websocket" // websocket 库
 )
 
@@ -40,6 +41,11 @@ const (
 
 const (
 	C_HEARTBEAT = 0 * time.Second // Agent 默认心跳周期
+)
+
+// 错误
+const (
+	C_ERR_BODY_LEN error = errors.New("packet中body长度错误") // packet中body长度错误
 )
 
 // /////////////////////////////////////////////////////////////////////////////

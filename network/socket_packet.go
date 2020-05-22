@@ -7,12 +7,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"           // 错误
 	"github.com/zpab123/sco/ioutil"   // io工具
 	"github.com/zpab123/sco/protocol" // 通信协议
-	// "github.com/zpab123/zaplog"       // 日志
+	"github.com/zpab123/sco/scoerr"   // 常见错误
+	"github.com/zpab123/zaplog"       // 日志
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -20,9 +22,9 @@ import (
 
 // 变量
 var (
-	NETWORK_ENDIAN     = binary.LittleEndian // 小端读取对象
-	errRecvAgain       = _ErrRecvAgain{}     // 重新接收错误
-	pktHeadLen     int = int(C_PKT_HEAD_LEN) // 消息头长度
+	netEndian        = binary.LittleEndian // 小端读取对象
+	errRecvAgain     = ErrRecvAgain{}      // 重新接收错误
+	pktHeadLen   int = int(C_PKT_HEAD_LEN) // 消息头长度
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -31,38 +33,42 @@ var (
 // PacketSocket
 type PacketSocket struct {
 	socket        ISocket              // 符合 ISocket 的对象
-	sendChan      chan *Packet         // 发送通道
-	headLen       int                  // 从 socket 的 readbuffer 中已经读取的 head 数据大小：字节（用于消息读取记录）
+	mutex         sync.Mutex           // 线程互斥锁（发送队列使用）
+	cond          *sync.Cond           // 条件同步（发送队列使用）
+	sendQueue     []*Packet            // 发送队列
+	recvedHeadLen int                  // 从 socket 的 readbuffer 中已经读取的 head 数据大小：字节（用于消息读取记录）
 	recvedBodyLen int                  // 从 socket 的 readbuffer 中已经读取的 body 数据大小：字节（用于消息读取记录）
 	headBuff      [C_PKT_HEAD_LEN]byte // 存放消息头二进制数据
 	mid           uint16               // packet id 用于记录消息主id
-	bodylen       int                  // 本次 pcket body 总大小
+	bodyLen       int                  // 本次 pcket body 总大小
 	packet        *Packet              // 用于存储本次即将接收的 Packet 对象
 }
 
 // 创建1个新的 PacketSocket 对象
 func NewPacketSocket(socket ISocket) *PacketSocket {
-	sch := make(chan *Packet, 1000)
-
+	qu := make([]*Packet, 0)
 	pktSocket := &PacketSocket{
-		socket:   socket,
-		sendChan: sch,
+		socket:    socket,
+		sendQueue: qu,
 	}
+
+	pktSocket.cond = sync.NewCond(&pktSocket.mutex)
 
 	return pktSocket
 }
 
 // 接收下1个 packet 数据
 //
-// 返回 nil=没收到完整的 packet 数据; packet=完整的 packet 数据包
+// 第1个返回：接收成功返回1个 *Packet 对象，否则返回 nil
+// 第2个返回：接收成功返回nil，否则返回1个 error
 func (this *PacketSocket) RecvPacket() (*Packet, error) {
 	// 持续接收消息头
-	if this.headLen < pktHeadLen {
-		n, err := this.socket.Read(this.headBuff[this.headLen:]) // 读取数据
-		this.headLen += n
+	if this.recvedHeadLen < pktHeadLen {
+		n, err := this.socket.Read(this.headBuff[this.recvedHeadLen:]) // 读取数据
+		this.recvedHeadLen += n
 
 		// 消息头不完整
-		if this.headLen < pktHeadLen {
+		if this.recvedHeadLen < pktHeadLen {
 			if nil == err {
 				err = errRecvAgain
 			}
@@ -71,21 +77,20 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 		}
 
 		// 收到消息头: 保存本次 packet 消息 id
-		this.mid = NETWORK_ENDIAN.Uint16(this.headBuff[0:C_PKT_MID_LEN])
+		this.mid = netEndian.Uint16(this.headBuff[0:C_PKT_MID_LEN])
 
 		// 收到消息头: 保存本次 packet 消息 body 总大小
-		bl := NETWORK_ENDIAN.Uint32(this.headBuff[C_PKT_MID_LEN:])
-		this.bodylen = int(bl)
+		bl := netEndian.Uint32(this.headBuff[C_PKT_MID_LEN:])
+		this.bodyLen = int(bl)
 
 		// 解密
 
 		// 长度效验
 		if bl > C_PKT_BODY_MAX_LEN {
-			err := errors.Errorf("接收 packet 出错：消息头标记长度=%d，可允许最大长度=%d", bl, C_PKT_BODY_MAX_LEN)
 			this.resetRecvStates()
 			this.Close()
 
-			return nil, err
+			return nil, C_ERR_BODY_LEN
 		}
 
 		// 创建新的 packet 对象
@@ -95,34 +100,34 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 	}
 
 	// 长度为0类型数据处理
-	if this.bodylen == 0 {
-		packet := this.packet
+	if this.bodyLen == 0 {
+		pkt := this.packet
 		this.resetRecvStates()
 
-		return packet, nil
+		return pkt, nil
 	}
 
 	// 接收 pcket 数据的 body 部分
-	n, err := this.socket.Read(this.packet.bytes[pktHeadLen+this.recvedBodyLen : pktHeadLen+this.bodylen])
+	n, err := this.socket.Read(this.packet.bytes[pktHeadLen+this.recvedBodyLen : pktHeadLen+this.bodyLen])
 	this.recvedBodyLen += n
 
 	// 接收完成， packet 数据包完整
-	if this.recvedBodyLen == this.bodylen {
+	if this.recvedBodyLen == this.bodyLen {
 		// 解密
 
 		// 准备接收下1个
-		packet := this.packet
-		ln := uint32(this.bodylen)
-		packet.setBodyLen(ln)
-
+		pkt := this.packet
+		ln := uint32(this.bodyLen)
+		pkt.setBodyLen(ln)
 		this.resetRecvStates()
 
-		return packet, nil
-	} else if this.recvedBodyLen > this.bodylen {
-		err := errors.Errorf("接收 packet 出错：接收长度超过body长度。接收长度=%d，body长度=%d", this.recvedBodyLen, this.bodylen)
+		return pkt, nil
+	} else if this.recvedBodyLen > this.bodyLen {
+		zaplog.Warnf("PacketSocket 接收 Packet 出错")
 		this.resetRecvStates()
+		this.Close()
 
-		return nil, err
+		return nil, scoerr.C_ERR_SERVER
 	}
 
 	// body 未收完
@@ -135,18 +140,59 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 
 // 发送1个 *Packe 数据
 func (this *PacketSocket) SendPacket(pkt *Packet) error {
-	if nil != pkt {
-		this.sendChan <- pkt
-	}
+	// 添加到消息队列
+	this.mutex.Lock()
+	this.sendQueue = append(this.sendQueue, pkt)
+	this.mutex.Unlock()
+
+	this.cond.Signal()
 
 	return nil
 }
 
 // 将消息队列中的数据写入 writebuff
 func (this *PacketSocket) Flush() (err error) {
-	pkt := <-this.sendChan
-	err = ioutil.WriteAll(this.socket, pkt.Data())
-	pkt.release()
+	// 等待数据
+	this.mutex.Lock()
+	for len(this.sendQueue) == 0 {
+		this.cond.Wait()
+	}
+	this.mutex.Unlock()
+
+	// 复制数据
+	this.mutex.Lock()
+	packets := make([]*Packet, 0, len(this.sendQueue)) // 复制准备
+	packets, this.sendQueue = this.sendQueue, packets  // 交换数据, 并把原来的数据置空
+	this.mutex.Unlock()
+
+	// 刷新数据
+	if 1 == len(packets) {
+		pkt := packets[0]
+		if pkt != nil {
+			// 将 data 写入 conn
+			err = ioutil.WriteAll(this.socket, pkt.Data())
+			pkt.release()
+		} else {
+			err = errors.New("sockt closed")
+			return
+		}
+
+		if nil == err {
+			err = this.socket.Flush()
+		}
+
+		return
+	}
+
+	for _, pkt := range packets {
+		if pkt != nil {
+			ioutil.WriteAll(this.socket, pkt.Data())
+			pkt.release()
+		} else {
+			err = errors.New("sockt closed")
+			return
+		}
+	}
 
 	if nil == err {
 		err = this.socket.Flush()
@@ -182,28 +228,9 @@ func (this *PacketSocket) String() string {
 
 // 重置数据接收状态
 func (this *PacketSocket) resetRecvStates() {
-	this.headLen = 0
+	this.recvedHeadLen = 0
 	this.recvedBodyLen = 0
 	this.mid = protocol.C_MID_INVALID
-	this.bodylen = 0
+	this.bodyLen = 0
 	this.packet = nil
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// _ErrRecvAgain 对象
-
-type _ErrRecvAgain struct{}
-
-func (err _ErrRecvAgain) Error() string {
-	e := "packet 尚未完整，请继续接收"
-
-	return e
-}
-
-func (err _ErrRecvAgain) Temporary() bool {
-	return true
-}
-
-func (err _ErrRecvAgain) Timeout() bool {
-	return true
 }
