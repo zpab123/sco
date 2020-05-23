@@ -5,11 +5,18 @@ package network
 
 import (
 	"encoding/json"
+	"errors"
 
-	"github.com/pkg/errors"           // 异常
 	"github.com/zpab123/sco/protocol" // world 内部通信协议
 	"github.com/zpab123/sco/state"    // 状态管理
 	"github.com/zpab123/zaplog"       // 日志
+)
+
+// /////////////////////////////////////////////////////////////////////////////
+// 初始化
+
+var (
+	errState error = errors.New("状态错误")
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -57,7 +64,9 @@ func NewScoConn(socket ISocket, opt *TScoConnOpt) *ScoConn {
 
 // 接收1个 Packet 消息
 //
-// 未接收到完整的 Packet 则返回 nil 和 1个  error
+// 接收失败，返回 nil 和 1个  error
+// 接收成功，但 Packet 属于内部数据 则返回 nil,errRecvAgain
+// 接收成功，返回 *Packet，nil
 func (this *ScoConn) RecvPacket() (*Packet, error) {
 	// 接收 packet
 	pkt, err := this.packetSocket.RecvPacket()
@@ -68,15 +77,14 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 	// 内部 packet
 	if pkt.mid < protocol.C_MID_SCO {
 		this.handlePacket(pkt)
-		return nil, nil
+		return nil, errRecvAgain
 	}
 
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
+		zaplog.Warnf("ScoConn %s 收到数据，但是状态错误。当前状态=%d，正确状态=%s", this, this.stateMgr.GetState(), C_CONN_STATE_WORKING)
 		this.Close()
-		err = errors.Errorf("ScoConn %s 收到数据，但是状态错误。当前状态=%d，正确状态=%s", this, this.stateMgr.GetState(), C_CONN_STATE_WORKING)
-
-		return nil, err
+		return nil, errState
 	}
 
 	return pkt, nil
@@ -88,9 +96,7 @@ func (this *ScoConn) Close() error {
 
 	// 关闭中
 	if this.stateMgr.GetState() == C_CONN_STATE_CLOSING {
-		err = errors.New("ScoConn 关闭失败：它正在关闭")
-
-		return err
+		return errState
 	} else {
 		this.stateMgr.SetState(C_CONN_STATE_CLOSING)
 	}
@@ -106,9 +112,7 @@ func (this *ScoConn) Close() error {
 func (this *ScoConn) SendHeartbeat() error {
 	var err error
 	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
-		err = errors.New("发送心跳失败，ScoConn 状态不在工作中")
-
-		return err
+		return errState
 	}
 
 	zaplog.Debugf("ScoConn %s 发送心跳", this)
@@ -140,13 +144,9 @@ func (this *ScoConn) String() string {
 
 // 发送1个 packet 消息
 func (this *ScoConn) sendPacket(pkt *Packet) error {
-	var err error
-
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
-		err = errors.Errorf("ScoConn %s 发送 Packet 数据失败：状态不在 working 中", this)
-
-		return err
+		return errState
 	}
 
 	return this.packetSocket.SendPacket(pkt)

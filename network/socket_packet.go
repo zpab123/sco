@@ -5,12 +5,12 @@ package network
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"           // 错误
 	"github.com/zpab123/sco/ioutil"   // io工具
 	"github.com/zpab123/sco/protocol" // 通信协议
 	"github.com/zpab123/sco/scoerr"   // 常见错误
@@ -24,6 +24,7 @@ import (
 var (
 	netEndian        = binary.LittleEndian // 小端读取对象
 	errRecvAgain     = ErrRecvAgain{}      // 重新接收错误
+	errClose         = errors.New("socket 关闭")
 	pktHeadLen   int = int(C_PKT_HEAD_LEN) // 消息头长度
 )
 
@@ -90,7 +91,7 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 			this.resetRecvStates()
 			this.Close()
 
-			return nil, C_ERR_BODY_LEN
+			return nil, V_ERR_BODY_LEN
 		}
 
 		// 创建新的 packet 对象
@@ -127,7 +128,7 @@ func (this *PacketSocket) RecvPacket() (*Packet, error) {
 		this.resetRecvStates()
 		this.Close()
 
-		return nil, scoerr.C_ERR_SERVER
+		return nil, scoerr.V_ERR_SERVER
 	}
 
 	// body 未收完
@@ -151,7 +152,9 @@ func (this *PacketSocket) SendPacket(pkt *Packet) error {
 }
 
 // 将消息队列中的数据写入 writebuff
-func (this *PacketSocket) Flush() (err error) {
+func (this *PacketSocket) Flush() error {
+	var err error
+
 	// 等待数据
 	this.mutex.Lock()
 	for len(this.sendQueue) == 0 {
@@ -173,15 +176,14 @@ func (this *PacketSocket) Flush() (err error) {
 			err = ioutil.WriteAll(this.socket, pkt.Data())
 			pkt.release()
 		} else {
-			err = errors.New("sockt closed")
-			return
+			return errClose
 		}
 
 		if nil == err {
 			err = this.socket.Flush()
 		}
 
-		return
+		return err
 	}
 
 	for _, pkt := range packets {
@@ -189,8 +191,7 @@ func (this *PacketSocket) Flush() (err error) {
 			ioutil.WriteAll(this.socket, pkt.Data())
 			pkt.release()
 		} else {
-			err = errors.New("sockt closed")
-			return
+			return errClose
 		}
 	}
 
@@ -198,7 +199,7 @@ func (this *PacketSocket) Flush() (err error) {
 		err = this.socket.Flush()
 	}
 
-	return
+	return err
 }
 
 // 关闭 socket
