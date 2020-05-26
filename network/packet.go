@@ -30,7 +30,7 @@ type Packet struct {
 func newPacket() interface{} {
 	pkt := Packet{}
 	pkt.bytes = pkt.initBytes[:]
-	return pkt
+	return &pkt
 }
 
 // 新建1个 Packet 对象 (从对象池创建)

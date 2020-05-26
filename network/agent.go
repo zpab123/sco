@@ -68,6 +68,8 @@ func (this *Agent) recvLoop() {
 		pkt, err := this.scoConn.RecvPacket()
 		if nil != pkt {
 			zaplog.Debugf("收到消息mid=%d", pkt.GetMid())
+			zaplog.Debugf("收到消息bodyLen=%d", pkt.GetBodyLen())
+			zaplog.Debugf("收到消息body=%s", string(pkt.GetBody()))
 
 			continue
 		}

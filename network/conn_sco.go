@@ -82,7 +82,7 @@ func (this *ScoConn) RecvPacket() (*Packet, error) {
 
 	// 状态效验
 	if this.stateMgr.GetState() != C_CONN_STATE_WORKING {
-		zaplog.Warnf("ScoConn %s 收到数据，但是状态错误。当前状态=%d，正确状态=%s", this, this.stateMgr.GetState(), C_CONN_STATE_WORKING)
+		zaplog.Warnf("ScoConn %s 收到数据，但是状态错误。当前状态=%d，正确状态=%d", this, this.stateMgr.GetState(), C_CONN_STATE_WORKING)
 		this.Close()
 		return nil, errState
 	}
