@@ -65,7 +65,7 @@ func NewScoConn(socket ISocket, opt *TScoConnOpt) *ScoConn {
 // 接收1个 Packet 消息
 //
 // 接收失败，返回 nil 和 1个  error
-// 接收成功，但 Packet 属于内部数据 则返回 nil,errRecvAgain
+// 接收成功，但 Packet 属于内部数据则返回 nil,errRecvAgain
 // 接收成功，返回 *Packet，nil
 func (this *ScoConn) RecvPacket() (*Packet, error) {
 	// 接收 packet
@@ -163,7 +163,7 @@ func (this *ScoConn) handlePacket(pkt *Packet) {
 	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.handleHandshakeAck()
 	default:
-		zaplog.Errorf("ScoConn &s 收到无效消息mid=%d，关闭连接", this, pkt.mid)
+		zaplog.Errorf("ScoConn %s,收到无效消息mid=%d，关闭连接", this, pkt.mid)
 
 		this.Close()
 	}
@@ -205,7 +205,7 @@ func (this *ScoConn) handshakeOk() {
 	}
 
 	// 返回数据
-	res := &protocol.HandshakeOk{
+	res := &protocol.HandshakeRes{
 		Code:      protocol.C_CODE_OK,
 		Heartbeat: this.options.Heartbeat,
 	}
@@ -234,7 +234,7 @@ func (this *ScoConn) handshakeFail(code uint32) {
 	}
 
 	// 返回数据
-	res := &protocol.HandshakeFail{
+	res := &protocol.HandshakeRes{
 		Code: code,
 	}
 	data, err := json.Marshal(res)

@@ -131,6 +131,7 @@ func NewTScoConnOpt() *TScoConnOpt {
 
 	opt := TScoConnOpt{
 		BuffSocketOpt: bufopt,
+		ShakeKey:      "sco",
 	}
 
 	return &opt
