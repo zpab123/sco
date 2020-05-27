@@ -25,3 +25,8 @@ func Run() {
 func GetApp() *app.Application {
 	return scoApp
 }
+
+// 注册 handler
+func RegisterHandler(handler app.IHandler) {
+	scoApp.RegisterHandler(handler)
+}

@@ -27,6 +27,7 @@ type Application struct {
 	stopGroup      sync.WaitGroup          // 停止等待组
 	remoteChan     chan *network.Packet    // remote 消息
 	handleChan     chan *network.Packet    // 本地消息
+	handler        IHandler                // 处理器
 }
 
 // 创建1个新的 Application 对象
@@ -90,6 +91,11 @@ func (this *Application) Stop() {
 	os.Exit(0)
 }
 
+// 注册 handler
+func (this *Application) RegisterHandler(handler IHandler) {
+
+}
+
 // 初始化
 func (this *Application) init() {
 	// 默认设置
@@ -146,7 +152,9 @@ func (this *Application) dispatch() {
 
 // 处理本地消息
 func (this *Application) handle(pkt *network.Packet) {
-
+	if this.handler != nil {
+		// this.handler
+	}
 }
 
 // 处理 rpc 消息
