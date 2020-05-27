@@ -25,6 +25,8 @@ type Application struct {
 	clientAcceptor *network.ClientAcceptor // 客户端接收器
 	signalChan     chan os.Signal          // 操作系统信号
 	stopGroup      sync.WaitGroup          // 停止等待组
+	remoteChan     chan *network.Packet    // remote 消息
+	handleChan     chan *network.Packet    // 本地消息
 }
 
 // 创建1个新的 Application 对象
@@ -32,11 +34,15 @@ func NewApplication() *Application {
 	// 创建对象
 	sig := make(chan os.Signal, 1)
 	opt := NewOptions()
+	rc := make(chan *network.Packet, 1000)
+	hc := make(chan *network.Packet, 1000)
 
 	// 创建 app
 	a := Application{
 		signalChan: sig,
 		Options:    opt,
+		remoteChan: rc,
+		handleChan: hc,
 	}
 	a.init()
 
@@ -54,6 +60,9 @@ func (this *Application) Run() {
 		this.clientAcceptor.Run()
 		this.stopGroup.Add(1)
 	}
+
+	// 消息分发
+	go this.dispatch()
 
 	zaplog.Infof("服务器，启动成功...")
 
@@ -121,4 +130,26 @@ func (this *Application) parseArgs() {
 // 创建 clientAcceptor
 func (this *Application) newClientAcceptor() {
 	this.clientAcceptor = network.NewClientAcceptor(this.Options.ClientAcceptorOpt)
+}
+
+// 分发消息
+func (this *Application) dispatch() {
+	for {
+		select {
+		case pkt := <-this.handleChan: // 本地消息
+			this.handle(pkt)
+		case pkt := <-this.remoteChan: // rpc 消息
+			this.remote(pkt)
+		}
+	}
+}
+
+// 处理本地消息
+func (this *Application) handle(pkt *network.Packet) {
+
+}
+
+// 处理 rpc 消息
+func (this *Application) remote(pkt *network.Packet) {
+
 }

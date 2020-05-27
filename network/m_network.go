@@ -71,6 +71,12 @@ type ISocket interface {
 	Flush() error
 }
 
+// Process 接口
+type IProcess interface {
+	GetHandlerChan() chan *Packet // 获取 handler 通道
+	GetRemoteChan() chan *Packet  // 获取 remote 通道
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 // TBufferSocketOpt 对象
 

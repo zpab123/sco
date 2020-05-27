@@ -16,6 +16,7 @@ import (
 type Agent struct {
 	options *TAgentOpt // 配置参数
 	scoConn *ScoConn   // sco 引擎连接对象
+	process IProcess   // 消息处理
 }
 
 // 新建1个 Agent 对象
@@ -69,7 +70,11 @@ func (this *Agent) recvLoop() {
 		if nil != pkt {
 			zaplog.Debugf("收到消息mid=%d", pkt.GetMid())
 			zaplog.Debugf("收到消息bodyLen=%d", pkt.GetBodyLen())
-			zaplog.Debugf("收到消息body=%s", string(pkt.GetBody()))
+			if pkt.mid == 123 {
+				zaplog.Debugf("收到消息body=%s", pkt.ReadString())
+			}
+
+			this.handle(pkt)
 
 			continue
 		}
@@ -99,5 +104,12 @@ func (this *Agent) sendLoop() {
 		if nil != err {
 			break
 		}
+	}
+}
+
+// 处理 pakcet
+func (this *Agent) handle(pkt *Packet) {
+	if this.process != nil {
+		this.process.GetHandlerChan() <- pkt
 	}
 }
