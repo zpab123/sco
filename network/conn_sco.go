@@ -115,8 +115,6 @@ func (this *ScoConn) SendHeartbeat() error {
 		return errState
 	}
 
-	zaplog.Debugf("ScoConn %s 发送心跳", this)
-
 	// 发送心跳数据
 	pkt := NewPacket(protocol.C_PKT_ID_HEARTBEAT)
 	err = this.sendPacket(pkt)
