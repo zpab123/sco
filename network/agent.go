@@ -68,14 +68,7 @@ func (this *Agent) recvLoop() {
 	for {
 		pkt, err := this.scoConn.RecvPacket()
 		if nil != pkt {
-			zaplog.Debugf("收到消息mid=%d", pkt.GetMid())
-			zaplog.Debugf("收到消息bodyLen=%d", pkt.GetBodyLen())
-			if pkt.mid == 123 {
-				zaplog.Debugf("收到消息body=%s", pkt.ReadString())
-			}
-
 			this.handle(pkt)
-
 			continue
 		}
 
@@ -109,7 +102,7 @@ func (this *Agent) sendLoop() {
 
 // 处理 pakcet
 func (this *Agent) handle(pkt *Packet) {
-	if this.process != nil {
-		this.process.GetHandlerChan() <- pkt
+	if this.options.Handler != nil {
+		this.options.Handler.OnPacket(this, pkt)
 	}
 }

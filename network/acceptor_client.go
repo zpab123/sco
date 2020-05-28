@@ -122,7 +122,10 @@ func (this *ClientAcceptor) newAgent(netconn net.Conn, isWebSocket bool) {
 		Conn: netconn,
 	}
 
-	a, err := NewAgent(socket, this.options.AgentOpt)
+	opt := NewTAgentOpt()
+	opt.Handler = this.options.Handler
+
+	a, err := NewAgent(socket, opt)
 	if nil != err {
 		zaplog.Error("创建 Agent 失败..")
 		return

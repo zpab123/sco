@@ -77,6 +77,32 @@ type IProcess interface {
 	GetRemoteChan() chan *Packet  // 获取 remote 通道
 }
 
+// packet 处理器
+type IHandler interface {
+	OnPacket(agent *Agent, pkt *Packet) // 收到1个 packet 消息
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// TNetOptions 对象
+
+// 网络配置
+type TNetOptions struct {
+	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
+	MaxConn   uint32        // 最大连接数量，超过此数值后，不再接收新连接
+	Heartbeat time.Duration // 心跳周期
+	Handler   IHandler      // 消息处理器
+}
+
+// 新建1个默认的网络配置
+func NewTNetOptions() *TNetOptions {
+	opt := TNetOptions{
+		MaxConn:   C_MAX_CONN,
+		Heartbeat: C_HEARTBEAT,
+	}
+
+	return &opt
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 // TBufferSocketOpt 对象
 
@@ -101,10 +127,12 @@ func NewTBufferSocketOpt() *TBufferSocketOpt {
 
 // ClientAcceptor 组件配置参数
 type TClientAcceptorOpt struct {
-	Enable   bool       // 是否启用
-	WsAddr   string     // websocket 监听链接 格式 "192.168.1.222:8080"
-	MaxConn  uint32     // 最大连接数量，超过此数值后，不再接收新连接
-	AgentOpt *TAgentOpt // Agent 配置参数
+	Enable    bool          // 是否启用
+	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
+	MaxConn   uint32        // 最大连接数量，超过此数值后，不再接收新连接
+	Heartbeat time.Duration // 心跳周期
+	Handler   IHandler      // 消息处理器
+	AgentOpt  *TAgentOpt    // Agent 配置参数
 }
 
 // 创建1个新的 TNetServiceOpt
@@ -149,6 +177,7 @@ func NewTScoConnOpt() *TScoConnOpt {
 // Agent 配置参数
 type TAgentOpt struct {
 	Heartbeat  time.Duration // 心跳周期
+	Handler    IHandler      // 消息处理器
 	ScoConnOpt *TScoConnOpt  // ScoConn 配置参数
 }
 

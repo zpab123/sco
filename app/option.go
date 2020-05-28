@@ -12,19 +12,20 @@ import (
 
 // app 配置参数
 type Options struct {
-	AppType           byte                        // app 类型
-	Cluster           bool                        // 是否开启集群服务
-	ClientAcceptorOpt *network.TClientAcceptorOpt // 客户端接收器
+	AppType   byte                 // app 类型
+	ServiceId uint16               // 服务ID
+	Cluster   bool                 // 是否开启集群服务
+	NetOpt    *network.TNetOptions // 网络配置
 }
 
 // 新建1个默认 Options
 func NewOptions() *Options {
-	copt := network.NewTClientAcceptorOpt()
+	nopt := network.NewTNetOptions()
 
 	o := Options{
-		AppType:           C_APP_TYPE_FRONTEND,
-		Cluster:           false,
-		ClientAcceptorOpt: copt,
+		AppType: C_APP_TYPE_FRONTEND,
+		Cluster: false,
+		NetOpt:  nopt,
 	}
 
 	return &o

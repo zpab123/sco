@@ -27,7 +27,7 @@ type Application struct {
 	stopGroup      sync.WaitGroup          // 停止等待组
 	remoteChan     chan *network.Packet    // remote 消息
 	handleChan     chan *network.Packet    // 本地消息
-	handler        IHandler                // 处理器
+	packetChan     chan *network.Packet    // 消息处理器
 }
 
 // 创建1个新的 Application 对象
@@ -37,6 +37,7 @@ func NewApplication() *Application {
 	opt := NewOptions()
 	rc := make(chan *network.Packet, 1000)
 	hc := make(chan *network.Packet, 1000)
+	pc := make(chan *network.Packet, 1000)
 
 	// 创建 app
 	a := Application{
@@ -44,6 +45,7 @@ func NewApplication() *Application {
 		Options:    opt,
 		remoteChan: rc,
 		handleChan: hc,
+		packetChan: pc,
 	}
 	a.init()
 
@@ -92,8 +94,10 @@ func (this *Application) Stop() {
 }
 
 // 注册 handler
-func (this *Application) RegisterHandler(handler IHandler) {
-
+func (this *Application) RegisterHandler(handler network.IHandler) {
+	if handler != nil {
+		this.Options.NetOpt.Handler = handler
+	}
 }
 
 // 初始化
@@ -135,7 +139,11 @@ func (this *Application) parseArgs() {
 
 // 创建 clientAcceptor
 func (this *Application) newClientAcceptor() {
-	this.clientAcceptor = network.NewClientAcceptor(this.Options.ClientAcceptorOpt)
+	opt := network.NewTClientAcceptorOpt()
+	opt.Handler = this.Options.NetOpt.Handler
+	opt.WsAddr = this.Options.NetOpt.WsAddr
+
+	this.clientAcceptor = network.NewClientAcceptor(opt)
 }
 
 // 分发消息
@@ -152,9 +160,7 @@ func (this *Application) dispatch() {
 
 // 处理本地消息
 func (this *Application) handle(pkt *network.Packet) {
-	if this.handler != nil {
-		// this.handler
-	}
+
 }
 
 // 处理 rpc 消息
