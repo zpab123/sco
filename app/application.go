@@ -64,6 +64,11 @@ func (this *Application) Run() {
 		this.stopGroup.Add(1)
 	}
 
+	// rpc服务
+	if this.Options.Cluster {
+
+	}
+
 	// 消息分发
 	go this.dispatch()
 
