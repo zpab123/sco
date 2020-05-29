@@ -106,7 +106,7 @@ func (this *etcdDiscovery) Stop() {
 }
 
 // 获取 etcdDiscovery 可选参数
-func (this *etcdDiscovery) Option() *TEtcdDiscoveryOpt {
+func (this *etcdDiscovery) Options() *TEtcdDiscoveryOpt {
 	return this.options
 }
 
