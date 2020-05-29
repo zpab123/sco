@@ -15,7 +15,7 @@ type Options struct {
 	AppType   byte                 // app 类型
 	ServiceId uint16               // 服务ID
 	Cluster   bool                 // 是否开启集群服务
-	NetOpt    *network.TNetOptions // 网络配置
+	NetOpt    *network.TNetOptions // 网络配置（客户端）
 }
 
 // 新建1个默认 Options

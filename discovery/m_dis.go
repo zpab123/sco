@@ -4,6 +4,7 @@
 package discovery
 
 import (
+	"context"
 	"time"
 )
 
@@ -33,6 +34,9 @@ const (
 
 // 服务发现接口
 type IDiscovery interface {
+	SetService(svcDesc *ServiceDesc) // 设置服务
+	Run(ctx context.Context)         // 启动服务发现
+	AddListener(listener IListener)  // 添加侦听者
 }
 
 // 服务发现事件侦听

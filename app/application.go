@@ -4,6 +4,7 @@
 package app
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -11,8 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/zpab123/sco/discovery"
 	"github.com/zpab123/sco/network"
-
+	"github.com/zpab123/sco/rpc"
 	"github.com/zpab123/zaplog"
 )
 
@@ -23,8 +25,12 @@ import (
 type Application struct {
 	Options        *Options                // 配置选项
 	clientAcceptor *network.ClientAcceptor // 客户端接收器
+	discovery      discovery.IDiscovery    // 服务发现
+	rpcServer      rpc.IServer             // rpc 服务端
+	rpcClient      rpc.IClient             // rpc 客户端
 	signalChan     chan os.Signal          // 操作系统信号
 	stopGroup      sync.WaitGroup          // 停止等待组
+	ctx            context.Context         // 上下文
 	remoteChan     chan *network.Packet    // remote 消息
 	handleChan     chan *network.Packet    // 本地消息
 	packetChan     chan *network.Packet    // 消息处理器
@@ -38,6 +44,7 @@ func NewApplication() *Application {
 	rc := make(chan *network.Packet, 1000)
 	hc := make(chan *network.Packet, 1000)
 	pc := make(chan *network.Packet, 1000)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// 创建 app
 	a := Application{
@@ -46,6 +53,7 @@ func NewApplication() *Application {
 		remoteChan: rc,
 		handleChan: hc,
 		packetChan: pc,
+		ctx:        ctx,
 	}
 	a.init()
 
@@ -60,13 +68,27 @@ func (this *Application) Run() {
 	// 客户端网络
 	if C_APP_TYPE_FRONTEND == this.Options.AppType {
 		this.newClientAcceptor()
-		this.clientAcceptor.Run()
 		this.stopGroup.Add(1)
+		go this.clientAcceptor.Run()
 	}
 
 	// rpc服务
 	if this.Options.Cluster {
+		if nil == this.rpcServer {
+			this.newRpcServer()
+		}
+		// go this.rpcServer.
 
+		if nil == this.rpcClient {
+			this.newRpcClient()
+		}
+		// go this.rpcServer.
+
+		if nil == this.discovery {
+			this.newDiscovery()
+		}
+		// this.stopGroup.Add(1)
+		// go this.discovery.Run(this.ctx)
 	}
 
 	// 消息分发
@@ -149,6 +171,37 @@ func (this *Application) newClientAcceptor() {
 	opt.WsAddr = this.Options.NetOpt.WsAddr
 
 	this.clientAcceptor = network.NewClientAcceptor(opt)
+}
+
+// 创建 rpcserver
+func (this *Application) newRpcServer() {
+	var laddr string = ""
+	this.rpcServer = rpc.NewGrpcServer(laddr)
+}
+
+// 创建 rpcClient
+func (this *Application) newRpcClient() {
+
+}
+
+// 创建服务发现
+func (this *Application) newDiscovery() {
+	endpoints := make([]string, 0)
+	dis, _ := discovery.NewEtcdDiscovery(endpoints)
+
+	// 服务描述
+	desc := discovery.ServiceDesc{
+		Type: "",
+		Name: "name",
+		Mid:  0,
+		Host: "192.168.1.220",
+		Port: "3026",
+	}
+	dis.SetService(desc)
+
+	if nil != this.rpcClient {
+		dis.AddListener(this.rpcClient)
+	}
 }
 
 // 分发消息
