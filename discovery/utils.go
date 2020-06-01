@@ -32,13 +32,13 @@ func parseServiceKey(key string) (string, string, error) {
 		return "", "", err
 	}
 
-	svcType := strs[1]
+	mid := strs[1]
 	name := strs[2]
 
-	return svcType, name, nil
+	return mid, name, nil
 }
 
 // 根据服务类型和名字获取服务器信息
-func getKey(stype, name string) string {
-	return fmt.Sprintf("%s%s/%s", C_ETCD_SERVER_DIR, stype, name)
+func getKey(mid, name string) string {
+	return fmt.Sprintf("%s/%s/%s", C_ED_SERVICE_DIR, mid, name)
 }

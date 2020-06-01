@@ -84,13 +84,12 @@ func (this *Application) Run() {
 		if nil == this.rpcClient {
 			this.newRpcClient()
 		}
-		//go this.rpcServer.Run(this.ctx)
+		go this.rpcClient.Run(this.ctx)
 
-		//if nil == this.discovery {
-		// this.newDiscovery()
-		//}
-		// this.stopGroup.Add(1)
-		// go this.discovery.Run(this.ctx)
+		if nil == this.discovery {
+			this.newDiscovery()
+		}
+		go this.discovery.Run(this.ctx)
 	}
 
 	// 消息分发
@@ -184,27 +183,29 @@ func (this *Application) newRpcServer() {
 
 // 创建 rpcClient
 func (this *Application) newRpcClient() {
-
+	this.rpcClient = rpc.NewGrpcClient()
 }
 
 // 创建服务发现
 func (this *Application) newDiscovery() {
-	endpoints := make([]string, 0)
-	endpoints = append(endpoints, "192.168.1.88.250")
-	dis, _ := discovery.NewEtcdDiscovery(endpoints)
+	endpoints := []string{
+		"http://192.168.1.69:2379",
+		"http://192.168.1.69:2479",
+		"http://192.168.1.69:2579",
+	}
+
+	this.discovery, _ = discovery.NewEtcdDiscovery(endpoints)
 
 	// 服务描述
 	desc := discovery.ServiceDesc{
-		Type: "",
-		Name: "name",
-		Mid:  0,
-		Host: "192.168.1.220",
-		Port: 3026,
+		Name:  this.Options.Name,
+		Mid:   this.Options.ServiceId,
+		Laddr: this.Options.RpcOpt.Laddr,
 	}
-	dis.SetService(&desc)
+	this.discovery.SetService(&desc)
 
 	if nil != this.rpcClient {
-		dis.AddListener(this.rpcClient)
+		this.discovery.AddListener(this.rpcClient)
 	}
 }
 

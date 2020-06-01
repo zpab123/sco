@@ -27,6 +27,7 @@ type etcdDiscovery struct {
 	endpoints    []string                           // 注册中心地址集合
 	leaseID      clientv3.LeaseID                   // 租约id
 	svcMapByName sync.Map                           // 服务器集群信息集合
+	svcMapByMid  map[uint16]map[string]*ServiceDesc // 服务器集群信息集合
 	svcMapByType map[string]map[string]*ServiceDesc // 服务器集群信息集合
 	rwMutex      sync.RWMutex                       // 读写锁
 	serviceDesc  *ServiceDesc                       // 自身服务器信息
@@ -117,7 +118,7 @@ func (this *etcdDiscovery) SetService(svcDesc *ServiceDesc) {
 
 // 从 etcd 更新所有服务信息
 func (this *etcdDiscovery) UpdateService() error {
-	keys, err := this.client.Get(context.TODO(), C_ETCD_SERVER_DIR, clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	keys, err := this.client.Get(context.TODO(), C_ED_SERVICE_DIR, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if nil != err {
 		return err
 	}
@@ -125,7 +126,7 @@ func (this *etcdDiscovery) UpdateService() error {
 	// 保存有效
 	validName := make([]string, 0)
 	for _, kv := range keys.Kvs {
-		stype, name, err := parseServiceKey(string(kv.Key))
+		mid, name, err := parseServiceKey(string(kv.Key))
 		if nil != err {
 			// return err
 		}
@@ -133,7 +134,7 @@ func (this *etcdDiscovery) UpdateService() error {
 		validName = append(validName, name)
 
 		if _, ok := this.svcMapByName.Load(name); !ok {
-			svcDesc, err := this.getServiceFromEtcd(stype, name)
+			svcDesc, err := this.getServiceFromEtcd(mid, name)
 			if nil != err || nil == svcDesc {
 				continue
 			}
@@ -246,8 +247,8 @@ func (this *etcdDiscovery) renewLease() error {
 }
 
 // 获取服务
-func (this *etcdDiscovery) getServiceFromEtcd(stype, name string) (*ServiceDesc, error) {
-	k := getKey(stype, name)
+func (this *etcdDiscovery) getServiceFromEtcd(mid, name string) (*ServiceDesc, error) {
+	k := getKey(mid, name)
 	v, err := this.client.Get(context.TODO(), k)
 	if nil != err {
 		return nil, err
@@ -265,13 +266,13 @@ func (this *etcdDiscovery) addService(sd *ServiceDesc) {
 	if _, loaded := this.svcMapByName.LoadOrStore(sd.Name, sd); !loaded {
 		// 保存
 		this.writeLockScope(func() {
-			nameMap, ok := this.svcMapByType[sd.Type]
+			idMap, ok := this.svcMapByMid[sd.Mid]
 			if !ok {
-				nameMap = make(map[string]*ServiceDesc)
-				this.svcMapByType[sd.Type] = nameMap
+				idMap = make(map[string]*ServiceDesc)
+				this.svcMapByMid[sd.Mid] = idMap
 			}
 
-			nameMap[sd.Name] = sd
+			idMap[sd.Mid] = sd
 		})
 
 		// 通知

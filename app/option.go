@@ -14,6 +14,7 @@ import (
 // app 配置参数
 type Options struct {
 	AppType   byte                 // app 类型
+	Name      string               // app名字，不同的app名字不要相同
 	ServiceId uint16               // 服务ID
 	Cluster   bool                 // 是否开启集群服务
 	NetOpt    *network.TNetOptions // 网络配置（客户端）
