@@ -31,6 +31,7 @@ type Application struct {
 	signalChan     chan os.Signal          // 操作系统信号
 	stopGroup      sync.WaitGroup          // 停止等待组
 	ctx            context.Context         // 上下文
+	cancel         context.CancelFunc      // 退出通知函数
 	remoteChan     chan *network.Packet    // remote 消息
 	handleChan     chan *network.Packet    // 本地消息
 	packetChan     chan *network.Packet    // 消息处理器
@@ -54,6 +55,7 @@ func NewApplication() *Application {
 		handleChan: hc,
 		packetChan: pc,
 		ctx:        ctx,
+		cancel:     cancel,
 	}
 	a.init()
 
@@ -77,16 +79,16 @@ func (this *Application) Run() {
 		if nil == this.rpcServer {
 			this.newRpcServer()
 		}
-		// go this.rpcServer.
+		go this.rpcServer.Run(this.ctx)
 
 		if nil == this.rpcClient {
 			this.newRpcClient()
 		}
-		// go this.rpcServer.
+		//go this.rpcServer.Run(this.ctx)
 
-		if nil == this.discovery {
-			this.newDiscovery()
-		}
+		//if nil == this.discovery {
+		// this.newDiscovery()
+		//}
 		// this.stopGroup.Add(1)
 		// go this.discovery.Run(this.ctx)
 	}
@@ -175,8 +177,9 @@ func (this *Application) newClientAcceptor() {
 
 // 创建 rpcserver
 func (this *Application) newRpcServer() {
-	var laddr string = ""
-	this.rpcServer = rpc.NewGrpcServer(laddr)
+	this.rpcServer = rpc.NewGrpcServer(this.Options.RpcOpt.Laddr)
+	re := &Remote{}
+	this.rpcServer.SetRpcService(re)
 }
 
 // 创建 rpcClient
@@ -187,6 +190,7 @@ func (this *Application) newRpcClient() {
 // 创建服务发现
 func (this *Application) newDiscovery() {
 	endpoints := make([]string, 0)
+	endpoints = append(endpoints, "192.168.1.88.250")
 	dis, _ := discovery.NewEtcdDiscovery(endpoints)
 
 	// 服务描述
@@ -195,9 +199,9 @@ func (this *Application) newDiscovery() {
 		Name: "name",
 		Mid:  0,
 		Host: "192.168.1.220",
-		Port: "3026",
+		Port: 3026,
 	}
-	dis.SetService(desc)
+	dis.SetService(&desc)
 
 	if nil != this.rpcClient {
 		dis.AddListener(this.rpcClient)

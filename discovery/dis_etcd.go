@@ -37,7 +37,7 @@ type etcdDiscovery struct {
 
 // 创建成功，返回 *etcdDiscovery 和 nil
 // 创建失败，返回 nil 和 error
-func NewEtcdDiscovery(endpoints []string) (*IDiscovery, error) {
+func NewEtcdDiscovery(endpoints []string) (IDiscovery, error) {
 	var err error
 
 	// 参数效验

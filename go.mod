@@ -15,5 +15,5 @@ require (
 	github.com/zpab123/zaplog v1.0.0
 	go.etcd.io/etcd v3.3.22+incompatible // indirect
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
-	google.golang.org/grpc v1.29.1 // indirect
+	google.golang.org/grpc v1.26.0 // indirect
 )

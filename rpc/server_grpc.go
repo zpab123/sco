@@ -4,7 +4,7 @@
 package rpc
 
 import (
-	goContext "context"
+	"context"
 	"net"
 
 	"github.com/zpab123/sco/protocol"
@@ -17,7 +17,6 @@ import (
 
 // grpc 服务
 type GrpcServer struct {
-	name       string                 // 组件名字
 	laddr      string                 // 监听地址
 	server     *grpc.Server           // grpc 服务
 	rpcService protocol.ScoGrpcServer // sco rpc服务
@@ -33,7 +32,7 @@ func NewGrpcServer(laddr string) IServer {
 }
 
 // 启动 rpc 服务
-func (this *GrpcServer) Run(ctx goContext.Context) {
+func (this *GrpcServer) Run(ctx context.Context) {
 	ln, err := net.Listen("tcp", this.laddr)
 	if nil != err {
 		return
@@ -54,10 +53,6 @@ func (this *GrpcServer) Run(ctx goContext.Context) {
 // source: https://godoc.org/google.golang.org/grpc#Server.GracefulStop
 func (this *GrpcServer) Stop() {
 	this.server.GracefulStop()
-}
-
-func (this *GrpcServer) Name() string {
-	return this.name
 }
 
 // 设置引擎服务
