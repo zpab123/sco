@@ -266,13 +266,13 @@ func (this *etcdDiscovery) addService(sd *ServiceDesc) {
 	if _, loaded := this.svcMapByName.LoadOrStore(sd.Name, sd); !loaded {
 		// 保存
 		this.writeLockScope(func() {
-			idMap, ok := this.svcMapByMid[sd.Mid]
+			nMap, ok := this.svcMapByMid[sd.Mid]
 			if !ok {
-				idMap = make(map[string]*ServiceDesc)
-				this.svcMapByMid[sd.Mid] = idMap
+				nMap = make(map[string]*ServiceDesc)
+				this.svcMapByMid[sd.Mid] = nMap
 			}
 
-			idMap[sd.Mid] = sd
+			nMap[sd.Name] = sd
 		})
 
 		// 通知
@@ -339,7 +339,7 @@ func (this *etcdDiscovery) deleteService(name string) {
 
 		// 删除
 		this.writeLockScope(func() {
-			if nMap, ok := this.svcMapByType[svc.Type]; ok {
+			if nMap, ok := this.svcMapByMid[svc.Mid]; ok {
 				delete(nMap, svc.Name)
 			}
 		})
@@ -389,7 +389,7 @@ func (this *etcdDiscovery) update() {
 
 // 观察信息变化
 func (this *etcdDiscovery) watchEtcdChanges() {
-	wChan := this.client.Watch(context.Background(), C_ETCD_SERVER_DIR, clientv3.WithPrefix())
+	wChan := this.client.Watch(context.Background(), C_ED_SERVICE_DIR, clientv3.WithPrefix())
 
 	for {
 		select {
