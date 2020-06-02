@@ -8,6 +8,14 @@ import (
 
 	"github.com/zpab123/sco/discovery"
 	"github.com/zpab123/sco/protocol"
+	"google.golang.org/grpc"
+)
+
+// /////////////////////////////////////////////////////////////////////////////
+// 常量
+const (
+	C_SVC_NAME    = "sco.rpcService" // sco rpc服务名称
+	C_METHOD_CALL = "Call"           // sco Call 方法
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -23,4 +31,9 @@ type IServer interface {
 type IClient interface {
 	discovery.IListener      // 接口继承：服务发现侦听
 	Run(ctx context.Context) // 启动 client
+}
+
+// 连接对象接口
+type IConn interface {
+	Call(ctx context.Context, req *protocol.GrpcRequest, opts ...grpc.CallOption) (*protocol.GrpcResponse, error) // 远程调用
 }

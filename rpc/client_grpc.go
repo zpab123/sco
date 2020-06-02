@@ -63,14 +63,14 @@ func (this *GrpcClient) AddService(desc *discovery.ServiceDesc) {
 	zaplog.Debugf("新的服务器，%s", conn.Target())
 	zaplog.Debugf("添加新的rpc连接，%s", addr)
 
-	// gconn := NewGrpcConn(conn)
-	// this.connMap.Store(desc.Mid, gconn)
+	gconn := NewGrpcConn(conn)
+	this.connMap.Store(desc.Name, gconn)
 }
 
 // 移除 rpc 服务信息
 func (this *GrpcClient) RemoveService(desc *discovery.ServiceDesc) {
-	if _, ok := this.connMap.Load(desc.Mid); ok {
-		this.connMap.Delete(desc.Mid)
+	if _, ok := this.connMap.Load(desc.Name); ok {
+		this.connMap.Delete(desc.Name)
 		// 销毁连接对象？
 		zaplog.Debugf("移除rpc连接%s", desc.Address())
 	}
