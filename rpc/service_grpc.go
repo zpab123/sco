@@ -27,17 +27,17 @@ func NewGrpcService(svc IRemoteService) protocol.GrpcServer {
 }
 
 // hander 调用
-func (this GrpcService) Call(ctx context.Context, req *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
+func (this *GrpcService) Call(ctx context.Context, req *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
 	if nil != this.remoteService {
 		return nil, nil
 	}
 
-	res := this.remoteService.OnData(req.Data)
-	req := protocol.GrpcResponse{
-		Data: res,
+	data := this.remoteService.OnData(req.Data)
+	res := protocol.GrpcResponse{
+		Data: data,
 	}
 
-	return req, nil
+	return &res, nil
 }
 
 // remote 调用

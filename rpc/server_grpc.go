@@ -17,9 +17,9 @@ import (
 
 // grpc 服务
 type GrpcServer struct {
-	options *GrpcServerOptions // 选项
-	server  *grpc.Server       // grpc 服务器
-	service *GrpcService       // grpc 消息服务
+	options *GrpcServerOptions  // 选项
+	server  *grpc.Server        // grpc 服务器
+	service protocol.GrpcServer // grpc 消息服务
 }
 
 // 新建1个 GrpcServer
@@ -28,7 +28,7 @@ func NewGrpcServer(opt *GrpcServerOptions) IServer {
 		opt = &GrpcServerOptions{}
 	}
 
-	svc := NewGrpcService(opt.remoteService)
+	svc := NewGrpcService(opt.RemoteService)
 
 	gs := GrpcServer{
 		options: opt,
@@ -50,7 +50,7 @@ func (this *GrpcServer) Run(ctx context.Context) {
 
 	go this.server.Serve(ln)
 
-	zaplog.Infof("GrpcServer [%s] 启动成功", this.laddr)
+	zaplog.Infof("GrpcServer [%s] 启动成功", this.options.Laddr)
 
 	return
 }

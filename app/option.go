@@ -19,18 +19,21 @@ type Options struct {
 	Cluster   bool                 // 是否开启集群服务
 	NetOpt    *network.TNetOptions // 网络配置（客户端）
 	RpcOpt    *rpc.Options         // rpc 选项
+	RpcServer *rpc.ServerOptions   // rpc 服务选项
 }
 
 // 新建1个默认 Options
 func NewOptions() *Options {
 	nopt := network.NewTNetOptions()
 	ro := rpc.NewOptions()
+	rso := rpc.NewServerOptions()
 
 	o := Options{
-		AppType: C_APP_TYPE_FRONTEND,
-		Cluster: false,
-		NetOpt:  nopt,
-		RpcOpt:  ro,
+		AppType:   C_APP_TYPE_FRONTEND,
+		Cluster:   false,
+		NetOpt:    nopt,
+		RpcOpt:    ro,
+		RpcServer: rso,
 	}
 
 	return &o

@@ -192,11 +192,11 @@ func (this *Application) newClientAcceptor() {
 // 创建 rpcserver
 func (this *Application) newRpcServer() {
 	opt := rpc.GrpcServerOptions{
-		Laddr:         this.Options.RpcOpt.Laddr,
+		Laddr:         this.Options.RpcServer.Laddr,
 		RemoteService: this.remoteService,
 	}
 
-	this.rpcServer = rpc.NewGrpcServer(this.Options.RpcOpt.Laddr)
+	this.rpcServer = rpc.NewGrpcServer(&opt)
 }
 
 // 创建 rpcClient

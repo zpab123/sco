@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/zpab123/sco/protocol" // 消息协议
@@ -17,12 +16,12 @@ import (
 
 // grpc 连接对象
 type GrpcConn struct {
-	address    string                 // 远端地址
-	clinetConn *grpc.ClientConn       // grpc 连接对象
-	connected  bool                   // 是否连接
-	lock       sync.Mutex             // 锁
-	client     protocol.ScoGrpcClient // 客户端
-	conn       *grpc.ClientConn       // rpc conn
+	address    string              // 远端地址
+	clinetConn *grpc.ClientConn    // grpc 连接对象
+	connected  bool                // 是否连接
+	lock       sync.Mutex          // 锁
+	client     protocol.GrpcClient // 客户端
+	conn       *grpc.ClientConn    // rpc conn
 }
 
 // 新建1个 GrpcConn 对象
@@ -68,8 +67,7 @@ func (this *GrpcConn) connect() error {
 		return err
 	}
 
-	cli := protocol.NewScoGrpcClient(conn)
-	this.client = protocol.NewScoGrpcClient(conn)
+	this.client = protocol.NewGrpcClient(conn)
 	this.connected = true
 	return nil
 }
