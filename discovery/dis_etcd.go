@@ -55,6 +55,7 @@ func NewEtcdDiscovery(endpoints []string) (IDiscovery, error) {
 		endpoints:    endpoints,
 		options:      opt,
 		svcMapByType: make(map[string]map[string]*ServiceDesc),
+		svcMapByMid:  make(map[uint16]map[string]*ServiceDesc),
 		listeners:    make([]IListener, 0),
 	}
 
@@ -129,6 +130,7 @@ func (this *etcdDiscovery) UpdateService() error {
 		mid, name, err := parseServiceKey(string(kv.Key))
 		if nil != err {
 			// return err
+			continue
 		}
 
 		validName = append(validName, name)

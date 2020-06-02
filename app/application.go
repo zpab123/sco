@@ -35,6 +35,9 @@ type Application struct {
 	remoteChan     chan *network.Packet    // remote 消息
 	handleChan     chan *network.Packet    // 本地消息
 	packetChan     chan *network.Packet    // 消息处理器
+	localPacket    chan *network.Packet    // 本地消息
+	remotePacket   chan *network.Packet    // 远程消息
+	handler        network.IHandler        // 消息处理
 }
 
 // 创建1个新的 Application 对象
@@ -45,17 +48,21 @@ func NewApplication() *Application {
 	rc := make(chan *network.Packet, 1000)
 	hc := make(chan *network.Packet, 1000)
 	pc := make(chan *network.Packet, 1000)
+	lp := make(chan *network.Packet, 1000)
+	rp := make(chan *network.Packet, 1000)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 创建 app
 	a := Application{
-		signalChan: sig,
-		Options:    opt,
-		remoteChan: rc,
-		handleChan: hc,
-		packetChan: pc,
-		ctx:        ctx,
-		cancel:     cancel,
+		signalChan:   sig,
+		Options:      opt,
+		remoteChan:   rc,
+		handleChan:   hc,
+		packetChan:   pc,
+		localPacket:  lp,
+		remotePacket: rp,
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 	a.init()
 
@@ -123,8 +130,8 @@ func (this *Application) Stop() {
 
 // 注册 handler
 func (this *Application) RegisterHandler(handler network.IHandler) {
-	if handler != nil {
-		this.Options.NetOpt.Handler = handler
+	if nil != handler {
+		this.handler = handler
 	}
 }
 
@@ -168,7 +175,7 @@ func (this *Application) parseArgs() {
 // 创建 clientAcceptor
 func (this *Application) newClientAcceptor() {
 	opt := network.NewTClientAcceptorOpt()
-	opt.Handler = this.Options.NetOpt.Handler
+	opt.Handler = this
 	opt.WsAddr = this.Options.NetOpt.WsAddr
 
 	this.clientAcceptor = network.NewClientAcceptor(opt)
@@ -209,6 +216,27 @@ func (this *Application) newDiscovery() {
 	}
 }
 
+// 收到1个 pakcet
+func (this *Application) OnPacket(agent *network.Agent, pkt *network.Packet) {
+	if pkt.GetMid() != this.Options.ServiceId {
+		this.dispatchPacket(agent, pkt)
+		return
+	}
+
+	// 本地
+	if nil != this.handler {
+		this.handler.OnPacket(agent, pkt)
+	}
+}
+
+// 分发消息
+func (this *Application) dispatchPacket(agent *network.Agent, pkt *network.Packet) {
+	if nil != this.rpcClient {
+		res := this.rpcClient.Call(pkt.GetMid(), pkt.Data())
+		agent.SendData(res)
+	}
+}
+
 // 分发消息
 func (this *Application) dispatch() {
 	for {
@@ -217,6 +245,8 @@ func (this *Application) dispatch() {
 			this.handle(pkt)
 		case pkt := <-this.remoteChan: // rpc 消息
 			this.remote(pkt)
+		case pkt := <-this.remotePacket: // 远程packet
+			this.sendToServer(pkt)
 		}
 	}
 }
@@ -229,4 +259,15 @@ func (this *Application) handle(pkt *network.Packet) {
 // 处理 rpc 消息
 func (this *Application) remote(pkt *network.Packet) {
 
+}
+
+// 远程处理
+func (this *Application) sendToServer(pkt *network.Packet) {
+	if nil == this.rpcClient {
+		return
+	}
+
+	//res := this.rpcClient
+
+	// agent.send(res)
 }

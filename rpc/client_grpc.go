@@ -44,9 +44,20 @@ func (this *GrpcClient) Stop() {
 }
 
 // 远程调用
-func (this *GrpcClient) Call() {
+func (this *GrpcClient) Call(mid uint16, data []byte) []byte {
 	// 数据编码
 	// 发送数据
+	/*
+		c, ok := this.connMap.Load(mid)
+		if !ok {
+			return
+		}
+
+		// 调用
+		// res, err := c.(*GrpcConn).Call(ctxT, &req)
+	*/
+
+	return nil
 }
 
 // 添加 rpc 服务信息

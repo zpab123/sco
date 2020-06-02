@@ -58,6 +58,11 @@ func (this *Agent) Stop() {
 	this.scoConn.Close()
 }
 
+// 发送数据
+func (this *Agent) SendData(data []byte) {
+	this.scoConn.SendData(data)
+}
+
 // 接收线程
 func (this *Agent) recvLoop() {
 	defer func() {

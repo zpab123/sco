@@ -29,8 +29,9 @@ type IServer interface {
 
 // rpc client 服务
 type IClient interface {
-	discovery.IListener      // 接口继承：服务发现侦听
-	Run(ctx context.Context) // 启动 client
+	discovery.IListener                  // 接口继承：服务发现侦听
+	Run(ctx context.Context)             // 启动 client
+	Call(mid uint16, data []byte) []byte // 远程调用
 }
 
 // 连接对象接口
