@@ -4,16 +4,25 @@
 package rpc
 
 // /////////////////////////////////////////////////////////////////////////////
-// ServerOptions
+// Options
 
-// 服务器选项
+// rpc 选项
 type Options struct {
-	Laddr string // rpcServer 监听地址
+	Laddr         string             // 服务器监听地址
+	remoteService rpc.IRemoteService // remote 服务
 }
 
-// 新建1个 ServerOptions
+// 新建1个 Options
 func NewOptions() *Options {
 	o := Options{}
-
 	return &o
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// Options 对象
+
+// grpc 服务选项
+type GrpcServerOptions struct {
+	Laddr         string             // 服务器监听地址
+	remoteService rpc.IRemoteService // remote 服务
 }

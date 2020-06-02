@@ -23,8 +23,8 @@ const (
 
 // rpc server 服务
 type IServer interface {
-	Run(ctx context.Context)                 // 启动服务器
-	SetRpcService(rs protocol.ScoGrpcServer) // 设置服务
+	Run(ctx context.Context)           // 启动服务器
+	SetService(rs protocol.GrpcServer) // 设置服务
 }
 
 // rpc client 服务
@@ -37,4 +37,9 @@ type IClient interface {
 // 连接对象接口
 type IConn interface {
 	Call(ctx context.Context, req *protocol.GrpcRequest, opts ...grpc.CallOption) (*protocol.GrpcResponse, error) // 远程调用
+}
+
+// remote 服务
+type IRemoteService interface {
+	OnData(data []byte) []byte // 收到 remote 数据
 }

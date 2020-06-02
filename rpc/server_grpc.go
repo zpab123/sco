@@ -17,15 +17,22 @@ import (
 
 // grpc 服务
 type GrpcServer struct {
-	laddr      string                 // 监听地址
-	server     *grpc.Server           // grpc 服务
-	rpcService protocol.ScoGrpcServer // sco rpc服务
+	options *GrpcServerOptions // 选项
+	server  *grpc.Server       // grpc 服务器
+	service *GrpcService       // grpc 消息服务
 }
 
 // 新建1个 GrpcServer
-func NewGrpcServer(laddr string) IServer {
+func NewGrpcServer(opt *GrpcServerOptions) IServer {
+	if nil == opt {
+		opt = &GrpcServerOptions{}
+	}
+
+	svc := NewGrpcService(opt.remoteService)
+
 	gs := GrpcServer{
-		laddr: laddr,
+		options: opt,
+		service: svc,
 	}
 
 	return &gs
@@ -33,13 +40,13 @@ func NewGrpcServer(laddr string) IServer {
 
 // 启动 rpc 服务
 func (this *GrpcServer) Run(ctx context.Context) {
-	ln, err := net.Listen("tcp", this.laddr)
+	ln, err := net.Listen("tcp", this.options.Laddr)
 	if nil != err {
 		return
 	}
 
 	this.server = grpc.NewServer()
-	this.registerRpcService()
+	this.registerService()
 
 	go this.server.Serve(ln)
 
@@ -56,11 +63,11 @@ func (this *GrpcServer) Stop() {
 }
 
 // 设置引擎服务
-func (this *GrpcServer) SetRpcService(rs protocol.ScoGrpcServer) {
-	this.rpcService = rs
+func (this *GrpcServer) SetService(rs protocol.GrpcServer) {
+	this.service = rs
 }
 
 // 注册服务
-func (this *GrpcServer) registerRpcService() {
-	protocol.RegisterScoGrpcServer(this.server, this.rpcService)
+func (this *GrpcServer) registerService() {
+	protocol.RegisterGrpcServer(this.server, this.service)
 }

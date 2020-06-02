@@ -18,9 +18,9 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// 请求数据
 type GrpcRequest struct {
-	Key                  string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Acceptor             uint32   `protobuf:"varint,2,opt,name=acceptor,proto3" json:"acceptor,omitempty"`
+	Data                 []byte   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -30,7 +30,7 @@ func (m *GrpcRequest) Reset()         { *m = GrpcRequest{} }
 func (m *GrpcRequest) String() string { return proto.CompactTextString(m) }
 func (*GrpcRequest) ProtoMessage()    {}
 func (*GrpcRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_grpcRequest_d0ba72a6cff8f8f1, []int{0}
+	return fileDescriptor_grpcRequest_53672b4b8a3ea362, []int{0}
 }
 func (m *GrpcRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GrpcRequest.Unmarshal(m, b)
@@ -50,33 +50,24 @@ func (m *GrpcRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GrpcRequest proto.InternalMessageInfo
 
-func (m *GrpcRequest) GetKey() string {
+func (m *GrpcRequest) GetData() []byte {
 	if m != nil {
-		return m.Key
+		return m.Data
 	}
-	return ""
-}
-
-func (m *GrpcRequest) GetAcceptor() uint32 {
-	if m != nil {
-		return m.Acceptor
-	}
-	return 0
+	return nil
 }
 
 func init() {
 	proto.RegisterType((*GrpcRequest)(nil), "protocol.GrpcRequest")
 }
 
-func init() { proto.RegisterFile("grpcRequest.proto", fileDescriptor_grpcRequest_d0ba72a6cff8f8f1) }
+func init() { proto.RegisterFile("grpcRequest.proto", fileDescriptor_grpcRequest_53672b4b8a3ea362) }
 
-var fileDescriptor_grpcRequest_d0ba72a6cff8f8f1 = []byte{
-	// 98 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_grpcRequest_53672b4b8a3ea362 = []byte{
+	// 78 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x4c, 0x2f, 0x2a, 0x48,
 	0x0e, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x00,
-	0x53, 0xc9, 0xf9, 0x39, 0x4a, 0xd6, 0x5c, 0xdc, 0xee, 0x08, 0x69, 0x21, 0x01, 0x2e, 0xe6, 0xec,
-	0xd4, 0x4a, 0x09, 0x46, 0x05, 0x46, 0x0d, 0xce, 0x20, 0x10, 0x53, 0x48, 0x8a, 0x8b, 0x23, 0x31,
-	0x39, 0x39, 0xb5, 0xa0, 0x24, 0xbf, 0x48, 0x82, 0x49, 0x81, 0x51, 0x83, 0x37, 0x08, 0xce, 0x4f,
-	0x62, 0x03, 0x1b, 0x63, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x35, 0x21, 0xf6, 0xbe, 0x62, 0x00,
-	0x00, 0x00,
+	0x53, 0xc9, 0xf9, 0x39, 0x4a, 0x8a, 0x5c, 0xdc, 0xee, 0x08, 0x69, 0x21, 0x21, 0x2e, 0x96, 0x94,
+	0xc4, 0x92, 0x44, 0x09, 0x46, 0x05, 0x46, 0x0d, 0x9e, 0x20, 0x30, 0x3b, 0x89, 0x0d, 0xac, 0xd8,
+	0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x13, 0xd5, 0x4e, 0xfc, 0x48, 0x00, 0x00, 0x00,
 }

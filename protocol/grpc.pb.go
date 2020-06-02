@@ -31,79 +31,79 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// ScoGrpcClient is the client API for ScoGrpc service.
+// GrpcClient is the client API for Grpc service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type ScoGrpcClient interface {
+type GrpcClient interface {
 	Call(ctx context.Context, in *GrpcRequest, opts ...grpc.CallOption) (*GrpcResponse, error)
 }
 
-type scoGrpcClient struct {
+type grpcClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewScoGrpcClient(cc *grpc.ClientConn) ScoGrpcClient {
-	return &scoGrpcClient{cc}
+func NewGrpcClient(cc *grpc.ClientConn) GrpcClient {
+	return &grpcClient{cc}
 }
 
-func (c *scoGrpcClient) Call(ctx context.Context, in *GrpcRequest, opts ...grpc.CallOption) (*GrpcResponse, error) {
+func (c *grpcClient) Call(ctx context.Context, in *GrpcRequest, opts ...grpc.CallOption) (*GrpcResponse, error) {
 	out := new(GrpcResponse)
-	err := c.cc.Invoke(ctx, "/protocol.ScoGrpc/Call", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/protocol.Grpc/Call", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ScoGrpcServer is the server API for ScoGrpc service.
-type ScoGrpcServer interface {
+// GrpcServer is the server API for Grpc service.
+type GrpcServer interface {
 	Call(context.Context, *GrpcRequest) (*GrpcResponse, error)
 }
 
-func RegisterScoGrpcServer(s *grpc.Server, srv ScoGrpcServer) {
-	s.RegisterService(&_ScoGrpc_serviceDesc, srv)
+func RegisterGrpcServer(s *grpc.Server, srv GrpcServer) {
+	s.RegisterService(&_Grpc_serviceDesc, srv)
 }
 
-func _ScoGrpc_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Grpc_Call_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GrpcRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ScoGrpcServer).Call(ctx, in)
+		return srv.(GrpcServer).Call(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/protocol.ScoGrpc/Call",
+		FullMethod: "/protocol.Grpc/Call",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ScoGrpcServer).Call(ctx, req.(*GrpcRequest))
+		return srv.(GrpcServer).Call(ctx, req.(*GrpcRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _ScoGrpc_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "protocol.ScoGrpc",
-	HandlerType: (*ScoGrpcServer)(nil),
+var _Grpc_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "protocol.Grpc",
+	HandlerType: (*GrpcServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Call",
-			Handler:    _ScoGrpc_Call_Handler,
+			Handler:    _Grpc_Call_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "grpc.proto",
 }
 
-func init() { proto.RegisterFile("grpc.proto", fileDescriptor_grpc_7bbc6d4dd6c07711) }
+func init() { proto.RegisterFile("grpc.proto", fileDescriptor_grpc_bda763a8606985cc) }
 
-var fileDescriptor_grpc_7bbc6d4dd6c07711 = []byte{
-	// 108 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_grpc_bda763a8606985cc = []byte{
+	// 105 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4a, 0x2f, 0x2a, 0x48,
 	0xd6, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x00, 0x53, 0xc9, 0xf9, 0x39, 0x52, 0x82, 0x20,
 	0xd1, 0xa0, 0xd4, 0xc2, 0xd2, 0xd4, 0xe2, 0x12, 0x88, 0xa4, 0x94, 0x10, 0x44, 0xa8, 0xb8, 0x20,
-	0x3f, 0xaf, 0x38, 0x15, 0x22, 0x66, 0xe4, 0xc4, 0xc5, 0x1e, 0x9c, 0x9c, 0xef, 0x5e, 0x54, 0x90,
-	0x2c, 0x64, 0xce, 0xc5, 0xe2, 0x9c, 0x98, 0x93, 0x23, 0x24, 0xaa, 0x07, 0x33, 0x44, 0xcf, 0x1d,
-	0x61, 0x86, 0x94, 0x18, 0xba, 0x30, 0xc4, 0x1c, 0x25, 0x86, 0x24, 0x36, 0xb0, 0x84, 0x31, 0x20,
-	0x00, 0x00, 0xff, 0xff, 0x99, 0x73, 0x74, 0x9a, 0x89, 0x00, 0x00, 0x00,
+	0x3f, 0xaf, 0x38, 0x15, 0x22, 0x66, 0x64, 0xcf, 0xc5, 0xe2, 0x5e, 0x54, 0x90, 0x2c, 0x64, 0xce,
+	0xc5, 0xe2, 0x9c, 0x98, 0x93, 0x23, 0x24, 0xaa, 0x07, 0x33, 0x41, 0xcf, 0x1d, 0x61, 0x80, 0x94,
+	0x18, 0xba, 0x30, 0xc4, 0x10, 0x25, 0x86, 0x24, 0x36, 0xb0, 0x84, 0x31, 0x20, 0x00, 0x00, 0xff,
+	0xff, 0xf0, 0x90, 0x01, 0x50, 0x86, 0x00, 0x00, 0x00,
 }

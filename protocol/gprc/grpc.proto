@@ -5,7 +5,7 @@ package protocol;
 import "grpcRequest.proto";
 import "grpcResponse.proto";
 
-
-service ScoGrpc {
+// 定义一个 Grpc 服务,其中 API 为 Call
+service Grpc {
   rpc Call(GrpcRequest) returns (GrpcResponse) {}
 }

@@ -38,6 +38,7 @@ type Application struct {
 	localPacket    chan *network.Packet    // 本地消息
 	remotePacket   chan *network.Packet    // 远程消息
 	handler        network.IHandler        // 消息处理
+	remoteService  rpc.IRemoteService      // remote 服务
 }
 
 // 创建1个新的 Application 对象
@@ -135,6 +136,13 @@ func (this *Application) RegisterHandler(handler network.IHandler) {
 	}
 }
 
+// 设置 remote 服务
+func (this *Application) SetRemoteService(rs rpc.IRemoteService) {
+	if nil != rs {
+		this.remoteService = rs
+	}
+}
+
 // 初始化
 func (this *Application) init() {
 	// 默认设置
@@ -183,9 +191,12 @@ func (this *Application) newClientAcceptor() {
 
 // 创建 rpcserver
 func (this *Application) newRpcServer() {
+	opt := rpc.GrpcServerOptions{
+		Laddr:         this.Options.RpcOpt.Laddr,
+		RemoteService: this.remoteService,
+	}
+
 	this.rpcServer = rpc.NewGrpcServer(this.Options.RpcOpt.Laddr)
-	re := &Remote{}
-	this.rpcServer.SetRpcService(re)
 }
 
 // 创建 rpcClient
