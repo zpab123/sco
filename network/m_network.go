@@ -56,8 +56,14 @@ var (
 
 // acceptor 接口
 type IAcceptor interface {
-	Run() error  // 组件开始运行
-	Stop() error // 组件停止运行
+	Run() error                  // 组件开始运行
+	Stop() error                 // 组件停止运行
+	SetConnMgr(mgr IConnManager) // 设置连接管理
+}
+
+// 连接管理
+type IConnManager interface {
+	IWsConnManager // 接口继承： websocket 连接管理
 }
 
 // websocket 连接管理

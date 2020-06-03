@@ -79,6 +79,13 @@ func (this *WsAcceptor) Stop() error {
 	return err
 }
 
+// 设置连接管理
+func (this *WsAcceptor) SetConnMgr(mgr IConnManager) {
+	if nil != mgr {
+		this.connMgr = mgr
+	}
+}
+
 // 侦听连接
 func (this *WsAcceptor) accept() {
 	// 创建 mux

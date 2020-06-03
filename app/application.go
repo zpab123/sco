@@ -24,6 +24,8 @@ import (
 // 1个通用服务器对象
 type Application struct {
 	Options        *Options                // 配置选项
+	acceptors      []network.IAcceptor     // 接收器切片
+	connMgr        network.IConnManager    // 连接管理
 	clientAcceptor *network.ClientAcceptor // 客户端接收器
 	discovery      discovery.IDiscovery    // 服务发现
 	rpcServer      rpc.IServer             // rpc 服务端
@@ -57,6 +59,7 @@ func NewApplication() *Application {
 	a := Application{
 		signalChan:   sig,
 		Options:      opt,
+		acceptors:    []network.IAcceptor{},
 		remoteChan:   rc,
 		handleChan:   hc,
 		packetChan:   pc,
@@ -75,9 +78,23 @@ func (this *Application) Run() {
 	// 设置随机种子
 	rand.Seed(time.Now().UnixNano())
 
-	// 客户端网络
+	// 客户端接收器
 	if C_APP_TYPE_FRONTEND == this.Options.AppType {
-		this.newClientAcceptor()
+		if nil == this.connMgr {
+			this.newConnMgr()
+		}
+
+		if len(this.acceptors) <= 0 {
+			this.newClientAcceptor()
+		}
+
+		for _, acc := range this.acceptors {
+			acc.SetConnMgr(this.connMgr)
+			err := acc.Run()
+			if nil == err {
+				this.stopGroup.Add(1)
+			}
+		}
 		this.stopGroup.Add(1)
 		go this.clientAcceptor.Run()
 	}
@@ -129,6 +146,20 @@ func (this *Application) Stop() {
 	os.Exit(0)
 }
 
+// 设置连接管理
+func (this *Application) SetConnMgr(mgr network.IConnManager) {
+	if nil != mgr {
+		this.connMgr = mgr
+	}
+}
+
+// 添加接收器
+func (this *Application) AddAcceptor(acc network.IAcceptor) {
+	if nil != acc {
+		this.acceptors = append(this.acceptors, acc)
+	}
+}
+
 // 注册 handler
 func (this *Application) RegisterHandler(handler network.IHandler) {
 	if nil != handler {
@@ -177,6 +208,27 @@ func (this *Application) defaultConfig() {
 
 // 解析命令行参数
 func (this *Application) parseArgs() {
+
+}
+
+// 创建默认连接管理
+func (this *Application) newConnMgr() {
+	this.connMgr = network.NewConnMgr(this.Options.Net.MaxConn)
+}
+
+// 创建默认接收器
+func (this *Application) newAcceptor() {
+	this.newTcpAcceptor()
+	this.newWsAcceptor()
+}
+
+// 创建 tcp 接收器
+func (this *Application) newTcpAcceptor() {
+
+}
+
+// 创建 websocket 接收器
+func (this *Application) newWsAcceptor() {
 
 }
 
