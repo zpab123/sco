@@ -17,7 +17,7 @@ type Options struct {
 	Name      string               // app名字，不同的app名字不要相同
 	ServiceId uint16               // 服务ID
 	Cluster   bool                 // 是否开启集群服务
-	NetOpt    *network.TNetOptions // 网络配置（客户端）
+	Net       *network.TNetOptions // 网络配置（客户端）
 	RpcServer *rpc.ServerOptions   // rpc 服务选项
 }
 
@@ -29,7 +29,7 @@ func NewOptions() *Options {
 	o := Options{
 		AppType:   C_APP_TYPE_FRONTEND,
 		Cluster:   false,
-		NetOpt:    nopt,
+		Net:       nopt,
 		RpcServer: rso,
 	}
 

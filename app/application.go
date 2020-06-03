@@ -184,7 +184,7 @@ func (this *Application) parseArgs() {
 func (this *Application) newClientAcceptor() {
 	opt := network.NewTClientAcceptorOpt()
 	opt.Handler = this
-	opt.WsAddr = this.Options.NetOpt.WsAddr
+	opt.WsAddr = this.Options.Net.WsAddr
 
 	this.clientAcceptor = network.NewClientAcceptor(opt)
 }
