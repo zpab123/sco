@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/discovery" // 服务发现
+	"github.com/zpab123/sco/protocol"  // 消息协议
 	"github.com/zpab123/zaplog"        // log
-	"google.golang.org/grpc"           // grpc
+	//"google.golang.org/grpc"           // grpc
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -56,25 +57,46 @@ func (this *GrpcClient) Call(mid uint16, data []byte) []byte {
 		// 调用
 		// res, err := c.(*GrpcConn).Call(ctxT, &req)
 	*/
+	req := protocol.GrpcRequest{
+		Data: data,
+	}
 
-	return nil
+	c, ok := this.connMap.Load("chat_1")
+	if !ok {
+		return nil
+	}
+
+	res, err := c.(*GrpcConn).Call(context.Background(), &req)
+	if nil != err {
+		zaplog.Debugf("cal_err=%s", err.Error())
+		return nil
+	}
+
+	return res.Data
 }
 
 // 添加 rpc 服务信息
 func (this *GrpcClient) AddService(desc *discovery.ServiceDesc) {
 	addr := desc.Address()
-	ctx, done := context.WithTimeout(context.Background(), this.dialTimeout)
-	defer done()
+	/*
+		ctx, done := context.WithTimeout(context.Background(), this.dialTimeout)
+		defer done()
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
-	if nil != err {
-		return
-	}
+		conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
+		if nil != err {
+			return
+		}
+	*/
 
-	zaplog.Debugf("新的服务器，%s", conn.Target())
 	zaplog.Debugf("添加新的rpc连接，%s", addr)
 
-	gconn := NewGrpcConn(conn)
+	gconn := NewGrpcConn(addr)
+	err := gconn.connect()
+	if nil != err {
+		zaplog.Debugf("GrpcClient")
+		zaplog.Debugf(err.Error())
+	}
+
 	this.connMap.Store(desc.Name, gconn)
 }
 

@@ -7,8 +7,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/zpab123/sco/protocol" // 消息协议
-	"google.golang.org/grpc"          // grpc
+	"github.com/zpab123/sco/protocol"
+	//"github.com/zpab123/zaplog"
+	"google.golang.org/grpc"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -16,18 +17,17 @@ import (
 
 // grpc 连接对象
 type GrpcConn struct {
-	address    string              // 远端地址
-	clinetConn *grpc.ClientConn    // grpc 连接对象
-	connected  bool                // 是否连接
-	lock       sync.Mutex          // 锁
-	client     protocol.GrpcClient // 客户端
-	conn       *grpc.ClientConn    // rpc conn
+	address   string              // 远端地址
+	connected bool                // 是否连接
+	lock      sync.Mutex          // 锁
+	client    protocol.GrpcClient // 客户端
+	conn      *grpc.ClientConn    // rpc conn
 }
 
 // 新建1个 GrpcConn 对象
-func NewGrpcConn(conn *grpc.ClientConn) IConn {
+func NewGrpcConn(address string) *GrpcConn {
 	gc := &GrpcConn{
-		clinetConn: conn,
+		address: address,
 	}
 
 	return gc
@@ -68,6 +68,7 @@ func (this *GrpcConn) connect() error {
 	}
 
 	this.client = protocol.NewGrpcClient(conn)
+	this.conn = conn
 	this.connected = true
 	return nil
 }

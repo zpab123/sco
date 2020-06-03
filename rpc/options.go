@@ -4,22 +4,7 @@
 package rpc
 
 // /////////////////////////////////////////////////////////////////////////////
-// Options
-
-// rpc 选项
-type Options struct {
-	Laddr         string         // 服务器监听地址
-	remoteService IRemoteService // remote 服务
-}
-
-// 新建1个 Options
-func NewOptions() *Options {
-	o := Options{}
-	return &o
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// Options 对象
+// ServerOptions 对象
 
 // 服务器配置选项
 type ServerOptions struct {

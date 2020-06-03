@@ -218,7 +218,7 @@ func (this *Application) newDiscovery() {
 	desc := discovery.ServiceDesc{
 		Name:  this.Options.Name,
 		Mid:   this.Options.ServiceId,
-		Laddr: this.Options.RpcOpt.Laddr,
+		Laddr: this.Options.RpcServer.Laddr,
 	}
 	this.discovery.SetService(&desc)
 
@@ -243,8 +243,11 @@ func (this *Application) OnPacket(agent *network.Agent, pkt *network.Packet) {
 // 分发消息
 func (this *Application) dispatchPacket(agent *network.Agent, pkt *network.Packet) {
 	if nil != this.rpcClient {
-		res := this.rpcClient.Call(pkt.GetMid(), pkt.Data())
-		agent.SendData(res)
+		res := this.rpcClient.Call(pkt.GetMid(), pkt.GetBody())
+		zaplog.Debugf("dispatchPacket=%v", res)
+		if nil != res {
+			agent.SendData(res)
+		}
 	}
 }
 
