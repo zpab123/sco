@@ -4,6 +4,8 @@
 package network
 
 import (
+	"net"
+
 	"github.com/zpab123/syncutil"
 	"github.com/zpab123/zaplog"
 	"golang.org/x/net/websocket"

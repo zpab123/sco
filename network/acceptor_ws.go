@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/pkg/errors"      // 异常库
-	"github.com/zpab123/zaplog"  // 日志库
-	"golang.org/x/net/websocket" // websocket 库
+	"github.com/pkg/errors"
+	"github.com/zpab123/zaplog"
+	"golang.org/x/net/websocket"
 )
 
 // /////////////////////////////////////////////////////////////////////////////

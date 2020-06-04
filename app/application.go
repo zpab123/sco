@@ -310,7 +310,7 @@ func (this *Application) dispatchPacket(agent *network.Agent, pkt *network.Packe
 		res := this.rpcClient.Call(pkt.GetMid(), pkt.GetBody())
 		zaplog.Debugf("dispatchPacket=%v", res)
 		if nil != res {
-			agent.SendData(res)
+			// agent.SendData(res)
 		}
 	}
 }

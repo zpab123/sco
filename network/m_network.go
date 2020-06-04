@@ -48,7 +48,7 @@ const (
 
 // 错误
 var (
-	V_ERR_BODY_LEN error = errors.New("packet中body长度错误") // packet中body长度错误
+	V_ERR_BODY_LEN error = errors.New("packet 中 body 长度错误") // packet中body长度错误
 )
 
 // /////////////////////////////////////////////////////////////////////////////
