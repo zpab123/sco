@@ -103,7 +103,7 @@ func (this *Application) Run() {
 	// 消息分发
 	go this.dispatch()
 
-	zaplog.Infof("服务器，启动成功...")
+	zaplog.Infof("[%s] 启动成功...", this.Options.Name)
 
 	// 侦听结束信号
 	this.waitStopSignal()
@@ -111,10 +111,12 @@ func (this *Application) Run() {
 
 // 停止 app
 func (this *Application) Stop() {
-	zaplog.Infof("[%s]正在结束...", this.Options.Name)
+	zaplog.Infof("[%s] 正在结束...", this.Options.Name)
 
-	this.stopGroup.Wait()
-	zaplog.Infof("服务器，优雅退出")
+	// 停止前端
+	this.stopFrontend()
+
+	zaplog.Infof("[%s] 优雅退出", this.Options.Name)
 	os.Exit(0)
 }
 
@@ -194,15 +196,23 @@ func (this *Application) runFrontend() {
 	}
 
 	if len(this.acceptors) <= 0 {
-		zaplog.Warnf("[%s]为前端app，但无接收器", this.Options.Name)
+		zaplog.Warnf("[%s] 为前端app，但无接收器", this.Options.Name)
 		return
 	}
 
 	for _, acc := range this.acceptors {
-		err := acc.Run()
-		if nil == err {
-			// this.stopGroup.Add(1)
-		}
+		go acc.Run()
+	}
+}
+
+// 停止前端
+func (this *Application) stopFrontend() {
+	if len(this.acceptors) <= 0 {
+		return
+	}
+
+	for _, acc := range this.acceptors {
+		acc.Stop()
 	}
 }
 
