@@ -50,6 +50,11 @@ func NewSocket(conn net.Conn) *Socket {
 	return &s
 }
 
+// 关闭
+func (this *Socket) Close() error {
+	return this.conn.Close()
+}
+
 // 接收下1个 packet 数据
 //
 // 成功，返回 *Packet nil

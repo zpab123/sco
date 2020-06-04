@@ -3,7 +3,10 @@
 
 package network
 
-// "github.com/zpab123/sco/protocol"
+import (
+	"github.com/zpab123/zaplog"
+	// "github.com/zpab123/sco/protocol"
+)
 
 // /////////////////////////////////////////////////////////////////////////////
 // Agent
@@ -28,18 +31,28 @@ func NewAgent(socket *Socket, opt *TAgentOpt) *Agent {
 	return &a
 }
 
-// 接收线程
+// 启动
 func (this *Agent) Run() {
 	// 发送线程
 	go this.sendLoop()
 	this.sendLoop()
 }
 
+// 停止
+func (this *Agent) Stop() {
+	this.socket.Close()
+}
+
 // 接收线程
 func (this *Agent) recvLoop() {
+	defer func() {
+		zaplog.Debugf("[Agent] recvLoop 结束")
+		this.socket.SendPacket(nil) // 用于结束 sendLoop
+	}()
+
 	for {
 		pkt, err := this.socket.RecvPacket()
-		if nil == err {
+		if nil != err {
 			return
 		}
 
@@ -52,6 +65,11 @@ func (this *Agent) recvLoop() {
 
 // 发送线程
 func (this *Agent) sendLoop() {
+	defer func() {
+		zaplog.Debugf("[Agent] sendLoop 结束")
+		this.Stop()
+	}()
+
 	for {
 		err := this.socket.Flush()
 		if nil != err {
