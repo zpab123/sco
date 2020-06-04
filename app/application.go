@@ -23,24 +23,23 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options        *Options                // 配置选项
-	acceptors      []network.IAcceptor     // 接收器切片
-	connMgr        network.IConnManager    // 连接管理
-	clientAcceptor *network.ClientAcceptor // 客户端接收器
-	discovery      discovery.IDiscovery    // 服务发现
-	rpcServer      rpc.IServer             // rpc 服务端
-	rpcClient      rpc.IClient             // rpc 客户端
-	signalChan     chan os.Signal          // 操作系统信号
-	stopGroup      sync.WaitGroup          // 停止等待组
-	ctx            context.Context         // 上下文
-	cancel         context.CancelFunc      // 退出通知函数
-	remoteChan     chan *network.Packet    // remote 消息
-	handleChan     chan *network.Packet    // 本地消息
-	packetChan     chan *network.Packet    // 消息处理器
-	localPacket    chan *network.Packet    // 本地消息
-	remotePacket   chan *network.Packet    // 远程消息
-	handler        network.IHandler        // 消息处理
-	remoteService  rpc.IRemoteService      // remote 服务
+	Options       *Options             // 配置选项
+	acceptors     []network.IAcceptor  // 接收器切片
+	connMgr       network.IConnManager // 连接管理
+	discovery     discovery.IDiscovery // 服务发现
+	rpcServer     rpc.IServer          // rpc 服务端
+	rpcClient     rpc.IClient          // rpc 客户端
+	signalChan    chan os.Signal       // 操作系统信号
+	stopGroup     sync.WaitGroup       // 停止等待组
+	ctx           context.Context      // 上下文
+	cancel        context.CancelFunc   // 退出通知函数
+	remoteChan    chan *network.Packet // remote 消息
+	handleChan    chan *network.Packet // 本地消息
+	packetChan    chan *network.Packet // 消息处理器
+	localPacket   chan *network.Packet // 本地消息
+	remotePacket  chan *network.Packet // 远程消息
+	handler       network.IHandler     // 消息处理
+	remoteService rpc.IRemoteService   // remote 服务
 }
 
 // 创建1个新的 Application 对象
@@ -78,25 +77,9 @@ func (this *Application) Run() {
 	// 设置随机种子
 	rand.Seed(time.Now().UnixNano())
 
-	// 客户端接收器
+	// 前端
 	if C_APP_TYPE_FRONTEND == this.Options.AppType {
-		if nil == this.connMgr {
-			this.newConnMgr()
-		}
-
-		if len(this.acceptors) <= 0 {
-			this.newClientAcceptor()
-		}
-
-		for _, acc := range this.acceptors {
-			acc.SetConnMgr(this.connMgr)
-			err := acc.Run()
-			if nil == err {
-				this.stopGroup.Add(1)
-			}
-		}
-		this.stopGroup.Add(1)
-		go this.clientAcceptor.Run()
+		this.runFrontend()
 	}
 
 	// rpc服务
@@ -128,18 +111,7 @@ func (this *Application) Run() {
 
 // 停止 app
 func (this *Application) Stop() {
-	zaplog.Infof("正在结束...")
-	var err error
-
-	// 客户端接收
-	if this.clientAcceptor != nil {
-		err = this.clientAcceptor.Stop()
-		if nil == err {
-			zaplog.Warnf("clientAcceptor 结束异常")
-		}
-
-		this.stopGroup.Done()
-	}
+	zaplog.Infof("[%s]正在结束...", this.Options.Name)
 
 	this.stopGroup.Wait()
 	zaplog.Infof("服务器，优雅退出")
@@ -211,6 +183,29 @@ func (this *Application) parseArgs() {
 
 }
 
+// 启动前端
+func (this *Application) runFrontend() {
+	if nil == this.connMgr {
+		this.newConnMgr()
+	}
+
+	if len(this.acceptors) <= 0 {
+		this.newAcceptor()
+	}
+
+	if len(this.acceptors) <= 0 {
+		zaplog.Warnf("[%s]为前端app，但无接收器", this.Options.Name)
+		return
+	}
+
+	for _, acc := range this.acceptors {
+		err := acc.Run()
+		if nil == err {
+			// this.stopGroup.Add(1)
+		}
+	}
+}
+
 // 创建默认连接管理
 func (this *Application) newConnMgr() {
 	this.connMgr = network.NewConnMgr(this.Options.Net.MaxConn)
@@ -229,16 +224,17 @@ func (this *Application) newTcpAcceptor() {
 
 // 创建 websocket 接收器
 func (this *Application) newWsAcceptor() {
+	if "" == this.Options.Net.WsAddr {
+		return
+	}
 
-}
+	a, err := network.NewWsAcceptor(this.Options.Net.WsAddr)
+	if nil != err {
+		return
+	}
+	a.SetConnMgr(this.connMgr)
 
-// 创建 clientAcceptor
-func (this *Application) newClientAcceptor() {
-	opt := network.NewTClientAcceptorOpt()
-	opt.Handler = this
-	opt.WsAddr = this.Options.Net.WsAddr
-
-	this.clientAcceptor = network.NewClientAcceptor(opt)
+	this.acceptors = append(this.acceptors, a)
 }
 
 // 创建 rpcserver

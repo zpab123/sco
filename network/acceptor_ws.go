@@ -28,7 +28,7 @@ type WsAcceptor struct {
 // 创建1个新的 wsAcceptor 对象
 //
 // 创建成功，error=nil
-func NewWsAcceptor(laddr string, mgr IWsConnManager) (IAcceptor, error) {
+func NewWsAcceptor(laddr string) (IAcceptor, error) {
 	var err error
 
 	// 参数效验
@@ -37,14 +37,8 @@ func NewWsAcceptor(laddr string, mgr IWsConnManager) (IAcceptor, error) {
 		return nil, err
 	}
 
-	if nil == mgr {
-		err = errors.New("创建 WsAcceptor 失败:参数 IWsConnManager=nil")
-		return nil, err
-	}
-
 	ws := WsAcceptor{
-		laddr:   laddr,
-		connMgr: mgr,
+		laddr: laddr,
 	}
 
 	return &ws, nil

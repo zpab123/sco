@@ -129,33 +129,6 @@ func NewTBufferSocketOpt() *TBufferSocketOpt {
 }
 
 // /////////////////////////////////////////////////////////////////////////////
-// TClientAcceptorOpt 对象
-
-// ClientAcceptor 组件配置参数
-type TClientAcceptorOpt struct {
-	Enable    bool          // 是否启用
-	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
-	MaxConn   uint32        // 最大连接数量，超过此数值后，不再接收新连接
-	Heartbeat time.Duration // 心跳周期
-	Handler   IHandler      // 消息处理器
-	AgentOpt  *TAgentOpt    // Agent 配置参数
-}
-
-// 创建1个新的 TNetServiceOpt
-func NewTClientAcceptorOpt() *TClientAcceptorOpt {
-	ao := NewTAgentOpt()
-
-	// 创建 TServerOpt
-	opt := TClientAcceptorOpt{
-		Enable:   true,
-		MaxConn:  C_MAX_CONN,
-		AgentOpt: ao,
-	}
-
-	return &opt
-}
-
-// /////////////////////////////////////////////////////////////////////////////
 // TScoConnOpt 对象
 
 // ScoConn 配置参数
