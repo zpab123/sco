@@ -6,6 +6,7 @@ package network
 import (
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/pkg/errors"      // 异常库
 	"github.com/zpab123/zaplog"  // 日志库
@@ -23,11 +24,13 @@ type WsAcceptor struct {
 	certFile   string         // TLS加密文件
 	keyFile    string         // TLS解密key
 	connMgr    IWsConnManager // websocket 连接管理
+	stopGroup  sync.WaitGroup // 停止等待组
 }
 
 // 创建1个新的 wsAcceptor 对象
 //
-// 创建成功，error=nil
+// 成功，返回 *WsAcceptor nil
+// 失败，返回 nil error
 func NewWsAcceptor(laddr string) (IAcceptor, error) {
 	var err error
 
@@ -45,6 +48,9 @@ func NewWsAcceptor(laddr string) (IAcceptor, error) {
 }
 
 // 启动 wsAcceptor
+//
+// 成功，返回 nil
+// 失败，返回 error
 func (this *WsAcceptor) Run() error {
 	var err error
 	this.listener, err = net.Listen("tcp", this.laddr)
@@ -53,24 +59,31 @@ func (this *WsAcceptor) Run() error {
 	}
 
 	// 侦听新连接
+	this.stopGroup.Add(1)
 	go this.accept()
 
 	return nil
 }
 
 // 停止 wsAcceptor
+//
+// 成功，返回 nil
+// 失败，返回 error
 func (this *WsAcceptor) Stop() error {
-	var err error
-	err = this.httpServer.Close()
-	if nil == err {
+	zaplog.Debugf("[WsAcceptor] 停止中... ip=%s", this.laddr)
+
+	err := this.httpServer.Close()
+	if nil != err {
 		this.listener.Close()
-	} else {
-		err = this.listener.Close()
+		zaplog.Warnf("[WsAcceptor] 停止 httpServer 失败。ip=%s，err=%s", this.laddr, err.Error())
+		return err
 	}
 
-	zaplog.Debugf("WsAcceptor 停止服务。ip=%s", this.laddr)
+	this.stopGroup.Wait()
 
-	return err
+	zaplog.Debugf("[WsAcceptor] 停止。ip=%s", this.laddr)
+
+	return nil
 }
 
 // 设置连接管理
@@ -82,10 +95,15 @@ func (this *WsAcceptor) SetConnMgr(mgr IConnManager) {
 
 // 侦听连接
 func (this *WsAcceptor) accept() {
+	defer func() {
+		this.stopGroup.Done()
+	}()
+
 	// 创建 mux
 	mux := http.NewServeMux()
 	handler := websocket.Handler(this.connMgr.OnNewWsConn) // 路由函数
-	mux.Handle("/", handler)                               // 客户端需要在url后面加上 /ws 路由
+	mux.Handle("/", handler)                               // 不带路由
+	//mux.Handle("/ws", handler)                             // ws 路由
 
 	// 创建 httpServer
 	this.httpServer = http.Server{
@@ -95,7 +113,7 @@ func (this *WsAcceptor) accept() {
 
 	// 开启服务器
 	var err error
-	zaplog.Debugf("WsAcceptor 启动成功。ip=%s", this.laddr)
+	zaplog.Debugf("[WsAcceptor] 启动成功。ip=%s", this.laddr)
 
 	if this.certFile != "" && this.keyFile != "" {
 		err = this.httpServer.ServeTLS(this.listener, this.certFile, this.keyFile)
@@ -105,6 +123,6 @@ func (this *WsAcceptor) accept() {
 
 	// 错误信息
 	if nil != err {
-		zaplog.Debugf("WsAcceptor 停止侦听新连接，goroutine 退出。ip=%s，err=%s", this.laddr, err)
+		zaplog.Debugf("[WsAcceptor] 停止侦听新连接。ip=%s，err=%s", this.laddr, err.Error())
 	}
 }
