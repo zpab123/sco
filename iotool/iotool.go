@@ -1,4 +1,4 @@
-package ioutil
+package iotool
 
 import (
 	"io"
@@ -7,10 +7,10 @@ import (
 )
 
 // 将 data 数据 全部写入 conn
-func WriteAll(conn io.Writer, data []byte) error {
+func WriteAll(w io.Writer, data []byte) error {
 	left := len(data)
 	for left > 0 {
-		n, err := conn.Write(data)
+		n, err := w.Write(data)
 		if n == left && err == nil { // handle most common case first
 			return nil
 		}
@@ -29,10 +29,10 @@ func WriteAll(conn io.Writer, data []byte) error {
 }
 
 // 持续读取数据，直到data容量为0
-func ReadAll(conn io.Reader, data []byte) error {
+func ReadAll(r io.Reader, data []byte) error {
 	left := len(data)
 	for left > 0 {
-		n, err := conn.Read(data)
+		n, err := r.Read(data)
 		if n == left && err == nil { // handle most common case first
 			return nil
 		}

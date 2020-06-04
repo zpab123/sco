@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"net"
 	"sync"
-	// "github.com/pkg/errors" // 异常库
+
+	"github.com/pkg/errors"
+	"github.com/zpab123/sco/iotool"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -19,6 +21,7 @@ import (
 var (
 	socketEndian       = binary.LittleEndian   // 小端读取对象
 	headLen      int64 = int64(C_PKT_HEAD_LEN) // 消息头长度
+	errClose           = errors.New("socket 关闭")
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -87,8 +90,6 @@ func (this *Socket) SendPacket(pkt *Packet) error {
 
 // 将消息队列中的数据写入缓冲
 func (this *Socket) Flush() error {
-	var err error
-
 	// 等待数据
 	this.mutex.Lock()
 	for len(this.sendQueue) == 0 {
@@ -96,6 +97,24 @@ func (this *Socket) Flush() error {
 	}
 	this.mutex.Unlock()
 
+	// 复制数据
+	this.mutex.Lock()
+	packets := make([]*Packet, 0, len(this.sendQueue))
+	packets, this.sendQueue = this.sendQueue, packets // 交换数据
+	this.mutex.Unlock()
+
+	// 写入数据
+	for _, pkt := range packets {
+		if nil != pkt {
+			err := iotool.WriteAll(this.conn, pkt.Data())
+			if nil != err {
+				return err
+			}
+		} else {
+			return errClose
+		}
+	}
+
 	// 编码数据
-	return err
+	return nil
 }
