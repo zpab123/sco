@@ -64,6 +64,7 @@ type IAcceptor interface {
 // 连接管理
 type IConnManager interface {
 	IWsConnManager // 接口继承： websocket 连接管理
+	Stop()         // 停止
 }
 
 // websocket 连接管理

@@ -30,6 +30,11 @@ func NewConnMgr(maxConn uint32) *ConnMgr {
 	return &mgr
 }
 
+// 停止连接管理
+func (this *ConnMgr) Stop() {
+
+}
+
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
 func (this *ConnMgr) OnNewWsConn(wsconn *websocket.Conn) {
 

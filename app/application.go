@@ -207,12 +207,18 @@ func (this *Application) runFrontend() {
 
 // 停止前端
 func (this *Application) stopFrontend() {
+	// 停止接收器
 	if len(this.acceptors) <= 0 {
 		return
 	}
 
 	for _, acc := range this.acceptors {
 		acc.Stop()
+	}
+
+	// 停止连接管理
+	if nil != this.connMgr {
+		this.connMgr.Stop()
 	}
 }
 
