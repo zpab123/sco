@@ -93,6 +93,12 @@ func (this *WsAcceptor) SetConnMgr(mgr IConnManager) {
 	}
 }
 
+// 设置 tls
+func (this *WsAcceptor) SetTLS(cert string, key string) {
+	this.certFile = cert
+	this.keyFile = key
+}
+
 // 侦听连接
 func (this *WsAcceptor) accept() {
 	defer func() {
