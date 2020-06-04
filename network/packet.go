@@ -67,11 +67,6 @@ func (this *Packet) GetBody() []byte {
 	return this.bytes[C_PKT_HEAD_LEN:this.wirtePos]
 }
 
-// 获取 packet 的 body 字节长度
-func (this *Packet) GetBodyLen() uint32 {
-	return this.wirtePos - C_PKT_HEAD_LEN
-}
-
 // 在 Packet 的 bytes 后面添加1个 byte 数据
 func (this *Packet) AppendByte(b byte) {
 	// 申请buffer
@@ -291,9 +286,7 @@ func (this *Packet) ReadString() string {
 
 // Packet.bytes 中的所有有效数据
 func (this *Packet) Data() []byte {
-	end := C_PKT_HEAD_LEN + this.GetBodyLen()
-
-	return this.bytes[0:end]
+	return this.bytes[0:this.wirtePos]
 }
 
 // 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
@@ -305,7 +298,7 @@ func (this *Packet) allocCap(need uint32) {
 	}
 
 	// 现有长度满足需求
-	newLen := this.GetBodyLen() + need //body 新长度 = 旧长度 + size
+	newLen := this.wirtePos + need //body 新长度 = 旧长度 + size
 	if newLen <= pcap {
 		return
 	}

@@ -9,8 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"sync"
-
-	"github.com/pkg/errors" // 异常库
+	// "github.com/pkg/errors" // 异常库
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -18,8 +17,7 @@ import (
 
 // 变量
 var (
-	socketEndian       = binary.LittleEndian // 小端读取对象
-	errClose           = errors.New("socket 关闭")
+	socketEndian       = binary.LittleEndian   // 小端读取对象
 	headLen      int64 = int64(C_PKT_HEAD_LEN) // 消息头长度
 )
 
