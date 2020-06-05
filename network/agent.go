@@ -35,7 +35,7 @@ func NewAgent(socket *Socket, opt *TAgentOpt) *Agent {
 func (this *Agent) Run() {
 	// 发送线程
 	go this.sendLoop()
-	this.sendLoop()
+	this.recvLoop() // 接收循环，这里不能 go this.recvLoop()，会导致 websocket 连接直接断开
 }
 
 // 停止
@@ -58,6 +58,7 @@ func (this *Agent) recvLoop() {
 
 		if nil != pkt {
 			// 处理
+			zaplog.Debugf("Agent recvLoop mid=%d", pkt.mid)
 			continue
 		}
 	}

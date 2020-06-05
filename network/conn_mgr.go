@@ -56,12 +56,9 @@ func (this *ConnMgr) OnNewWsConn(wsconn *websocket.Conn) {
 
 // 创建代理
 func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
-	/*
-		// 创建 socket
-		socket := Socket{
-			Conn: conn,
-		}
+	opt := NewTAgentOpt()
+	s := NewSocket(conn)
 
-		this.connNum.Add(1)
-	*/
+	a := NewAgent(s, opt)
+	a.Run()
 }

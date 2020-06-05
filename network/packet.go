@@ -32,21 +32,26 @@ type Packet struct {
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
-func NewPacket(mid uint16, bodys ...[]byte) *Packet {
+func NewPacket(mid uint16, bytes ...[]byte) *Packet {
 	pkt := Packet{
 		readPos:  C_PKT_HEAD_LEN,
 		wirtePos: C_PKT_HEAD_LEN,
 	}
-	pkt.SetMid(mid)
 
-	if len(bodys) > 0 {
-		pkt.bytes = bodys[0]
-		ln := len(pkt.bytes)
-		pkt.addBodyLen(uint32(ln))
+	if len(bytes) > 0 {
+		b := bytes[0]
+		ln := len(b)
+		if ln >= headLenInt {
+			pkt.bytes = b
+			pkt.addBodyLen(uint32(ln) - C_PKT_HEAD_LEN)
+		} else {
+			pkt.bytes = make([]byte, C_PKT_HEAD_LEN+_MIN_PAYLOAD_CAP)
+		}
 	} else {
 		pkt.bytes = make([]byte, C_PKT_HEAD_LEN+_MIN_PAYLOAD_CAP)
 	}
 
+	pkt.SetMid(mid)
 	return &pkt
 }
 
@@ -304,12 +309,17 @@ func (this *Packet) allocCap(need uint32) {
 	}
 
 	// 创建新的 []byte
-	nb := pcap * 2
+	nb := (newLen + _MIN_PAYLOAD_CAP)
 	if nb > C_PKT_BODY_MAX_LEN {
 		nb = C_PKT_BODY_MAX_LEN
 	}
-	b := make([]byte, C_PKT_HEAD_LEN+nb)
-	copy(b, this.Data())
+
+	if nb > pcap {
+		b := make([]byte, C_PKT_HEAD_LEN+nb)
+		copy(b, this.Data())
+	} else {
+		zaplog.Warnf("[Packet] 容量达到最大")
+	}
 }
 
 // 获取 packet 的 bytes 中有效容量（总容量 - 消息头）

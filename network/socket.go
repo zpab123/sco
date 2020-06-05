@@ -20,7 +20,8 @@ import (
 // 变量
 var (
 	socketEndian       = binary.LittleEndian   // 小端读取对象
-	headLen      int64 = int64(C_PKT_HEAD_LEN) // 消息头长度
+	headLenInt   int   = int(C_PKT_HEAD_LEN)   // 消息头长度(int)
+	headLenInt64 int64 = int64(C_PKT_HEAD_LEN) // 消息头长度(int64)
 	errClose           = errors.New("socket 关闭")
 )
 
@@ -60,7 +61,7 @@ func (this *Socket) Close() error {
 // 成功，返回 *Packet nil
 // 失败，返回 nil error
 func (this *Socket) RecvPacket() (*Packet, error) {
-	head, err := ioutil.ReadAll(io.LimitReader(this.conn, headLen))
+	head, err := ioutil.ReadAll(io.LimitReader(this.conn, headLenInt64))
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +77,8 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	pkt := NewPacket(mid, body)
+	data := append(head, body...)
+	pkt := NewPacket(mid, data)
 
 	return pkt, nil
 }
