@@ -12,7 +12,7 @@ import (
 
 // 常量 -- packet 数据大小定义
 const (
-	_MIN_PAYLOAD_CAP uint32 = 1024 // buff 最小有效容量（buff 对象池使用）
+	mincap uint32 = 1024 // buff 最小有效容量（buff 对象池使用）
 )
 
 var (
@@ -32,23 +32,18 @@ type Packet struct {
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
-func NewPacket(mid uint16, bytes ...[]byte) *Packet {
-	pkt := Packet{
-		readPos:  C_PKT_HEAD_LEN,
-		wirtePos: C_PKT_HEAD_LEN,
+func NewPacket(mid uint16, bobyLen ...uint32) *Packet {
+	bl := mincap
+	if len(bobyLen) > 0 {
+		if bobyLen[0] > bl {
+			bl = bobyLen[0]
+		}
 	}
 
-	if len(bytes) > 0 {
-		b := bytes[0]
-		ln := len(b)
-		if ln >= headLenInt {
-			pkt.bytes = b
-			pkt.addBodyLen(uint32(ln) - C_PKT_HEAD_LEN)
-		} else {
-			pkt.bytes = make([]byte, C_PKT_HEAD_LEN+_MIN_PAYLOAD_CAP)
-		}
-	} else {
-		pkt.bytes = make([]byte, C_PKT_HEAD_LEN+_MIN_PAYLOAD_CAP)
+	pkt := Packet{
+		bytes:    make([]byte, C_PKT_HEAD_LEN+bl),
+		readPos:  C_PKT_HEAD_LEN,
+		wirtePos: C_PKT_HEAD_LEN,
 	}
 
 	pkt.SetMid(mid)
@@ -309,7 +304,7 @@ func (this *Packet) allocCap(need uint32) {
 	}
 
 	// 创建新的 []byte
-	nb := (newLen + _MIN_PAYLOAD_CAP)
+	nb := (newLen + mincap)
 	if nb > C_PKT_BODY_MAX_LEN {
 		nb = C_PKT_BODY_MAX_LEN
 	}

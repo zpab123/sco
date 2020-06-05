@@ -77,8 +77,8 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	data := append(head, body...)
-	pkt := NewPacket(mid, data)
+	pkt := NewPacket(mid, bl)
+	pkt.AppendBytes(body)
 
 	return pkt, nil
 }
