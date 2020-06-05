@@ -12,7 +12,8 @@ import (
 
 // 常量 -- packet 数据大小定义
 const (
-	mincap uint32 = 1024 // buff 最小有效容量（buff 对象池使用）
+	mincap        int = 1024                    // buff 最小有效容量（buff 对象池使用）
+	bodyMaxLenInt int = int(C_PKT_BODY_MAX_LEN) // body最大长度（int）
 )
 
 var (
@@ -27,23 +28,16 @@ var (
 type Packet struct {
 	mid      uint16 // packet 主id
 	bytes    []byte // 用于存放需要通过网络 发送/接收 的数据 （head + body）
-	readPos  uint32 // 读取位置
-	wirtePos uint32 // 写入位置
+	readPos  int    // 读取位置
+	wirtePos int    // 写入位置
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
-func NewPacket(mid uint16, bobyLen ...uint32) *Packet {
-	bl := mincap
-	if len(bobyLen) > 0 {
-		if bobyLen[0] > bl {
-			bl = bobyLen[0]
-		}
-	}
-
+func NewPacket(mid uint16) *Packet {
 	pkt := Packet{
-		bytes:    make([]byte, C_PKT_HEAD_LEN+bl),
-		readPos:  C_PKT_HEAD_LEN,
-		wirtePos: C_PKT_HEAD_LEN,
+		bytes:    make([]byte, headLenInt+mincap),
+		readPos:  headLenInt,
+		wirtePos: headLenInt,
 	}
 
 	pkt.SetMid(mid)
@@ -216,7 +210,7 @@ func (this *Packet) ReadFloat64() float64 {
 // 在 Packet 的 bytes 后面，添加1个固定大小的 []byte 数据
 func (this *Packet) AppendBytes(v []byte) {
 	// byte 长度
-	ln := uint32(len(v))
+	ln := len(v)
 
 	// 申请内存
 	this.allocCap(ln)
@@ -225,23 +219,25 @@ func (this *Packet) AppendBytes(v []byte) {
 	copy(this.bytes[this.wirtePos:this.wirtePos+ln], v)
 
 	// 记录长度
-	this.addBodyLen(ln)
+	this.addBodyLen(uint32(ln))
 }
 
 // 从 Packet 的 bytes 中读取1个固定 size 大小的 []byte 数据
 //
 // size=读取字节数量
 func (this *Packet) ReadBytes(size uint32) []byte {
+	s := int(size)
+
 	// 越界错误
-	if this.readPos > uint32(len(this.bytes)) || (this.readPos+size) > uint32(len(this.bytes)) {
+	if this.readPos > len(this.bytes) || (this.readPos+s) > len(this.bytes) {
 		zaplog.Panicf("从 Packet 包中读取 Bytes 出错：Bytes 大小超过 packet 剩余可读数据大小")
 	}
 
 	// 读取数据
-	bytes := this.bytes[this.readPos : this.readPos+size]
+	bytes := this.bytes[this.readPos : this.readPos+s]
 
 	// 记录读取数
-	this.readPos += size
+	this.readPos += s
 
 	return bytes
 }
@@ -290,10 +286,10 @@ func (this *Packet) Data() []byte {
 }
 
 // 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
-func (this *Packet) allocCap(need uint32) {
+func (this *Packet) allocCap(need int) {
 	// 超长
 	pcap := this.getPayloadCap() // 有效容量
-	if pcap >= C_PKT_BODY_MAX_LEN {
+	if pcap >= bodyMaxLenInt {
 		return
 	}
 
@@ -305,24 +301,21 @@ func (this *Packet) allocCap(need uint32) {
 
 	// 创建新的 []byte
 	nb := (newLen + mincap)
-	if nb > C_PKT_BODY_MAX_LEN {
-		nb = C_PKT_BODY_MAX_LEN
+	if nb > bodyMaxLenInt {
+		nb = bodyMaxLenInt
 	}
 
 	if nb > pcap {
-		b := make([]byte, C_PKT_HEAD_LEN+nb)
+		b := make([]byte, headLenInt+nb)
 		copy(b, this.Data())
 	} else {
-		zaplog.Warnf("[Packet] 容量达到最大")
+		zaplog.Warnf("[Packet] 容量达到最大=%d", bodyMaxLenInt)
 	}
 }
 
 // 获取 packet 的 bytes 中有效容量（总容量 - 消息头）
-func (this *Packet) getPayloadCap() uint32 {
-	bl := len(this.bytes)
-	pcap := uint32(bl) - C_PKT_HEAD_LEN
-
-	return pcap
+func (this *Packet) getPayloadCap() int {
+	return len(this.bytes) - headLenInt
 }
 
 // 增加 body 长度
@@ -330,5 +323,5 @@ func (this *Packet) addBodyLen(ln uint32) {
 	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
 
 	*bl += ln
-	this.wirtePos += ln
+	this.wirtePos += int(ln)
 }
