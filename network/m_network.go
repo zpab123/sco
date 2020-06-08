@@ -29,14 +29,14 @@ const (
 	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024              // body 最大长度 25M
 )
 
-// ScoConn 状态
+// agent 状态
 const (
-	C_CONN_STATE_INIT     uint32 = iota // 初始化状态
-	C_CONN_STATE_SHAKE                  // 握手状态
-	C_CONN_STATE_WAIT_ACK               // 等待远端握手ACK
-	C_CONN_STATE_WORKING                // 工作中
-	C_CONN_STATE_CLOSING                // 正在关闭
-	C_CONN_STATE_CLOSED                 // 关闭状态
+	C_AGENT_ST_INIT     uint32 = iota // 初始化状态
+	C_AGENT_ST_SHAKE                  // 握手状态
+	C_AGENT_ST_WAIT_ACK               // 等待远端握手ACK
+	C_AGENT_ST_WORKING                // 工作中
+	C_AGENT_ST_CLOSING                // 正在关闭
+	C_AGENT_ST_CLOSED                 // 关闭状态
 )
 
 const (
@@ -63,8 +63,9 @@ type IAcceptor interface {
 
 // 连接管理
 type IConnManager interface {
-	IWsConnManager // 接口继承： websocket 连接管理
-	Stop()         // 停止
+	IWsConnManager         // 接口继承： websocket 连接管理
+	Stop()                 // 停止
+	SetHandler(h IHandler) // 设置消息处理器
 }
 
 // websocket 连接管理

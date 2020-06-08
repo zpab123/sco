@@ -134,8 +134,8 @@ func (this *Application) AddAcceptor(acc network.IAcceptor) {
 	}
 }
 
-// 注册 handler
-func (this *Application) RegisterHandler(handler network.IHandler) {
+// 设置 handler
+func (this *Application) SetHandler(handler network.IHandler) {
 	if nil != handler {
 		this.handler = handler
 	}
@@ -225,6 +225,7 @@ func (this *Application) stopFrontend() {
 // 创建默认连接管理
 func (this *Application) newConnMgr() {
 	this.connMgr = network.NewConnMgr(this.Options.Net.MaxConn)
+	this.connMgr.SetHandler(this)
 }
 
 // 创建默认接收器

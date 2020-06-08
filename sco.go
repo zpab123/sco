@@ -27,7 +27,7 @@ func GetApp() *app.Application {
 	return scoApp
 }
 
-// 注册 handler
-func RegisterHandler(handler network.IHandler) {
-	scoApp.RegisterHandler(handler)
+// 设置 handler
+func SetHandler(handler network.IHandler) {
+	scoApp.SetHandler(handler)
 }

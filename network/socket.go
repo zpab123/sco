@@ -5,6 +5,7 @@ package network
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -132,4 +133,19 @@ func (this *Socket) Flush() error {
 
 	// 编码数据
 	return nil
+}
+
+// 获取客户端 ip 地址
+func (this *Socket) RemoteAddr() net.Addr {
+	return this.conn.RemoteAddr()
+}
+
+// 获取本地 ip 地址
+func (this *Socket) LocalAddr() net.Addr {
+	return this.conn.LocalAddr()
+}
+
+// 打印信息
+func (this *Socket) String() string {
+	return fmt.Sprintf("[%s >>> %s]", this.LocalAddr(), this.RemoteAddr())
 }

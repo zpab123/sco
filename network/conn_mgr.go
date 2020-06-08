@@ -18,6 +18,7 @@ import (
 type ConnMgr struct {
 	maxConn uint32                // 最大连接数量，超过此数值后，不再接收新连接
 	connNum syncutil.AtomicUint32 // 当前连接数
+	handler IHandler              // 消息处理器
 }
 
 // 新建1个 ConnMgr
@@ -54,11 +55,19 @@ func (this *ConnMgr) OnNewWsConn(wsconn *websocket.Conn) {
 	this.newAgent(wsconn, true)
 }
 
+// 设置 handler
+func (this *ConnMgr) SetHandler(h IHandler) {
+	if nil != h {
+		this.handler = h
+	}
+}
+
 // 创建代理
 func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
 	opt := NewTAgentOpt()
 	s := NewSocket(conn)
 
 	a := NewAgent(s, opt)
+	a.SetHandler(this.handler)
 	a.Run()
 }
