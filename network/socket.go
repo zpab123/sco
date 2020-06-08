@@ -40,6 +40,12 @@ type Socket struct {
 // 成功：返回 *Socket
 // 失败：返回 nil
 func NewSocket(conn net.Conn) *Socket {
+	// 参数效验
+	if nil == conn {
+		return nil
+	}
+
+	// 创建对象
 	sq := make([]*Packet, 0)
 
 	s := Socket{
@@ -52,6 +58,8 @@ func NewSocket(conn net.Conn) *Socket {
 }
 
 // 关闭
+// 成功，返回 nil
+// 失败，返回 error
 func (this *Socket) Close() error {
 	return this.conn.Close()
 }
@@ -84,7 +92,7 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 }
 
 // 发送1个 *Packe 数据
-func (this *Socket) SendPacket(pkt *Packet) error {
+func (this *Socket) SendPacket(pkt *Packet) {
 	// 添加到消息队列
 	this.mutex.Lock()
 	this.sendQueue = append(this.sendQueue, pkt)
@@ -92,10 +100,12 @@ func (this *Socket) SendPacket(pkt *Packet) error {
 
 	this.cond.Signal()
 
-	return nil
+	return
 }
 
 // 将消息队列中的数据写入缓冲
+// 成功，返回 nil
+// 失败，返回 error
 func (this *Socket) Flush() error {
 	// 等待数据
 	this.mutex.Lock()
