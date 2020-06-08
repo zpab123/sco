@@ -57,7 +57,7 @@ func NewSocket(conn net.Conn) *Socket {
 	return &s
 }
 
-// 关闭
+// 关闭 socket
 // 成功，返回 nil
 // 失败，返回 error
 func (this *Socket) Close() error {
@@ -99,8 +99,6 @@ func (this *Socket) SendPacket(pkt *Packet) {
 	this.mutex.Unlock()
 
 	this.cond.Signal()
-
-	return
 }
 
 // 将消息队列中的数据写入缓冲
