@@ -39,6 +39,16 @@ const (
 	C_AGENT_ST_CLOSED                 // 关闭状态
 )
 
+// client 状态
+const (
+	C_CLI_ST_INIT     uint32 = iota // 初始化状态
+	C_CLI_ST_SHAKE                  // 握手状态
+	C_CLI_ST_WAIT_ACK               // 等待远端握手ACK
+	C_CLI_ST_WORKING                // 工作中
+	C_CLI_ST_CLOSING                // 正在关闭
+	C_CLI_ST_CLOSED                 // 关闭状态
+)
+
 const (
 	C_HEARTBEAT = 0 * time.Second // Agent 默认心跳周期
 )
@@ -94,6 +104,11 @@ type IProcess interface {
 // packet 处理器
 type IHandler interface {
 	OnPacket(agent *Agent, pkt *Packet) // 收到1个 packet 消息
+}
+
+// Client packet 处理器
+type IClientHandler interface {
+	OnPacket(client *TcpClient, pkt *Packet) // 收到1个 packet 消息
 }
 
 // /////////////////////////////////////////////////////////////////////////////
