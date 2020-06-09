@@ -9,11 +9,12 @@ import (
 	//"github.com/pkg/errors"
 	"github.com/zpab123/sco/discovery" // 服务发现
 	"github.com/zpab123/sco/network"
+	"github.com/zpab123/zaplog"
 )
 
 // tcp Client
 type TcpClient struct {
-	connMap sync.Map // rpc 连接集合
+	clientMap sync.Map // client 连接集合
 }
 
 // 新建1个 TcpServer
@@ -37,17 +38,33 @@ func (this *TcpClient) Stop() {
 
 }
 
-// 收到消息 [network.IHandler]
-func (this *TcpClient) OnPacket(a *network.Agent, pkt *network.Packet) {
-
+// 收到消息 [network.IClientHandler]
+func (this *TcpClient) OnPacket(client *network.TcpClient, pkt *network.Packet) {
+	// 需要发送给客户端
 }
 
 // 添加集群服务信息
 func (this *TcpClient) AddService(desc *discovery.ServiceDesc) {
+	addr := desc.Address()
+	zaplog.Debugf("发现新服务，%s", addr)
 
+	cli := network.NewTcpClient(addr)
+	cli.SetHandler(this)
+	cli.Run()
+
+	this.clientMap.Store(desc.Name, cli)
 }
 
 // 移除集群服务信息
 func (this *TcpClient) RemoveService(desc *discovery.ServiceDesc) {
+	if c, ok := this.clientMap.Load(desc.Name); ok {
+		this.clientMap.Delete(desc.Name)
+		// 销毁连接对象？
+		cli, rok := c.(network.TcpClient)
+		if rok {
+			cli.Stop()
+		}
 
+		zaplog.Debugf("移除服务%s", desc.Address())
+	}
 }
