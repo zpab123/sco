@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"sync"
 
@@ -35,6 +34,7 @@ type Socket struct {
 	sendQueue []*Packet  // 发送队列
 	mutex     sync.Mutex // 线程互斥锁（发送队列使用）
 	cond      *sync.Cond // 条件同步（发送队列使用）
+	head      []byte     // 消息头
 }
 
 // 创建1个 *Socket
@@ -52,6 +52,7 @@ func NewSocket(conn net.Conn) *Socket {
 	s := Socket{
 		conn:      conn,
 		sendQueue: sq,
+		head:      make([]byte, C_PKT_HEAD_LEN),
 	}
 	s.cond = sync.NewCond(&s.mutex)
 
@@ -70,18 +71,19 @@ func (this *Socket) Close() error {
 // 成功，返回 *Packet nil
 // 失败，返回 nil error
 func (this *Socket) RecvPacket() (*Packet, error) {
-	head, err := ioutil.ReadAll(io.LimitReader(this.conn, headLenInt64))
+	_, err := io.ReadFull(this.conn, this.head)
 	if err != nil {
 		return nil, err
 	}
 
-	mid := socketEndian.Uint16(head[0:C_PKT_MID_LEN])
-	bl := socketEndian.Uint32(head[C_PKT_MID_LEN:])
+	mid := socketEndian.Uint16(this.head[0:C_PKT_MID_LEN])
+	bl := socketEndian.Uint32(this.head[C_PKT_MID_LEN:])
 	if bl > C_PKT_BODY_MAX_LEN {
 		return nil, V_ERR_BODY_LEN
 	}
 
-	body, err := ioutil.ReadAll(io.LimitReader(this.conn, int64(bl)))
+	body := make([]byte, bl)
+	_, err = io.ReadFull(this.conn, body)
 	if err != nil {
 		return nil, err
 	}
