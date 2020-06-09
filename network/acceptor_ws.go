@@ -107,9 +107,9 @@ func (this *WsAcceptor) accept() {
 
 	// 创建 mux
 	mux := http.NewServeMux()
-	handler := websocket.Handler(this.connMgr.OnNewWsConn) // 路由函数
-	mux.Handle("/", handler)                               // 不带路由
-	//mux.Handle("/ws", handler)                             // ws 路由
+	handler := websocket.Handler(this.connMgr.OnWsConn) // 路由函数
+	mux.Handle("/", handler)                            // 不带路由
+	//mux.Handle("/ws", handler)                        // ws 路由
 
 	// 创建 httpServer
 	this.httpServer = http.Server{

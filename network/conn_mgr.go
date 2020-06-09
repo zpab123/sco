@@ -40,7 +40,7 @@ func (this *ConnMgr) Stop() {
 }
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
-func (this *ConnMgr) OnNewWsConn(wsconn *websocket.Conn) {
+func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
 	// 超过最大连接数
 	if this.connNum.Load() >= this.maxConn {
 		wsconn.Close()
@@ -53,6 +53,19 @@ func (this *ConnMgr) OnNewWsConn(wsconn *websocket.Conn) {
 	// 创建代理
 	zaplog.Debugf("[ConnMgr] 新 ws 连接，ip=%s", wsconn.RemoteAddr())
 	this.newAgent(wsconn, true)
+}
+
+// 收到1个新的 tcp 连接对象 [ITcpConnManager]
+func (this *ConnMgr) OnTcpConn(conn net.Conn) {
+	// 超过最大连接数
+	if this.connNum.Load() >= this.maxConn {
+		conn.Close()
+		zaplog.Warnf("[ConnMgr] 达到最大连接数，关闭新连接。当前连接数=%d", this.connNum.Load())
+	}
+
+	// 创建代理
+	zaplog.Debugf("[ConnMgr] 新 tcp 连接，ip=%s", conn.RemoteAddr())
+	this.newAgent(conn, true)
 }
 
 // 设置 handler

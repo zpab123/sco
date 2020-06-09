@@ -63,14 +63,20 @@ type IAcceptor interface {
 
 // 连接管理
 type IConnManager interface {
+	ITcpConnManager        // 接口继承： tcp 连接管理
 	IWsConnManager         // 接口继承： websocket 连接管理
 	Stop()                 // 停止
 	SetHandler(h IHandler) // 设置消息处理器
 }
 
+// tcp 连接管理
+type ITcpConnManager interface {
+	OnTcpConn(conn net.Conn) // 收到1个新的 tcp 连接对象
+}
+
 // websocket 连接管理
 type IWsConnManager interface {
-	OnNewWsConn(wsconn *websocket.Conn) // 收到1个新的 websocket 连接对象
+	OnWsConn(wsconn *websocket.Conn) // 收到1个新的 websocket 连接对象
 }
 
 // socket 组件

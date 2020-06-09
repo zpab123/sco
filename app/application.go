@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/discovery"
+	"github.com/zpab123/sco/dispatch"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/rpc"
 	"github.com/zpab123/zaplog"
@@ -27,6 +28,7 @@ type Application struct {
 	acceptors     []network.IAcceptor  // 接收器切片
 	connMgr       network.IConnManager // 连接管理
 	discovery     discovery.IDiscovery // 服务发现
+	disServer     *dispatch.TcpServer  // 分发服务器
 	rpcServer     rpc.IServer          // rpc 服务端
 	rpcClient     rpc.IClient          // rpc 客户端
 	signalChan    chan os.Signal       // 操作系统信号
@@ -254,6 +256,14 @@ func (this *Application) newWsAcceptor() {
 	this.acceptors = append(this.acceptors, a)
 }
 
+// 新建分发服务器
+func (this *Application) newDisServer() {
+	dis, err := dispatch.NewTcpServer(this.Options.DisServer.Laddr)
+	if nil != err {
+		this.disServer = dis
+	}
+}
+
 // 创建 rpcserver
 func (this *Application) newRpcServer() {
 	opt := rpc.GrpcServerOptions{
@@ -292,7 +302,7 @@ func (this *Application) newDiscovery() {
 	}
 }
 
-// 收到1个 pakcet
+// 收到1个本地 pakcet
 func (this *Application) OnPacket(agent *network.Agent, pkt *network.Packet) {
 	if pkt.GetMid() != this.Options.ServiceId {
 		this.dispatchPacket(agent, pkt)
@@ -303,6 +313,11 @@ func (this *Application) OnPacket(agent *network.Agent, pkt *network.Packet) {
 	if nil != this.handler {
 		this.handler.OnPacket(agent, pkt)
 	}
+}
+
+// 收到1个远端 pakcet
+func (this *Application) OnRemotePacket(agent *network.Agent, pkt *network.Packet) {
+
 }
 
 // 分发消息
