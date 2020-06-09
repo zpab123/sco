@@ -87,7 +87,9 @@ func (this *Agent) SendBytes(bytes []byte) error {
 		return errState
 	}
 
-	return this.socket.SendBytes(bytes)
+	this.socket.SendBytes(bytes)
+
+	return nil
 }
 
 // 打印信息

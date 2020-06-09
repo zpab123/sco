@@ -31,7 +31,7 @@ var (
 // Socket
 type Socket struct {
 	conn      net.Conn   // 接口继承： 符合 Conn 接口的对象
-	sendQueue []*Packet  // 发送队列
+	sendQueue [][]byte   // 发送队列
 	mutex     sync.Mutex // 线程互斥锁（发送队列使用）
 	cond      *sync.Cond // 条件同步（发送队列使用）
 	head      []byte     // 消息头
@@ -47,7 +47,7 @@ func NewSocket(conn net.Conn) *Socket {
 	}
 
 	// 创建对象
-	sq := make([]*Packet, 0)
+	sq := make([][]byte, 0)
 
 	s := Socket{
 		conn:      conn,
@@ -96,17 +96,27 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 
 // 发送1个 *Packe 数据
 func (this *Socket) SendPacket(pkt *Packet) {
+	var bytes []byte
+	if nil != pkt {
+		bytes = pkt.Data()
+	}
+
 	// 添加到消息队列
 	this.mutex.Lock()
-	this.sendQueue = append(this.sendQueue, pkt)
+	this.sendQueue = append(this.sendQueue, bytes)
 	this.mutex.Unlock()
 
 	this.cond.Signal()
 }
 
 // 发送 []byte
-func (this *Socket) SendBytes(bytes []byte) error {
-	return iotool.WriteAll(this.conn, bytes)
+func (this *Socket) SendBytes(bytes []byte) {
+	// 添加到消息队列
+	this.mutex.Lock()
+	this.sendQueue = append(this.sendQueue, bytes)
+	this.mutex.Unlock()
+
+	this.cond.Signal()
 }
 
 // 将消息队列中的数据写入缓冲
@@ -122,14 +132,14 @@ func (this *Socket) Flush() error {
 
 	// 复制数据
 	this.mutex.Lock()
-	packets := make([]*Packet, 0, len(this.sendQueue))
-	packets, this.sendQueue = this.sendQueue, packets // 交换数据
+	newsq := make([][]byte, 0, len(this.sendQueue))
+	newsq, this.sendQueue = this.sendQueue, newsq // 交换数据
 	this.mutex.Unlock()
 
 	// 写入数据
-	for _, pkt := range packets {
-		if nil != pkt {
-			err := iotool.WriteAll(this.conn, pkt.Data())
+	for _, bytes := range newsq {
+		if nil != bytes {
+			err := iotool.WriteAll(this.conn, bytes)
 			if nil != err {
 				return err
 			}
