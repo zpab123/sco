@@ -6,7 +6,6 @@ package rpc
 import (
 	"context"
 
-	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/protocol"
 )
 
@@ -16,6 +15,7 @@ import (
 // grpc 消息服务
 type GrpcService struct {
 	remoteService IRemoteService // remote 服务
+	// handler
 }
 
 // 新建1个 GrpcService
@@ -29,18 +29,10 @@ func NewGrpcService(svc IRemoteService) protocol.GrpcServer {
 
 // hander 调用
 func (this *GrpcService) Call(ctx context.Context, req *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
-
-	str := "收到数据"
-
-	pkt := network.NewPacket(201)
-	pkt.AppendString(str)
-
-	// data := this.remoteService.OnData(req.Data)
+	data := this.remoteService.OnData(req.Data)
 	res := protocol.GrpcResponse{
-		Data: pkt.Data(),
+		Data: data,
 	}
 
 	return &res, nil
 }
-
-// remote 调用

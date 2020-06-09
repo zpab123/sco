@@ -80,6 +80,16 @@ func (this *Agent) SendPacket(pkt *Packet) error {
 	return nil
 }
 
+// 发送 []byte
+func (this *Agent) SendBytes(bytes []byte) error {
+	// 状态效验
+	if this.stateMgr.GetState() != C_AGENT_ST_WORKING {
+		return errState
+	}
+
+	return this.socket.SendBytes(bytes)
+}
+
 // 打印信息
 func (this *Agent) String() string {
 	return this.socket.String()

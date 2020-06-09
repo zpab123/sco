@@ -309,9 +309,8 @@ func (this *Application) OnPacket(agent *network.Agent, pkt *network.Packet) {
 func (this *Application) dispatchPacket(agent *network.Agent, pkt *network.Packet) {
 	if nil != this.rpcClient {
 		res := this.rpcClient.Call(pkt.GetMid(), pkt.GetBody())
-		zaplog.Debugf("dispatchPacket=%v", res)
 		if nil != res {
-			// agent.SendData(res)
+			agent.SendBytes(res)
 		}
 	}
 }

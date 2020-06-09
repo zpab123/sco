@@ -102,6 +102,11 @@ func (this *Socket) SendPacket(pkt *Packet) {
 	this.cond.Signal()
 }
 
+// 发送 []byte
+func (this *Socket) SendBytes(bytes []byte) error {
+	return iotool.WriteAll(this.conn, bytes)
+}
+
 // 将消息队列中的数据写入缓冲
 // 成功，返回 nil
 // 失败，返回 error
