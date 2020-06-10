@@ -7,7 +7,7 @@ import (
 	"context"
 	"net"
 
-	"github.com/zpab123/sco/network"
+	//"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/zaplog"
 	"google.golang.org/grpc"
@@ -20,7 +20,7 @@ import (
 type GrpcServer struct {
 	options *GrpcServerOptions // 选项
 	server  *grpc.Server       // grpc 服务器
-	handler network.IHandler   // handler 服务
+	handler IHandler           // handler 服务
 	remote  IRemoteService     // remote 服务
 }
 
@@ -62,8 +62,10 @@ func (this *GrpcServer) Stop() {
 }
 
 // 设置 Handler 服务
-func (this *GrpcServer) SetHandler() {
-
+func (this *GrpcServer) SetHandler(h IHandler) {
+	if nil != h {
+		this.handler = h
+	}
 }
 
 // 设置 Remote 服务
@@ -73,11 +75,18 @@ func (this *GrpcServer) SetRemote() {
 
 // Handler 调用
 func (this *GrpcServer) HandlerCall(ctx context.Context, req *protocol.HandlerReq) (*protocol.HandlerRes, error) {
+	res := protocol.HandlerRes{}
 	// 交给本服务器的 handler 处理
 	if nil == this.handler {
+		res.Right = true
+		return &res, nil
 	}
 
-	return nil, nil
+	r, data := this.handler.OnData(req.Data)
+	res.Right = r
+	res.Data = data
+
+	return &res, nil
 }
 
 // Remote 调用

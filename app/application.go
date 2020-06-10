@@ -87,9 +87,6 @@ func (this *Application) Run() {
 		this.runCluster()
 	}
 
-	// 消息分发
-	go this.dispatch()
-
 	zaplog.Infof("[%s] 启动成功...", this.Options.Name)
 
 	// 侦听结束信号
@@ -128,21 +125,28 @@ func (this *Application) SetHandler(h IHandler) {
 	}
 }
 
-// 收到1个本地 pakcet
+// 设置 remote 服务
+func (this *Application) SetRemoteService(rs rpc.IRemoteService) {
+	if nil != rs {
+		this.remoteService = rs
+	}
+}
+
+// 收到1个 pakcet
 func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
 	// 远端
 	if pkt.GetMid() != this.Options.ServiceId {
-		//this.dispatchPacket(agent, pkt)
-		//return true, nil
+		this.onRemotePacket(a, pkt)
+		return
 	}
 
 	if nil == this.handler {
 		return
 	}
 
-	r, res := this.handler.OnData(pkt.GetBody())
-	if nil != res {
-		a.SendBytes(res)
+	r, data := this.handler.OnData(pkt.GetBody())
+	if nil != data {
+		a.SendBytes(data)
 	}
 
 	if !r {
@@ -150,10 +154,19 @@ func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
 	}
 }
 
-// 设置 remote 服务
-func (this *Application) SetRemoteService(rs rpc.IRemoteService) {
-	if nil != rs {
-		this.remoteService = rs
+// 收到1个远端 pakcet
+func (this *Application) onRemotePacket(a *network.Agent, pkt *network.Packet) {
+	if nil == this.rpcClient {
+		return
+	}
+
+	r, data := this.rpcClient.HandlerCall(pkt.GetMid(), pkt.GetBody())
+	if nil != data {
+		a.SendBytes(data)
+	}
+
+	if !r {
+		a.Stop()
 	}
 }
 
@@ -299,6 +312,7 @@ func (this *Application) newRpcServer() {
 	}
 
 	if nil != s {
+		s.SetHandler(this.handler)
 		this.rpcServer = s
 	}
 }
@@ -329,54 +343,4 @@ func (this *Application) newDiscovery() {
 	if nil != this.rpcClient {
 		this.discovery.AddListener(this.rpcClient)
 	}
-}
-
-// 收到1个远端 pakcet
-func (this *Application) OnRemotePacket(agent *network.Agent, pkt *network.Packet) {
-
-}
-
-// 分发消息
-func (this *Application) dispatchPacket(agent *network.Agent, pkt *network.Packet) {
-	if nil != this.rpcClient {
-		res := this.rpcClient.HandlerCall(pkt.GetMid(), pkt.GetBody())
-		if nil != res {
-			agent.SendBytes(res)
-		}
-	}
-}
-
-// 分发消息
-func (this *Application) dispatch() {
-	for {
-		select {
-		case pkt := <-this.handleChan: // 本地消息
-			this.handle(pkt)
-		case pkt := <-this.remoteChan: // rpc 消息
-			this.remote(pkt)
-		case pkt := <-this.remotePacket: // 远程packet
-			this.sendToServer(pkt)
-		}
-	}
-}
-
-// 处理本地消息
-func (this *Application) handle(pkt *network.Packet) {
-
-}
-
-// 处理 rpc 消息
-func (this *Application) remote(pkt *network.Packet) {
-
-}
-
-// 远程处理
-func (this *Application) sendToServer(pkt *network.Packet) {
-	if nil == this.rpcClient {
-		return
-	}
-
-	//res := this.rpcClient
-
-	// agent.send(res)
 }

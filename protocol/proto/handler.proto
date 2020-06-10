@@ -10,5 +10,6 @@ message HandlerReq {
 
 // server->client 回复数据
 message HandlerRes {
-	bytes data = 1;   						// byte 数据
+	bool right = 1;							// 是否是正确的请求
+	bytes data = 2;   						// byte 数据
 }

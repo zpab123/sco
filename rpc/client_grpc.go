@@ -45,23 +45,23 @@ func (this *GrpcClient) Stop() {
 }
 
 // Handler 调用
-func (this *GrpcClient) HandlerCall(mid uint16, data []byte) []byte {
+func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 	req := protocol.HandlerReq{
 		Data: data,
 	}
 
 	c, ok := this.connMap.Load("chat_1")
 	if !ok {
-		return nil
+		return true, nil
 	}
 
 	res, err := c.(*GrpcConn).HandlerCall(context.Background(), &req)
 	if nil != err {
 		zaplog.Debugf("[GrpcClient] HandlerCall_err=%s", err.Error())
-		return nil
+		return true, nil
 	}
 
-	return res.Data
+	return res.Right, res.Data
 }
 
 // 远程调用

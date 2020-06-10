@@ -24,16 +24,21 @@ const (
 // rpc server 服务
 type IServer interface {
 	Run(ctx context.Context) // 启动服务器
-	SetHandler()             // 设置 Handler 服务
+	SetHandler(h IHandler)   // 设置 Handler 服务
 	SetRemote()              // 设置 Remote 服务
 }
 
 // rpc client 服务
 type IClient interface {
-	discovery.IListener                         // 接口继承：服务发现侦听
-	Run(ctx context.Context)                    // 启动 client
-	HandlerCall(mid uint16, data []byte) []byte // 远程调用
-	RemoteCall(mid uint16, data []byte) []byte  // 远程调用
+	discovery.IListener                                 // 接口继承：服务发现侦听
+	Run(ctx context.Context)                            // 启动 client
+	HandlerCall(mid uint16, data []byte) (bool, []byte) // handler 调用
+	RemoteCall(mid uint16, data []byte) []byte          // remote 调用
+}
+
+// handler 服务
+type IHandler interface {
+	OnData(data []byte) (bool, []byte) // 收到 handler 数据
 }
 
 // remote 服务
