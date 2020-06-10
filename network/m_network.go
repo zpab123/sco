@@ -108,7 +108,7 @@ type IHandler interface {
 
 // Client packet 处理器
 type IClientHandler interface {
-	OnPacket(client *TcpClient, pkt *Packet) // 收到1个 packet 消息
+	OnPacket(c *TcpConn, pkt *Packet) // 收到1个 packet 消息
 }
 
 // /////////////////////////////////////////////////////////////////////////////

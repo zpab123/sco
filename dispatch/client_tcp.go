@@ -14,7 +14,7 @@ import (
 
 // tcp Client
 type TcpClient struct {
-	clientMap sync.Map // client 连接集合
+	connMap sync.Map // conn 连接集合
 }
 
 // 新建1个 TcpServer
@@ -39,7 +39,7 @@ func (this *TcpClient) Stop() {
 }
 
 // 收到消息 [network.IClientHandler]
-func (this *TcpClient) OnPacket(client *network.TcpClient, pkt *network.Packet) {
+func (this *TcpClient) OnPacket(c *network.TcpConn, pkt *network.Packet) {
 	// 需要发送给客户端
 }
 
@@ -48,21 +48,21 @@ func (this *TcpClient) AddService(desc *discovery.ServiceDesc) {
 	addr := desc.Address()
 	zaplog.Debugf("发现新服务，%s", addr)
 
-	cli := network.NewTcpClient(addr)
-	cli.SetHandler(this)
-	cli.Run()
+	c := network.NewTcpConn(addr)
+	c.SetHandler(this)
+	c.Run()
 
-	this.clientMap.Store(desc.Name, cli)
+	this.connMap.Store(desc.Name, c)
 }
 
 // 移除集群服务信息
 func (this *TcpClient) RemoveService(desc *discovery.ServiceDesc) {
-	if c, ok := this.clientMap.Load(desc.Name); ok {
-		this.clientMap.Delete(desc.Name)
+	if c, ok := this.connMap.Load(desc.Name); ok {
+		this.connMap.Delete(desc.Name)
 		// 销毁连接对象？
-		cli, rok := c.(network.TcpClient)
+		tc, rok := c.(*network.TcpConn)
 		if rok {
-			cli.Stop()
+			tc.Stop()
 		}
 
 		zaplog.Debugf("移除服务%s", desc.Address())

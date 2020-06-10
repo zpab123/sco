@@ -13,22 +13,22 @@ import (
 )
 
 // /////////////////////////////////////////////////////////////////////////////
-// TcpClient
+// TcpConn
 
 // tcp 客户端
-type TcpClient struct {
+type TcpConn struct {
 	addr     string              // 远端地址
 	socket   *Socket             // socket
 	stateMgr *state.StateManager // 状态管理
 	handler  IClientHandler      // 消息处理
 }
 
-// 新建1个 tcp 客户端
-func NewTcpClient(addr string) *TcpClient {
+// 新建1个 tcp 连接
+func NewTcpConn(addr string) *TcpConn {
 	// 状态管理
 	st := state.NewStateManager()
 
-	c := TcpClient{
+	c := TcpConn{
 		addr:     addr,
 		stateMgr: st,
 	}
@@ -39,7 +39,7 @@ func NewTcpClient(addr string) *TcpClient {
 }
 
 // 启动
-func (this *TcpClient) Run() error {
+func (this *TcpConn) Run() error {
 	conn, err := net.Dial("tcp", this.addr)
 	if nil != err {
 		return err
@@ -57,12 +57,12 @@ func (this *TcpClient) Run() error {
 }
 
 // 停止
-func (this *TcpClient) Stop() {
+func (this *TcpConn) Stop() {
 	this.socket.Close()
 }
 
 // 发送1个 packet 消息
-func (this *TcpClient) SendPacket(pkt *Packet) error {
+func (this *TcpConn) SendPacket(pkt *Packet) error {
 	// 状态效验
 	if this.stateMgr.GetState() != C_CLI_ST_WORKING {
 		return errState
@@ -74,7 +74,7 @@ func (this *TcpClient) SendPacket(pkt *Packet) error {
 }
 
 // 发送 []byte
-func (this *TcpClient) SendBytes(bytes []byte) error {
+func (this *TcpConn) SendBytes(bytes []byte) error {
 	// 状态效验
 	if this.stateMgr.GetState() != C_CLI_ST_WORKING {
 		return errState
@@ -86,21 +86,21 @@ func (this *TcpClient) SendBytes(bytes []byte) error {
 }
 
 // 打印信息
-func (this *TcpClient) String() string {
+func (this *TcpConn) String() string {
 	return this.socket.String()
 }
 
 // 设置处理器
-func (this *TcpClient) SetHandler(h IClientHandler) {
+func (this *TcpConn) SetHandler(h IClientHandler) {
 	if nil != h {
 		this.handler = h
 	}
 }
 
 // 接收线程
-func (this *TcpClient) recvLoop() {
+func (this *TcpConn) recvLoop() {
 	defer func() {
-		zaplog.Debugf("[TcpClient] recvLoop 结束")
+		zaplog.Debugf("[TcpConn] recvLoop 结束")
 		this.socket.SendPacket(nil) // 用于结束 sendLoop
 	}()
 
@@ -118,9 +118,9 @@ func (this *TcpClient) recvLoop() {
 }
 
 // 发送线程
-func (this *TcpClient) sendLoop() {
+func (this *TcpConn) sendLoop() {
 	defer func() {
-		zaplog.Debugf("[TcpClient] sendLoop 结束")
+		zaplog.Debugf("[TcpConn] sendLoop 结束")
 		this.Stop()
 	}()
 
@@ -133,7 +133,7 @@ func (this *TcpClient) sendLoop() {
 }
 
 // 发送握手请求
-func (this *TcpClient) reqHandShake() {
+func (this *TcpConn) reqHandShake() {
 	req := protocol.HandshakeReq{
 		Key:      "sco",
 		Acceptor: 1,
@@ -141,7 +141,7 @@ func (this *TcpClient) reqHandShake() {
 
 	data, err := json.Marshal(&req)
 	if nil != err {
-		zaplog.Debugf("[TcpClient] 编码握手消息失败")
+		zaplog.Debugf("[TcpConn] 编码握手消息失败")
 		this.Stop()
 		return
 	}
@@ -153,7 +153,7 @@ func (this *TcpClient) reqHandShake() {
 }
 
 // 发送握手ack
-func (this *TcpClient) sendAck() {
+func (this *TcpConn) sendAck() {
 	pkt := NewPacket(protocol.C_MID_HANDSHAKE_ACK)
 	this.socket.SendBytes(pkt.Data())
 
@@ -161,7 +161,7 @@ func (this *TcpClient) sendAck() {
 }
 
 // 收到1个 pakcet
-func (this *TcpClient) onPacket(pkt *Packet) {
+func (this *TcpConn) onPacket(pkt *Packet) {
 	switch pkt.mid {
 	case protocol.C_MID_HANDSHAKE: // 远端握手结果
 		this.onHandshake(pkt.GetBody())
@@ -173,11 +173,11 @@ func (this *TcpClient) onPacket(pkt *Packet) {
 }
 
 // 握手结果
-func (this *TcpClient) onHandshake(data []byte) {
+func (this *TcpConn) onHandshake(data []byte) {
 	res := protocol.HandshakeRes{}
 	err := json.Unmarshal(data, &res)
 	if nil != err {
-		zaplog.Debugf("[TcpClient] 解码握手结果失败")
+		zaplog.Debugf("[TcpConn] 解码握手结果失败")
 		this.Stop()
 		return
 	}
@@ -188,7 +188,7 @@ func (this *TcpClient) onHandshake(data []byte) {
 }
 
 // 需要处理的消息
-func (this *TcpClient) handle(pkt *Packet) {
+func (this *TcpConn) handle(pkt *Packet) {
 	if this.stateMgr.GetState() != C_CLI_ST_WORKING {
 		this.Stop()
 		return
