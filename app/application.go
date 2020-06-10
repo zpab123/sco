@@ -295,6 +295,10 @@ func (this *Application) newRpcServer() {
 
 	s, err := rpc.NewGrpcServer(&opt)
 	if nil != err {
+		zaplog.Warnf("[Application] 创建 GrpcServer 失败。err=%s", err.Error())
+	}
+
+	if nil != s {
 		this.rpcServer = s
 	}
 }
