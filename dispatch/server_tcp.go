@@ -56,5 +56,4 @@ func (this *TcpServer) Stop() {
 
 // 收到消息 [network.IHandler]
 func (this *TcpServer) OnPacket(a *network.Agent, pkt *network.Packet) {
-
 }

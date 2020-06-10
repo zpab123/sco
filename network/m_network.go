@@ -103,7 +103,7 @@ type IProcess interface {
 
 // packet 处理器
 type IHandler interface {
-	OnPacket(agent *Agent, pkt *Packet) // 收到1个 packet 消息
+	OnPacket(a *Agent, pkt *Packet) // 收到1个 packet 消息
 }
 
 // Client packet 处理器

@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package protocol;
-
-// 回复数据
-message GrpcResponse {
-	bytes data = 1;   						// byte 数据
-}

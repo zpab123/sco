@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/discovery"
-	"github.com/zpab123/sco/dispatch"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/rpc"
 	"github.com/zpab123/zaplog"
@@ -27,10 +26,10 @@ type Application struct {
 	Options       *Options             // 配置选项
 	acceptors     []network.IAcceptor  // 接收器切片
 	connMgr       network.IConnManager // 连接管理
-	discovery     discovery.IDiscovery // 服务发现
-	disServer     *dispatch.TcpServer  // 分发服务器
+	handler       IHandler             // handler 服务
 	rpcServer     rpc.IServer          // rpc 服务端
 	rpcClient     rpc.IClient          // rpc 客户端
+	discovery     discovery.IDiscovery // 服务发现
 	signalChan    chan os.Signal       // 操作系统信号
 	stopGroup     sync.WaitGroup       // 停止等待组
 	ctx           context.Context      // 上下文
@@ -40,7 +39,6 @@ type Application struct {
 	packetChan    chan *network.Packet // 消息处理器
 	localPacket   chan *network.Packet // 本地消息
 	remotePacket  chan *network.Packet // 远程消息
-	handler       network.IHandler     // 消息处理
 	remoteService rpc.IRemoteService   // remote 服务
 }
 
@@ -84,22 +82,9 @@ func (this *Application) Run() {
 		this.runFrontend()
 	}
 
-	// rpc服务
+	// 集群服务
 	if this.Options.Cluster {
-		if nil == this.rpcServer {
-			this.newRpcServer()
-		}
-		go this.rpcServer.Run(this.ctx)
-
-		if nil == this.rpcClient {
-			this.newRpcClient()
-		}
-		go this.rpcClient.Run(this.ctx)
-
-		if nil == this.discovery {
-			this.newDiscovery()
-		}
-		go this.discovery.Run(this.ctx)
+		this.runCluster()
 	}
 
 	// 消息分发
@@ -137,9 +122,31 @@ func (this *Application) AddAcceptor(acc network.IAcceptor) {
 }
 
 // 设置 handler
-func (this *Application) SetHandler(handler network.IHandler) {
-	if nil != handler {
-		this.handler = handler
+func (this *Application) SetHandler(h IHandler) {
+	if nil != h {
+		this.handler = h
+	}
+}
+
+// 收到1个本地 pakcet
+func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
+	// 远端
+	if pkt.GetMid() != this.Options.ServiceId {
+		//this.dispatchPacket(agent, pkt)
+		//return true, nil
+	}
+
+	if nil == this.handler {
+		return
+	}
+
+	r, res := this.handler.OnData(pkt.GetBody())
+	if nil != res {
+		a.SendBytes(res)
+	}
+
+	if !r {
+		a.Stop()
 	}
 }
 
@@ -256,12 +263,27 @@ func (this *Application) newWsAcceptor() {
 	this.acceptors = append(this.acceptors, a)
 }
 
-// 新建分发服务器
-func (this *Application) newDisServer() {
-	dis, err := dispatch.NewTcpServer(this.Options.DisServer.Laddr)
-	if nil != err {
-		this.disServer = dis
+// 启动集群
+func (this *Application) runCluster() {
+	if nil == this.rpcServer {
+		this.newRpcServer()
 	}
+	go this.rpcServer.Run(this.ctx)
+
+	if nil == this.rpcClient {
+		this.newRpcClient()
+	}
+	go this.rpcClient.Run(this.ctx)
+
+	if nil == this.discovery {
+		this.newDiscovery()
+	}
+	go this.discovery.Run(this.ctx)
+}
+
+// 停止集群
+func (this *Application) stopCluster() {
+
 }
 
 // 创建 rpcserver
@@ -271,7 +293,10 @@ func (this *Application) newRpcServer() {
 		RemoteService: this.remoteService,
 	}
 
-	this.rpcServer = rpc.NewGrpcServer(&opt)
+	s, err := rpc.NewGrpcServer(&opt)
+	if nil != err {
+		this.rpcServer = s
+	}
 }
 
 // 创建 rpcClient
@@ -302,19 +327,6 @@ func (this *Application) newDiscovery() {
 	}
 }
 
-// 收到1个本地 pakcet
-func (this *Application) OnPacket(agent *network.Agent, pkt *network.Packet) {
-	if pkt.GetMid() != this.Options.ServiceId {
-		this.dispatchPacket(agent, pkt)
-		return
-	}
-
-	// 本地
-	if nil != this.handler {
-		this.handler.OnPacket(agent, pkt)
-	}
-}
-
 // 收到1个远端 pakcet
 func (this *Application) OnRemotePacket(agent *network.Agent, pkt *network.Packet) {
 
@@ -323,7 +335,7 @@ func (this *Application) OnRemotePacket(agent *network.Agent, pkt *network.Packe
 // 分发消息
 func (this *Application) dispatchPacket(agent *network.Agent, pkt *network.Packet) {
 	if nil != this.rpcClient {
-		res := this.rpcClient.Call(pkt.GetMid(), pkt.GetBody())
+		res := this.rpcClient.HandlerCall(pkt.GetMid(), pkt.GetBody())
 		if nil != res {
 			agent.SendBytes(res)
 		}

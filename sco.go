@@ -5,7 +5,6 @@ package sco
 
 import (
 	"github.com/zpab123/sco/app"
-	"github.com/zpab123/sco/network"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -28,6 +27,6 @@ func GetApp() *app.Application {
 }
 
 // 设置 handler
-func SetHandler(handler network.IHandler) {
+func SetHandler(handler app.IHandler) {
 	scoApp.SetHandler(handler)
 }

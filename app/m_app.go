@@ -15,3 +15,11 @@ const (
 	C_APP_TYPE_FRONTEND byte = 1                // 前端 app
 	C_APP_TYPE_BACKEND  byte = 2                // 后端 app
 )
+
+// /////////////////////////////////////////////////////////////////////////////
+// 接口
+
+// handler 服务
+type IHandler interface {
+	OnData(data []byte) (bool, []byte) // 收到数据
+}

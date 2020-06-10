@@ -44,20 +44,9 @@ func (this *GrpcClient) Stop() {
 
 }
 
-// 远程调用
-func (this *GrpcClient) Call(mid uint16, data []byte) []byte {
-	// 数据编码
-	// 发送数据
-	/*
-		c, ok := this.connMap.Load(mid)
-		if !ok {
-			return
-		}
-
-		// 调用
-		// res, err := c.(*GrpcConn).Call(ctxT, &req)
-	*/
-	req := protocol.GrpcRequest{
+// Handler 调用
+func (this *GrpcClient) HandlerCall(mid uint16, data []byte) []byte {
+	req := protocol.HandlerReq{
 		Data: data,
 	}
 
@@ -66,9 +55,29 @@ func (this *GrpcClient) Call(mid uint16, data []byte) []byte {
 		return nil
 	}
 
-	res, err := c.(*GrpcConn).Call(context.Background(), &req)
+	res, err := c.(*GrpcConn).HandlerCall(context.Background(), &req)
 	if nil != err {
-		zaplog.Debugf("cal_err=%s", err.Error())
+		zaplog.Debugf("[GrpcClient] HandlerCall_err=%s", err.Error())
+		return nil
+	}
+
+	return res.Data
+}
+
+// 远程调用
+func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
+	req := protocol.RemoteReq{
+		Data: data,
+	}
+
+	c, ok := this.connMap.Load("chat_1")
+	if !ok {
+		return nil
+	}
+
+	res, err := c.(*GrpcConn).RemoteCall(context.Background(), &req)
+	if nil != err {
+		zaplog.Debugf("[GrpcClient] RemoteCall_err=%s", err.Error())
 		return nil
 	}
 

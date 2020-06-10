@@ -17,40 +17,42 @@ import (
 
 // grpc 连接对象
 type GrpcConn struct {
-	address   string              // 远端地址
-	connected bool                // 是否连接
-	lock      sync.Mutex          // 锁
-	client    protocol.GrpcClient // 客户端
-	conn      *grpc.ClientConn    // rpc conn
+	address   string             // 远端地址
+	connected bool               // 是否连接
+	lock      sync.Mutex         // 锁
+	client    protocol.ScoClient // 客户端
+	conn      *grpc.ClientConn   // rpc conn
 }
 
 // 新建1个 GrpcConn 对象
-func NewGrpcConn(address string) *GrpcConn {
+func NewGrpcConn(addr string) *GrpcConn {
 	gc := &GrpcConn{
-		address: address,
+		address: addr,
 	}
 
 	return gc
 }
 
-// 远程调用1个方法
-func (this *GrpcConn) Call(ctx context.Context, req *protocol.GrpcRequest, opts ...grpc.CallOption) (*protocol.GrpcResponse, error) {
-	/*
-		res := new(protocol.GrpcResponse)
-		method := fmt.Sprintf("/%s/%s", C_SVC_NAME, C_METHOD_CALL)
-		err := this.clinetConn.Invoke(ctx, method, req, res, opts...)
-		if nil != err {
-			return nil, err
-		}
-	*/
-
+// Handler 调用
+func (this *GrpcConn) HandlerCall(ctx context.Context, req *protocol.HandlerReq) (*protocol.HandlerRes, error) {
 	if !this.connected {
 		if err := this.connect(); nil != err {
 			return nil, err
 		}
 	}
 
-	return this.client.Call(ctx, req)
+	return this.client.HandlerCall(ctx, req)
+}
+
+// Remote 调用
+func (this *GrpcConn) RemoteCall(ctx context.Context, req *protocol.RemoteReq) (*protocol.RemoteRes, error) {
+	if !this.connected {
+		if err := this.connect(); nil != err {
+			return nil, err
+		}
+	}
+
+	return this.client.RemoteCall(ctx, req)
 }
 
 // 连接远端
@@ -67,7 +69,7 @@ func (this *GrpcConn) connect() error {
 		return err
 	}
 
-	this.client = protocol.NewGrpcClient(conn)
+	this.client = protocol.NewScoClient(conn)
 	this.conn = conn
 	this.connected = true
 	return nil

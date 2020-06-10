@@ -9,6 +9,6 @@ import (
 type Remote struct {
 }
 
-func (this *Remote) Call(ctx context.Context, rq *protocol.GrpcRequest) (*protocol.GrpcResponse, error) {
+func (this *Remote) Call(ctx context.Context, rq *protocol.HandlerReq) (*protocol.HandlerRes, error) {
 	return nil, nil
 }

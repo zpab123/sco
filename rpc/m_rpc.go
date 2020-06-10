@@ -7,8 +7,8 @@ import (
 	"context"
 
 	"github.com/zpab123/sco/discovery"
-	"github.com/zpab123/sco/protocol"
-	"google.golang.org/grpc"
+	//"github.com/zpab123/sco/protocol"
+	//"google.golang.org/grpc"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -23,20 +23,17 @@ const (
 
 // rpc server 服务
 type IServer interface {
-	Run(ctx context.Context)           // 启动服务器
-	SetService(rs protocol.GrpcServer) // 设置服务
+	Run(ctx context.Context) // 启动服务器
+	SetHandler()             // 设置 Handler 服务
+	SetRemote()              // 设置 Remote 服务
 }
 
 // rpc client 服务
 type IClient interface {
-	discovery.IListener                  // 接口继承：服务发现侦听
-	Run(ctx context.Context)             // 启动 client
-	Call(mid uint16, data []byte) []byte // 远程调用
-}
-
-// 连接对象接口
-type IConn interface {
-	Call(ctx context.Context, req *protocol.GrpcRequest, opts ...grpc.CallOption) (*protocol.GrpcResponse, error) // 远程调用
+	discovery.IListener                         // 接口继承：服务发现侦听
+	Run(ctx context.Context)                    // 启动 client
+	HandlerCall(mid uint16, data []byte) []byte // 远程调用
+	RemoteCall(mid uint16, data []byte) []byte  // 远程调用
 }
 
 // remote 服务

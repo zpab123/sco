@@ -147,7 +147,7 @@ func (this *Agent) onPacket(pkt *Packet) {
 	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.onAck()
 	default:
-		this.handler.OnPacket(this, pkt)
+		this.handle(pkt)
 	}
 }
 
@@ -227,4 +227,11 @@ func (this *Agent) sendHeartbeat() error {
 	err := this.SendPacket(pkt)
 
 	return err
+}
+
+// 处理 pkcket
+func (this *Agent) handle(pkt *Packet) {
+	if nil != this.handler {
+		this.handler.OnPacket(this, pkt)
+	}
 }
