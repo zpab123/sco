@@ -6,6 +6,7 @@ package network
 import (
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/sco/state"
@@ -24,7 +25,7 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	options  *TAgentOpt          // 配置参数
+	options  *AgentOpt           // 配置参数
 	socket   *Socket             // socket
 	stateMgr *state.StateManager // 状态管理
 	handler  IHandler            // 消息处理
@@ -32,10 +33,10 @@ type Agent struct {
 }
 
 // 新建1个 *Agent 对象
-func NewAgent(socket *Socket, opt *TAgentOpt) *Agent {
+func NewAgent(socket *Socket, opt *AgentOpt) *Agent {
 	// 参数效验
 	if nil == opt {
-		opt = NewTAgentOpt()
+		opt = NewAgentOpt()
 	}
 
 	// 状态管理
@@ -92,16 +93,16 @@ func (this *Agent) SendBytes(bytes []byte) error {
 	return nil
 }
 
-// 打印信息
-func (this *Agent) String() string {
-	return this.socket.String()
-}
-
 // 设置处理器
 func (this *Agent) SetHandler(h IHandler) {
 	if nil != h {
 		this.handler = h
 	}
+}
+
+// 打印信息
+func (this *Agent) String() string {
+	return this.socket.String()
 }
 
 // 接收线程
@@ -234,4 +235,21 @@ func (this *Agent) handle(pkt *Packet) {
 	if nil != this.handler {
 		this.handler.OnPacket(this, pkt)
 	}
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// AgentOpt 对象
+
+// Agent 配置参数
+type AgentOpt struct {
+	Heartbeat time.Duration // 心跳周期
+}
+
+// 创建1个默认的 TAgentOpt
+func NewAgentOpt() *AgentOpt {
+	o := AgentOpt{
+		Heartbeat: C_AGENT_HEARTBEAT,
+	}
+
+	return &o
 }

@@ -24,7 +24,7 @@ type ConnMgr struct {
 // 新建1个 ConnMgr
 func NewConnMgr(maxConn uint32) *ConnMgr {
 	if 0 == maxConn {
-		maxConn = C_MAX_CONN
+		maxConn = C_CONN_MAX
 	}
 
 	mgr := ConnMgr{
@@ -77,10 +77,10 @@ func (this *ConnMgr) SetHandler(h IHandler) {
 
 // 创建代理
 func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
-	opt := NewTAgentOpt()
+	ao := NewAgentOpt()
 	s := NewSocket(conn)
 
-	a := NewAgent(s, opt)
+	a := NewAgent(s, ao)
 	a.SetHandler(this.handler)
 	a.Run()
 }

@@ -4,7 +4,6 @@
 package app
 
 import (
-	"github.com/zpab123/sco/dispatch"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/rpc"
 )
@@ -14,27 +13,24 @@ import (
 
 // app 配置参数
 type Options struct {
-	AppType   byte                    // app 类型
-	Name      string                  // app名字，不同的app名字不要相同
-	ServiceId uint16                  // 服务ID
-	Cluster   bool                    // 是否开启集群服务
-	Net       *network.TNetOptions    // 网络配置（客户端）
-	RpcServer *rpc.ServerOptions      // rpc 服务选项
-	DisServer *dispatch.ServerOptions // dispatch 服务器选项
+	AppType   byte                // app 类型
+	Name      string              // app名字，不同的app名字不要相同
+	Mid       uint16              // 服务ID
+	Cluster   bool                // 是否开启集群服务
+	Net       *network.NetOptions // 网络配置（客户端）
+	RpcServer *rpc.ServerOptions  // rpc 服务选项
 }
 
 // 新建1个默认 Options
 func NewOptions() *Options {
-	nopt := network.NewTNetOptions()
+	no := network.NewNetOptions()
 	rso := rpc.NewServerOptions()
-	do := dispatch.NewServerOptions()
 
 	o := Options{
 		AppType:   C_APP_TYPE_FRONTEND,
 		Cluster:   false,
-		Net:       nopt,
+		Net:       no,
 		RpcServer: rso,
-		DisServer: do,
 	}
 
 	return &o

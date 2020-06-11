@@ -14,29 +14,12 @@ import (
 // /////////////////////////////////////////////////////////////////////////////
 // 常量
 
-// socket_buff 常量
-const (
-	C_BUFF_READ_SIZE  = 16384  // scoket 读取类 buff 长度
-	C_BUFF_WRITE_SIZE = 16384  // scoket 写入类 buff 长度
-	C_MAX_CONN        = 100000 // ClientAcceptor 默认最大连接数
-)
-
 // packet 常量
 const (
 	C_PKT_MID_LEN      uint32 = 2                             // packet 主 id 长度
 	C_PKT_LEN_LEN      uint32 = 4                             // packet 长度信息长度
 	C_PKT_HEAD_LEN     uint32 = C_PKT_MID_LEN + C_PKT_LEN_LEN // 消息头大小:字节 main_id + length
 	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024              // body 最大长度 25M
-)
-
-// agent 状态
-const (
-	C_AGENT_ST_INIT     uint32 = iota // 初始化状态
-	C_AGENT_ST_SHAKE                  // 握手状态
-	C_AGENT_ST_WAIT_ACK               // 等待远端握手ACK
-	C_AGENT_ST_WORKING                // 工作中
-	C_AGENT_ST_CLOSING                // 正在关闭
-	C_AGENT_ST_CLOSED                 // 关闭状态
 )
 
 // client 状态
@@ -49,8 +32,20 @@ const (
 	C_CLI_ST_CLOSED                 // 关闭状态
 )
 
+// agent 常量
 const (
-	C_HEARTBEAT = 0 * time.Second // Agent 默认心跳周期
+	C_AGENT_HEARTBEAT          = 0 * time.Second // Agent 默认心跳周期
+	C_AGENT_ST_INIT     uint32 = iota            // 初始化状态
+	C_AGENT_ST_SHAKE                             // 握手状态
+	C_AGENT_ST_WAIT_ACK                          // 等待远端握手ACK
+	C_AGENT_ST_WORKING                           // 工作中
+	C_AGENT_ST_CLOSING                           // 正在关闭
+	C_AGENT_ST_CLOSED                            // 关闭状态
+)
+
+// conn 常量
+const (
+	C_CONN_MAX = 10000 // 默认最大连接数
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -115,82 +110,18 @@ type IClientHandler interface {
 // TNetOptions 对象
 
 // 网络配置
-type TNetOptions struct {
+type NetOptions struct {
 	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
 	MaxConn   uint32        // 最大连接数量，超过此数值后，不再接收新连接
 	Heartbeat time.Duration // 心跳周期
-	Handler   IHandler      // 消息处理器
 }
 
 // 新建1个默认的网络配置
-func NewTNetOptions() *TNetOptions {
-	opt := TNetOptions{
-		MaxConn:   C_MAX_CONN,
-		Heartbeat: C_HEARTBEAT,
+func NewNetOptions() *NetOptions {
+	opt := NetOptions{
+		MaxConn:   C_CONN_MAX,
+		Heartbeat: C_AGENT_HEARTBEAT,
 	}
 
 	return &opt
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// TBufferSocketOpt 对象
-
-// BufferSocket 配置参数
-type TBufferSocketOpt struct {
-	ReadBufferSize  int // 读取 buffer 字节大小
-	WriteBufferSize int // 写入 buffer 字节大小
-}
-
-// 新建1个 TBufferSocketOpt 对象
-func NewTBufferSocketOpt() *TBufferSocketOpt {
-	bs := &TBufferSocketOpt{
-		ReadBufferSize:  C_BUFF_READ_SIZE,
-		WriteBufferSize: C_BUFF_WRITE_SIZE,
-	}
-
-	return bs
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// TScoConnOpt 对象
-
-// ScoConn 配置参数
-type TScoConnOpt struct {
-	ShakeKey      string            // 握手key
-	Heartbeat     uint32            // 心跳间隔，单位：秒。0=不设置心跳
-	BuffSocketOpt *TBufferSocketOpt // BufferSocket 配置参数
-}
-
-// 新建1个 WorldConnection 对象
-func NewTScoConnOpt() *TScoConnOpt {
-	bufopt := NewTBufferSocketOpt()
-
-	opt := TScoConnOpt{
-		BuffSocketOpt: bufopt,
-		ShakeKey:      "sco",
-	}
-
-	return &opt
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// TAgentOpt 对象
-
-// Agent 配置参数
-type TAgentOpt struct {
-	Heartbeat  time.Duration // 心跳周期
-	Handler    IHandler      // 消息处理器
-	ScoConnOpt *TScoConnOpt  // ScoConn 配置参数
-}
-
-// 创建1个默认的 TAgentOpt
-func NewTAgentOpt() *TAgentOpt {
-	so := NewTScoConnOpt()
-
-	ao := TAgentOpt{
-		Heartbeat:  C_HEARTBEAT,
-		ScoConnOpt: so,
-	}
-
-	return &ao
 }

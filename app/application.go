@@ -135,7 +135,7 @@ func (this *Application) SetRemoteService(rs rpc.IRemoteService) {
 // 收到1个 pakcet
 func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
 	// 远端
-	if pkt.GetMid() != this.Options.ServiceId {
+	if pkt.GetMid() != this.Options.Mid {
 		this.onRemotePacket(a, pkt)
 		return
 	}
@@ -349,7 +349,7 @@ func (this *Application) newDiscovery() {
 	// 服务描述
 	desc := discovery.ServiceDesc{
 		Name:  this.Options.Name,
-		Mid:   this.Options.ServiceId,
+		Mid:   this.Options.Mid,
 		Laddr: this.Options.RpcServer.Laddr,
 	}
 	this.discovery.SetService(&desc)

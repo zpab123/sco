@@ -31,7 +31,7 @@ func NewTcpServer(laddr string) (*TcpServer, error) {
 		return nil, err
 	}
 
-	mgr := network.NewConnMgr(network.C_MAX_CONN)
+	mgr := network.NewConnMgr(network.C_CONN_MAX)
 	a.SetConnMgr(mgr)
 
 	s := TcpServer{
