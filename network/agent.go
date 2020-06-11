@@ -220,6 +220,7 @@ func (this *Agent) onPacket(pkt *Packet) {
 	this.lastTime.Store(time.Now().Unix())
 	switch pkt.mid {
 	case protocol.C_MID_INVALID: // 无效
+		this.Stop()
 	case protocol.C_MID_HANDSHAKE: // 客户端握手请求
 		this.onHandshake(pkt.GetBody())
 	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
