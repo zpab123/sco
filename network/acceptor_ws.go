@@ -21,8 +21,8 @@ type WsAcceptor struct {
 	laddr      string         // 监听地址
 	listener   net.Listener   // 侦听器： 用于http服务器
 	httpServer http.Server    // http 服务器
-	certFile   string         // TLS加密文件
-	keyFile    string         // TLS解密key
+	certFile   string         // TLS 加密文件
+	keyFile    string         // TLS 解密key
 	connMgr    IWsConnManager // websocket 连接管理
 	stopGroup  sync.WaitGroup // 停止等待组
 }
@@ -36,7 +36,7 @@ func NewWsAcceptor(laddr string) (IAcceptor, error) {
 
 	// 参数效验
 	if "" == laddr {
-		err = errors.New("创建 WsAcceptor 失败:参数 laddr 为空")
+		err = errors.New("创建 WsAcceptor 失败。参数 laddr 为空")
 		return nil, err
 	}
 
@@ -52,11 +52,16 @@ func NewWsAcceptor(laddr string) (IAcceptor, error) {
 // 成功，返回 nil
 // 失败，返回 error
 func (this *WsAcceptor) Run() error {
-	var err error
-	this.listener, err = net.Listen("tcp", this.laddr)
+	if nil == this.connMgr {
+		err := errors.New("WsAcceptor 启动失败：connMgr 为空")
+		return err
+	}
+
+	lis, err := net.Listen("tcp", this.laddr)
 	if nil != err {
 		return err
 	}
+	this.listener = lis
 
 	// 侦听新连接
 	this.stopGroup.Add(1)

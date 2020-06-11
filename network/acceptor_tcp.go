@@ -25,7 +25,7 @@ type TcpAcceptor struct {
 // 新建1个 tcp 接收器
 // 成功： 返回 *TcpAcceptor, nil
 // 失败： 返回 nil, error
-func NewTcpAcceptor(laddr string) (*TcpAcceptor, error) {
+func NewTcpAcceptor(laddr string) (IAcceptor, error) {
 	var err error
 	// 参数效验
 	if "" == laddr {
@@ -45,13 +45,12 @@ func NewTcpAcceptor(laddr string) (*TcpAcceptor, error) {
 // 成功，返回 nil
 // 失败，返回 error
 func (this *TcpAcceptor) Run() error {
-	lt, err := net.Listen("tcp", this.laddr)
+	lis, err := net.Listen("tcp", this.laddr)
 	if nil != err {
 		return err
 	}
 
-	this.listener = lt
-
+	this.listener = lis
 	go this.accept()
 
 	return nil
@@ -66,7 +65,7 @@ func (this *TcpAcceptor) Stop() error {
 }
 
 // 设置连接管理
-func (this *TcpAcceptor) SetConnMgr(mgr ITcpConnManager) {
+func (this *TcpAcceptor) SetConnMgr(mgr IConnManager) {
 	if nil != mgr {
 		this.connMgr = mgr
 	}

@@ -95,12 +95,17 @@ func (this *Application) Run() {
 
 // 停止 app
 func (this *Application) Stop() {
-	zaplog.Infof("[%s] 正在结束...", this.Options.Name)
+	zaplog.Infof("[Application] %s 正在结束...", this.Options.Name)
 
 	// 停止前端
 	this.stopFrontend()
 
-	zaplog.Infof("[%s] 优雅退出", this.Options.Name)
+	// 停止集群
+	this.stopCluster()
+
+	this.stopGroup.Wait()
+
+	zaplog.Infof("[Application] %s 优雅退出", this.Options.Name)
 	os.Exit(0)
 }
 
@@ -232,7 +237,7 @@ func (this *Application) runFrontend() {
 	}
 
 	if len(this.acceptors) <= 0 {
-		zaplog.Warnf("[%s] 为前端app，但无接收器", this.Options.Name)
+		zaplog.Warnf("[Application] %s 为前端app，但无接收器", this.Options.Name)
 		return
 	}
 
@@ -244,12 +249,10 @@ func (this *Application) runFrontend() {
 // 停止前端
 func (this *Application) stopFrontend() {
 	// 停止接收器
-	if len(this.acceptors) <= 0 {
-		return
-	}
-
-	for _, acc := range this.acceptors {
-		acc.Stop()
+	if len(this.acceptors) > 0 {
+		for _, acc := range this.acceptors {
+			acc.Stop()
+		}
 	}
 
 	// 停止连接管理
@@ -266,13 +269,22 @@ func (this *Application) newConnMgr() {
 
 // 创建默认接收器
 func (this *Application) newAcceptor() {
-	this.newTcpAcceptor()
+	//this.newTcpAcceptor()
 	this.newWsAcceptor()
 }
 
 // 创建 tcp 接收器
 func (this *Application) newTcpAcceptor() {
+	if "" == this.Options.Net.TcpAddr {
+		return
+	}
 
+	a, err := network.NewTcpAcceptor(this.Options.Net.TcpAddr)
+	if nil != err {
+		return
+	}
+	a.SetConnMgr(this.connMgr)
+	this.acceptors = append(this.acceptors, a)
 }
 
 // 创建 websocket 接收器
@@ -286,7 +298,6 @@ func (this *Application) newWsAcceptor() {
 		return
 	}
 	a.SetConnMgr(this.connMgr)
-
 	this.acceptors = append(this.acceptors, a)
 }
 

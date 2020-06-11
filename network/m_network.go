@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"golang.org/x/net/websocket" // websocket 库
+	"golang.org/x/net/websocket"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -34,18 +34,18 @@ const (
 
 // agent 常量
 const (
-	C_AGENT_HEARTBEAT          = 0 * time.Second // Agent 默认心跳周期
-	C_AGENT_ST_INIT     uint32 = iota            // 初始化状态
-	C_AGENT_ST_SHAKE                             // 握手状态
-	C_AGENT_ST_WAIT_ACK                          // 等待远端握手ACK
-	C_AGENT_ST_WORKING                           // 工作中
-	C_AGENT_ST_CLOSING                           // 正在关闭
-	C_AGENT_ST_CLOSED                            // 关闭状态
+	C_AGENT_HEARTBEAT   time.Duration = 3 * time.Second // Agent 默认心跳周期
+	C_AGENT_ST_INIT     uint32        = iota            // 初始化状态
+	C_AGENT_ST_SHAKE                                    // 握手状态
+	C_AGENT_ST_WAIT_ACK                                 // 等待远端握手ACK
+	C_AGENT_ST_WORKING                                  // 工作中
+	C_AGENT_ST_CLOSING                                  // 正在关闭
+	C_AGENT_ST_CLOSED                                   // 关闭状态
 )
 
 // conn 常量
 const (
-	C_CONN_MAX = 10000 // 默认最大连接数
+	C_CONN_MAX int32 = 10000 // 默认最大连接数
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -61,8 +61,8 @@ var (
 
 // acceptor 接口
 type IAcceptor interface {
-	Run() error                  // 组件开始运行
-	Stop() error                 // 组件停止运行
+	Run() error                  // 开始运行
+	Stop() error                 // 停止运行
 	SetConnMgr(mgr IConnManager) // 设置连接管理
 }
 
@@ -72,6 +72,7 @@ type IConnManager interface {
 	IWsConnManager         // 接口继承： websocket 连接管理
 	Stop()                 // 停止
 	SetHandler(h IHandler) // 设置消息处理器
+	OnAgentStop(a *Agent)  // 某个 Agent 停止
 }
 
 // tcp 连接管理
@@ -82,18 +83,6 @@ type ITcpConnManager interface {
 // websocket 连接管理
 type IWsConnManager interface {
 	OnWsConn(wsconn *websocket.Conn) // 收到1个新的 websocket 连接对象
-}
-
-// socket 组件
-type ISocket interface {
-	net.Conn // 接口继承： 符合 Conn 的对象
-	Flush() error
-}
-
-// Process 接口
-type IProcess interface {
-	GetHandlerChan() chan *Packet // 获取 handler 通道
-	GetRemoteChan() chan *Packet  // 获取 remote 通道
 }
 
 // packet 处理器
@@ -111,8 +100,9 @@ type IClientHandler interface {
 
 // 网络配置
 type NetOptions struct {
+	TcpAddr   string        // tcp 监听链接 格式 "192.168.1.222:8080"
 	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
-	MaxConn   uint32        // 最大连接数量，超过此数值后，不再接收新连接
+	MaxConn   int32         // 最大连接数量，超过此数值后，不再接收新连接
 	Heartbeat time.Duration // 心跳周期
 }
 

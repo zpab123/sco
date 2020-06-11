@@ -5,6 +5,7 @@ package network
 
 import (
 	"net"
+	"sync"
 
 	"github.com/zpab123/syncutil"
 	"github.com/zpab123/zaplog"
@@ -16,19 +17,22 @@ import (
 
 // 连接管理
 type ConnMgr struct {
-	maxConn uint32                // 最大连接数量，超过此数值后，不再接收新连接
-	connNum syncutil.AtomicUint32 // 当前连接数
-	handler IHandler              // 消息处理器
+	maxConn  int32                // 最大连接数量，超过此数值后，不再接收新连接
+	connNum  syncutil.AtomicInt32 // 当前连接数
+	agentMap sync.Map             // agent 集合
+	agentId  syncutil.AtomicInt32 // agent id
+	handler  IHandler             // 消息处理器
+
 }
 
 // 新建1个 ConnMgr
-func NewConnMgr(maxConn uint32) *ConnMgr {
-	if 0 == maxConn {
-		maxConn = C_CONN_MAX
+func NewConnMgr(max int32) IConnManager {
+	if max <= 0 {
+		max = C_CONN_MAX
 	}
 
 	mgr := ConnMgr{
-		maxConn: maxConn,
+		maxConn: max,
 	}
 
 	return &mgr
@@ -36,7 +40,13 @@ func NewConnMgr(maxConn uint32) *ConnMgr {
 
 // 停止连接管理
 func (this *ConnMgr) Stop() {
+	this.agentMap.Range(func(key, v interface{}) bool {
+		if a, ok := v.(*Agent); ok {
+			a.Stop()
+		}
 
+		return true
+	})
 }
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
@@ -68,6 +78,20 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 	this.newAgent(conn, true)
 }
 
+// 某个 Agent 停止
+func (this *ConnMgr) OnAgentStop(a *Agent) {
+	if nil == a {
+		return
+	}
+
+	id := a.GetId()
+	if _, ok := this.agentMap.Load(id); ok {
+		this.agentMap.Delete(id)
+		this.connNum.Add(-1)
+		zaplog.Debugf("[ConnMgr] Agent 断开，当前连接数=%d", this.connNum.Load())
+	}
+}
+
 // 设置 handler
 func (this *ConnMgr) SetHandler(h IHandler) {
 	if nil != h {
@@ -82,5 +106,11 @@ func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
 
 	a := NewAgent(s, ao)
 	a.SetHandler(this.handler)
+	id := this.agentId.Add(1)
+	a.SetId(id)
+	a.SetConnMgr(this)
+
+	this.agentMap.Store(id, a)
+	this.connNum.Add(1)
 	a.Run()
 }
