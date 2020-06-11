@@ -50,6 +50,10 @@ func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 		Data: data,
 	}
 
+	if mid != 201 {
+		return true, nil
+	}
+
 	c, ok := this.connMap.Load("chat_1")
 	if !ok {
 		return true, nil

@@ -170,6 +170,20 @@ func (this *Application) onRemotePacket(a *network.Agent, pkt *network.Packet) {
 	}
 }
 
+// 收到 Handler 请求
+func (this *Application) OnHandlerCall(data []byte) (bool, []byte) {
+	if nil == this.handler {
+		return true, nil
+	}
+
+	return this.handler.OnData(data)
+}
+
+// 收到 Remote 请求
+func (this *Application) OnRemoteCall(data []byte) (bool, []byte) {
+	return true, nil
+}
+
 // 初始化
 func (this *Application) init() {
 	// 默认设置
@@ -312,7 +326,7 @@ func (this *Application) newRpcServer() {
 	}
 
 	if nil != s {
-		s.SetHandler(this.handler)
+		s.SetService(this)
 		this.rpcServer = s
 	}
 }

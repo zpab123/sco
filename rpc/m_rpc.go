@@ -24,8 +24,7 @@ const (
 // rpc server 服务
 type IServer interface {
 	Run(ctx context.Context) // 启动服务器
-	SetHandler(h IHandler)   // 设置 Handler 服务
-	SetRemote()              // 设置 Remote 服务
+	SetService(svc IService) // 设置 rpc 服务
 }
 
 // rpc client 服务
@@ -44,4 +43,10 @@ type IHandler interface {
 // remote 服务
 type IRemoteService interface {
 	OnData(data []byte) []byte // 收到 remote 数据
+}
+
+// rpc 服务
+type IService interface {
+	OnHandlerCall(data []byte) (bool, []byte) // Handler 调用
+	OnRemoteCall(data []byte) (bool, []byte)  // Remote 调用
 }

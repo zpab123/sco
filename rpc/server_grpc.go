@@ -20,8 +20,8 @@ import (
 type GrpcServer struct {
 	options *GrpcServerOptions // 选项
 	server  *grpc.Server       // grpc 服务器
-	handler IHandler           // handler 服务
 	remote  IRemoteService     // remote 服务
+	service IService           // rpc 服务
 }
 
 // 新建1个 GrpcServer
@@ -61,28 +61,22 @@ func (this *GrpcServer) Stop() {
 	this.server.GracefulStop()
 }
 
-// 设置 Handler 服务
-func (this *GrpcServer) SetHandler(h IHandler) {
-	if nil != h {
-		this.handler = h
+// 设置 rpc 服务
+func (this *GrpcServer) SetService(svc IService) {
+	if nil != svc {
+		this.service = svc
 	}
-}
-
-// 设置 Remote 服务
-func (this *GrpcServer) SetRemote() {
-
 }
 
 // Handler 调用
 func (this *GrpcServer) HandlerCall(ctx context.Context, req *protocol.HandlerReq) (*protocol.HandlerRes, error) {
 	res := protocol.HandlerRes{}
-	// 交给本服务器的 handler 处理
-	if nil == this.handler {
+	if nil == this.service {
 		res.Right = true
 		return &res, nil
 	}
 
-	r, data := this.handler.OnData(req.Data)
+	r, data := this.service.OnHandlerCall(req.Data)
 	res.Right = r
 	res.Data = data
 
