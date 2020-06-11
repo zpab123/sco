@@ -223,7 +223,7 @@ func (this *Agent) sendHeartbeat() error {
 	}
 
 	// 发送心跳数据
-	pkt := NewPacket(protocol.C_PKT_ID_HEARTBEAT)
+	pkt := NewPacket(protocol.C_MID_HEARTBEAT)
 	err := this.SendPacket(pkt)
 
 	return err
