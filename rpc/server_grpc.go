@@ -18,6 +18,7 @@ import (
 
 // grpc 服务
 type GrpcServer struct {
+	laddr   string             // 监听地址
 	options *GrpcServerOptions // 选项
 	server  *grpc.Server       // grpc 服务器
 	remote  IRemoteService     // remote 服务
@@ -41,7 +42,7 @@ func NewGrpcServer(opt *GrpcServerOptions) (*GrpcServer, error) {
 
 // 启动 rpc 服务
 func (this *GrpcServer) Run(ctx context.Context) {
-	ln, err := net.Listen("tcp", this.options.Laddr)
+	ln, err := net.Listen("tcp", this.laddr)
 	if nil != err {
 		return
 	}
@@ -51,7 +52,7 @@ func (this *GrpcServer) Run(ctx context.Context) {
 
 	go this.server.Serve(ln)
 
-	zaplog.Infof("GrpcServer [%s] 启动成功", this.options.Laddr)
+	zaplog.Infof("[GrpcServer] [%s] 启动成功", this.laddr)
 
 	return
 }
@@ -76,9 +77,7 @@ func (this *GrpcServer) HandlerCall(ctx context.Context, req *protocol.HandlerRe
 		return &res, nil
 	}
 
-	r, data := this.service.OnHandlerCall(req.Data)
-	res.Right = r
-	res.Data = data
+	res.Right, res.Data = this.service.OnHandlerCall(req.Data)
 
 	return &res, nil
 }
