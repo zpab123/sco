@@ -216,7 +216,6 @@ func (this *Agent) heartbeatLoop() {
 
 // 收到1个 pakcet
 func (this *Agent) onPacket(pkt *Packet) {
-	zaplog.Debugf("mid=%d", pkt.mid)
 	this.lastTime.Store(time.Now().Unix())
 	switch pkt.mid {
 	case protocol.C_MID_INVALID: // 无效
