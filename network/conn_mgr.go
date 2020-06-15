@@ -30,13 +30,13 @@ type ConnMgr struct {
 // 新建1个 ConnMgr
 func NewConnMgr(max int32) IConnManager {
 	if max <= 0 {
-		max = C_CONN_MAX
+		max = C_F_MAX_CONN
 	}
 
 	mgr := ConnMgr{
 		maxConn:   max,
-		key:       C_AGENT_KEY,
-		heartbeat: C_AGENT_HEARTBEAT,
+		key:       C_F_KEY,
+		heartbeat: C_F_HEARTBEAT,
 	}
 
 	return &mgr

@@ -17,12 +17,6 @@ import (
 // /////////////////////////////////////////////////////////////////////////////
 // 初始化
 
-// 常量
-const (
-	heartbeatUint16 uint16 = uint16(C_AGENT_HEARTBEAT / time.Second) // 心跳时间(秒)（uint16）
-	heartbeatInt64  int64  = int64(C_AGENT_HEARTBEAT / time.Second)  // 心跳时间(秒)（uint16）
-)
-
 // 变量
 var (
 	errState error = errors.New("状态错误")
@@ -212,14 +206,16 @@ func (this *Agent) heartbeatLoop() {
 		this.Stop()
 	}()
 
+	hInt64 := int64(this.options.Heartbeat / time.Second)
+
 	for {
 		select {
 		case <-ticker.C:
 			pass := time.Now().Unix() - this.lastTime.Load()
-			if pass > heartbeatInt64*2 {
+			if pass > hInt64*2 {
 				zaplog.Debugf("[Agent] %s 心跳超时，关闭连接", this)
 				return
-			} else if pass >= heartbeatInt64 {
+			} else if pass >= hInt64 {
 				this.sendHeartbeat()
 			}
 		case <-this.chDie:
@@ -274,10 +270,12 @@ func (this *Agent) onHandshake(body []byte) {
 
 //  握手成功
 func (this *Agent) handshakeOk() {
+	hUint16 := uint16(this.options.Heartbeat / time.Second)
+
 	// 返回数据
 	res := &protocol.HandshakeRes{
 		Code:      protocol.C_CODE_OK,
-		Heartbeat: heartbeatUint16,
+		Heartbeat: hUint16,
 	}
 	data, err := json.Marshal(res)
 	if nil != err {
@@ -356,8 +354,8 @@ type AgentOpt struct {
 // 创建1个默认的 TAgentOpt
 func NewAgentOpt() *AgentOpt {
 	o := AgentOpt{
-		Heartbeat: C_AGENT_HEARTBEAT,
-		Key:       C_AGENT_KEY,
+		Heartbeat: C_F_HEARTBEAT,
+		Key:       C_F_KEY,
 	}
 
 	return &o

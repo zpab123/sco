@@ -263,9 +263,9 @@ func (this *Application) stopFrontend() {
 
 // 创建默认连接管理
 func (this *Application) newConnMgr() {
-	this.connMgr = network.NewConnMgr(this.Options.Net.MaxConn)
-	this.connMgr.SetKey(this.Options.Net.Key)
-	this.connMgr.SetHeartbeat(this.Options.Net.Heartbeat)
+	this.connMgr = network.NewConnMgr(this.Options.Frontend.MaxConn)
+	this.connMgr.SetKey(this.Options.Frontend.Key)
+	this.connMgr.SetHeartbeat(this.Options.Frontend.Heartbeat)
 	this.connMgr.SetHandler(this)
 }
 
@@ -277,11 +277,11 @@ func (this *Application) newAcceptor() {
 
 // 创建 tcp 接收器
 func (this *Application) newTcpAcceptor() {
-	if "" == this.Options.Net.TcpAddr {
+	if "" == this.Options.Frontend.TcpAddr {
 		return
 	}
 
-	a, err := network.NewTcpAcceptor(this.Options.Net.TcpAddr)
+	a, err := network.NewTcpAcceptor(this.Options.Frontend.TcpAddr)
 	if nil != err {
 		return
 	}
@@ -291,11 +291,11 @@ func (this *Application) newTcpAcceptor() {
 
 // 创建 websocket 接收器
 func (this *Application) newWsAcceptor() {
-	if "" == this.Options.Net.WsAddr {
+	if "" == this.Options.Frontend.WsAddr {
 		return
 	}
 
-	a, err := network.NewWsAcceptor(this.Options.Net.WsAddr)
+	a, err := network.NewWsAcceptor(this.Options.Frontend.WsAddr)
 	if nil != err {
 		return
 	}

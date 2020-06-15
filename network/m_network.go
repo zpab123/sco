@@ -34,20 +34,19 @@ const (
 
 // agent 常量
 const (
-	C_AGENT_HEARTBEAT   time.Duration = 3 * time.Second    // 默认心跳周期
-	C_AGENT_KEY         string        = "scob9kxH6FdqOKnA" // 握手 key
-	C_AGENT_ST_INIT     uint32        = iota               // 初始化状态
-	C_AGENT_ST_SHAKE                                       // 握手状态
-	C_AGENT_ST_WAIT_ACK                                    // 等待远端握手ACK
-	C_AGENT_ST_WORKING                                     // 工作中
-	C_AGENT_ST_CLOSING                                     // 正在关闭
-	C_AGENT_ST_CLOSED                                      // 关闭状态
+	C_AGENT_ST_INIT     uint32 = iota // 初始化状态
+	C_AGENT_ST_SHAKE                  // 握手状态
+	C_AGENT_ST_WAIT_ACK               // 等待远端握手ACK
+	C_AGENT_ST_WORKING                // 工作中
+	C_AGENT_ST_CLOSING                // 正在关闭
+	C_AGENT_ST_CLOSED                 // 关闭状态
 )
 
-// net 常量
+// 前端常量
 const (
-	C_CONN_MAX int32 = 10000 // 默认最大连接数
-	C_NET_MAX  int32 = 10000 // 默认最大连接数
+	C_F_MAX_CONN  int32         = 10000              // 默认最大连接数
+	C_F_KEY       string        = "scob9kxH6FdqOKnA" // 握手 key
+	C_F_HEARTBEAT time.Duration = 3 * time.Second    //  心跳周期
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -100,10 +99,10 @@ type IClientHandler interface {
 }
 
 // /////////////////////////////////////////////////////////////////////////////
-// TNetOptions 对象
+// Frontend 对象
 
-// 网络配置
-type NetOptions struct {
+// 前端网络配置
+type Frontend struct {
 	TcpAddr   string        // tcp 监听链接 格式 "192.168.1.222:8080"
 	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
 	MaxConn   int32         // 最大连接数量，超过此数值后，不再接收新连接
@@ -112,11 +111,11 @@ type NetOptions struct {
 }
 
 // 新建1个默认的网络配置
-func NewNetOptions() *NetOptions {
-	opt := NetOptions{
-		MaxConn:   C_CONN_MAX,
-		Key:       C_AGENT_KEY,
-		Heartbeat: C_AGENT_HEARTBEAT,
+func NewFrontend() *Frontend {
+	opt := Frontend{
+		MaxConn:   C_F_MAX_CONN,
+		Key:       C_F_KEY,
+		Heartbeat: C_F_HEARTBEAT,
 	}
 
 	return &opt
