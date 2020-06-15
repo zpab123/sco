@@ -8,6 +8,7 @@ import (
 	"net"
 
 	//"github.com/zpab123/sco/network"
+	"github.com/pkg/errors"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/zaplog"
 	"google.golang.org/grpc"
@@ -18,23 +19,23 @@ import (
 
 // grpc 服务
 type GrpcServer struct {
-	laddr   string             // 监听地址
-	options *GrpcServerOptions // 选项
-	server  *grpc.Server       // grpc 服务器
-	remote  IRemoteService     // remote 服务
-	service IService           // rpc 服务
+	laddr   string         // 监听地址
+	server  *grpc.Server   // grpc 服务器
+	remote  IRemoteService // remote 服务
+	service IService       // rpc 服务
 }
 
 // 新建1个 GrpcServer
 // 成功：返回 *GrpcServer nil
 // 失败：返回 nil error
-func NewGrpcServer(opt *GrpcServerOptions) (*GrpcServer, error) {
-	if nil == opt {
-		opt = &GrpcServerOptions{}
+func NewGrpcServer(laddr string) (*GrpcServer, error) {
+	if "" == laddr {
+		err := errors.New("参数 laddr 为空")
+		return nil, err
 	}
 
 	gs := GrpcServer{
-		options: opt,
+		laddr: laddr,
 	}
 
 	return &gs, nil

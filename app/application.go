@@ -328,12 +328,7 @@ func (this *Application) stopCluster() {
 
 // 创建 rpcserver
 func (this *Application) newRpcServer() {
-	opt := rpc.GrpcServerOptions{
-		Laddr:         this.Options.RpcServer.Laddr,
-		RemoteService: this.remoteService,
-	}
-
-	s, err := rpc.NewGrpcServer(&opt)
+	s, err := rpc.NewGrpcServer(this.Options.RpcServer.Laddr)
 	if nil != err {
 		zaplog.Warnf("[Application] 创建 GrpcServer 失败。err=%s", err.Error())
 	}
