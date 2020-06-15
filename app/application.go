@@ -271,7 +271,7 @@ func (this *Application) newConnMgr() {
 
 // 创建默认接收器
 func (this *Application) newAcceptor() {
-	//this.newTcpAcceptor()
+	this.newTcpAcceptor()
 	this.newWsAcceptor()
 }
 

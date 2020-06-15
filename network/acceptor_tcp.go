@@ -106,6 +106,8 @@ func (this *TcpAcceptor) runTLS() error {
 
 // 侦听连接
 func (this *TcpAcceptor) accept() {
+	zaplog.Debugf("[TcpAcceptor] 启动成功。ip=%s", this.laddr)
+
 	for {
 		conn, err := this.listener.Accept()
 		if nil != err {
