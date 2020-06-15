@@ -19,9 +19,10 @@ import (
 
 // grpc 客户端
 type GrpcClient struct {
-	connMap     sync.Map      // rpc 连接集合
-	reqTimeout  time.Duration // 请求超时
-	dialTimeout time.Duration // 连接超时
+	connMapByName sync.Map      // rpc 连接集合
+	connMapByMid  sync.Map      // rpc 连接集合
+	reqTimeout    time.Duration // 请求超时
+	dialTimeout   time.Duration // 连接超时
 }
 
 // 新建1个 GrpcClient
@@ -50,7 +51,7 @@ func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 		Data: data,
 	}
 
-	c, ok := this.connMap.Load("chat_1")
+	c, ok := this.connMapByName.Load("chat_1")
 	if !ok {
 		return true, nil
 	}
@@ -70,7 +71,7 @@ func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
 		Data: data,
 	}
 
-	c, ok := this.connMap.Load("chat_1")
+	c, ok := this.connMapByName.Load("chat_1")
 	if !ok {
 		return nil
 	}
@@ -87,33 +88,27 @@ func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
 // 添加 rpc 服务信息
 func (this *GrpcClient) AddService(desc *discovery.ServiceDesc) {
 	addr := desc.Address()
-	/*
-		ctx, done := context.WithTimeout(context.Background(), this.dialTimeout)
-		defer done()
 
-		conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure())
-		if nil != err {
-			return
-		}
-	*/
-
-	zaplog.Debugf("添加新的rpc连接，%s", addr)
-
-	gconn := NewGrpcConn(addr)
-	err := gconn.connect()
+	gc := NewGrpcConn(addr)
+	err := gc.connect()
 	if nil != err {
-		zaplog.Debugf("GrpcClient")
-		zaplog.Debugf(err.Error())
+		zaplog.Debugf("[GrpcClient] 连接 rpcServer 失败。err=%s", err.Error())
+		return
 	}
 
-	this.connMap.Store(desc.Name, gconn)
+	this.connMapByName.Store(desc.Name, gc)
+	// this.connMapByMid.Store(desc., desc)
 }
 
 // 移除 rpc 服务信息
 func (this *GrpcClient) RemoveService(desc *discovery.ServiceDesc) {
-	if _, ok := this.connMap.Load(desc.Name); ok {
-		this.connMap.Delete(desc.Name)
-		// 销毁连接对象？
-		zaplog.Debugf("移除rpc连接%s", desc.Address())
+	if c, ok := this.connMapByName.Load(desc.Name); ok {
+		this.connMapByName.Delete(desc.Name)
+		gc, r := c.(*GrpcConn)
+		if r {
+			gc.close()
+		}
+
+		zaplog.Debugf("[GrpcClient] 移除 rpc 连接%s", desc.Address())
 	}
 }

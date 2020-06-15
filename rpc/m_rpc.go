@@ -23,7 +23,7 @@ const (
 
 // rpc server 服务
 type IServer interface {
-	Run(ctx context.Context) // 启动服务器
+	Run() error              // 启动服务器
 	SetService(svc IService) // 设置 rpc 服务
 }
 

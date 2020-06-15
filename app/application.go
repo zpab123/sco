@@ -308,7 +308,7 @@ func (this *Application) runCluster() {
 	if nil == this.rpcServer {
 		this.newRpcServer()
 	}
-	go this.rpcServer.Run(this.ctx)
+	go this.rpcServer.Run()
 
 	if nil == this.rpcClient {
 		this.newRpcClient()

@@ -74,3 +74,15 @@ func (this *GrpcConn) connect() error {
 	this.connected = true
 	return nil
 }
+
+// 关闭连接
+func (this *GrpcConn) close() {
+	this.lock.Lock()
+
+	if this.connected {
+		this.conn.Close()
+		this.connected = false
+	}
+
+	this.lock.Unlock()
+}

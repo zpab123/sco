@@ -7,7 +7,6 @@ import (
 	"context"
 	"net"
 
-	//"github.com/zpab123/sco/network"
 	"github.com/pkg/errors"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/zaplog"
@@ -42,10 +41,10 @@ func NewGrpcServer(laddr string) (*GrpcServer, error) {
 }
 
 // 启动 rpc 服务
-func (this *GrpcServer) Run(ctx context.Context) {
+func (this *GrpcServer) Run() error {
 	ln, err := net.Listen("tcp", this.laddr)
 	if nil != err {
-		return
+		return err
 	}
 
 	this.server = grpc.NewServer()
@@ -55,7 +54,7 @@ func (this *GrpcServer) Run(ctx context.Context) {
 
 	zaplog.Infof("[GrpcServer] [%s] 启动成功", this.laddr)
 
-	return
+	return nil
 }
 
 // 停止 grpc
