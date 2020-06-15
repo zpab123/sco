@@ -71,11 +71,11 @@ type IAcceptor interface {
 type IConnManager interface {
 	ITcpConnManager               // 接口继承： tcp 连接管理
 	IWsConnManager                // 接口继承： websocket 连接管理
+	IAgentManager                 // 接口继承: agent 管理
 	Stop()                        // 停止
 	SetKey(k string)              // 设置握手key
 	SetHeartbeat(h time.Duration) // 设置心跳
 	SetHandler(h IHandler)        // 设置消息处理器
-	OnAgentStop(a *Agent)         // 某个 Agent 停止
 }
 
 // tcp 连接管理
@@ -86,6 +86,11 @@ type ITcpConnManager interface {
 // websocket 连接管理
 type IWsConnManager interface {
 	OnWsConn(wsconn *websocket.Conn) // 收到1个新的 websocket 连接对象
+}
+
+// agent 管理
+type IAgentManager interface {
+	OnAgentStop(a *Agent) // 某个 Agent 停止
 }
 
 // packet 处理器

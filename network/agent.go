@@ -27,29 +27,25 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	options  *AgentOpt            // 配置参数
-	id       int32                // id 标识
-	socket   *Socket              // socket
-	state    *state.State         // 状态管理
-	handler  IHandler             // 消息处理
-	connMgr  IConnManager         // 连接管理
-	lastTime syncutil.AtomicInt64 // 上次收到客户端消息的时间
-	chDie    chan struct{}        // 关闭通道
-	//checkHandshake interface // 握手检查函数（返回值为：握手数据）
+	id        int32                // id 标识
+	socket    *Socket              // socket
+	key       string               // 握手key
+	heartbeat time.Duration        // 心跳周期
+	handler   IHandler             // 消息处理
+	state     *state.State         // 状态管理
+	mgr       IAgentManager        // 连接管理
+	lastTime  syncutil.AtomicInt64 // 上次收到客户端消息的时间
+	chDie     chan struct{}        // 关闭通道
 }
 
 // 新建1个 *Agent 对象
 // 成功：返回 *Agent nil
 // 失败：返回 nil error
-func NewAgent(socket *Socket, opt *AgentOpt) (*Agent, error) {
+func NewAgent(socket *Socket) (*Agent, error) {
 	// 参数效验
 	if nil == socket {
 		err := errors.New("参数 socket 为空")
 		return nil, err
-	}
-
-	if nil == opt {
-		opt = NewAgentOpt()
 	}
 
 	// 状态管理
@@ -57,10 +53,11 @@ func NewAgent(socket *Socket, opt *AgentOpt) (*Agent, error) {
 
 	// 创建对象
 	a := Agent{
-		options: opt,
-		socket:  socket,
-		state:   st,
-		chDie:   make(chan struct{}),
+		key:       C_F_KEY,
+		heartbeat: C_F_HEARTBEAT,
+		socket:    socket,
+		state:     st,
+		chDie:     make(chan struct{}),
 	}
 	a.lastTime.Store(time.Now().Unix())
 
@@ -95,17 +92,29 @@ func (this *Agent) Stop() {
 	close(this.chDie)
 
 	this.socket.Close()
-	if nil != this.connMgr {
-		this.connMgr.OnAgentStop(this)
+	if nil != this.mgr {
+		this.mgr.OnAgentStop(this)
 	}
 
 	this.state.Set(C_AGENT_ST_CLOSED)
 }
 
+// 设置握手 key
+func (this *Agent) SetKey(k string) {
+	if "" != k {
+		this.key = k
+	}
+}
+
+// 设置心跳 key
+func (this *Agent) SetHeartbeat(h time.Duration) {
+	this.heartbeat = h
+}
+
 // 设置连接管理
-func (this *Agent) SetConnMgr(mgr IConnManager) {
+func (this *Agent) SetConnMgr(mgr IAgentManager) {
 	if nil != mgr {
-		this.connMgr = mgr
+		this.mgr = mgr
 	}
 }
 
@@ -194,11 +203,11 @@ func (this *Agent) sendLoop() {
 
 // 心跳线程
 func (this *Agent) heartbeatLoop() {
-	if this.options.Heartbeat <= 0 {
+	if this.heartbeat <= 0 {
 		return
 	}
 
-	ticker := time.NewTicker(this.options.Heartbeat)
+	ticker := time.NewTicker(this.heartbeat)
 
 	defer func() {
 		zaplog.Debugf("[Agent] heartbeatLoop 结束")
@@ -206,7 +215,7 @@ func (this *Agent) heartbeatLoop() {
 		this.Stop()
 	}()
 
-	hInt64 := int64(this.options.Heartbeat / time.Second)
+	hInt64 := int64(this.heartbeat / time.Second)
 
 	for {
 		select {
@@ -257,7 +266,7 @@ func (this *Agent) onHandshake(body []byte) {
 	}
 
 	// 握手key检查
-	if this.options.Key != req.Key {
+	if this.key != req.Key {
 		this.handshakeFail(protocol.C_CODE_KEY_ERR)
 		return
 	}
@@ -270,7 +279,7 @@ func (this *Agent) onHandshake(body []byte) {
 
 //  握手成功
 func (this *Agent) handshakeOk() {
-	hUint16 := uint16(this.options.Heartbeat / time.Second)
+	hUint16 := uint16(this.heartbeat / time.Second)
 
 	// 返回数据
 	res := &protocol.HandshakeRes{
@@ -340,23 +349,4 @@ func (this *Agent) handle(pkt *Packet) {
 	if nil != this.handler {
 		this.handler.OnPacket(this, pkt)
 	}
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// AgentOpt 对象
-
-// Agent 配置参数
-type AgentOpt struct {
-	Heartbeat time.Duration // 心跳周期
-	Key       string        // 握手key
-}
-
-// 创建1个默认的 TAgentOpt
-func NewAgentOpt() *AgentOpt {
-	o := AgentOpt{
-		Heartbeat: C_F_HEARTBEAT,
-		Key:       C_F_KEY,
-	}
-
-	return &o
 }

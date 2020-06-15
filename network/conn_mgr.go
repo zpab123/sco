@@ -75,6 +75,11 @@ func (this *ConnMgr) SetHandler(h IHandler) {
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
 func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
+	// 参数效验
+	if nil == wsconn {
+		return
+	}
+
 	// 超过最大连接数
 	if this.connNum.Load() >= this.maxConn {
 		wsconn.Close()
@@ -86,11 +91,16 @@ func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
 
 	// 创建代理
 	zaplog.Debugf("[ConnMgr] 新 ws 连接，ip=%s", wsconn.RemoteAddr())
-	this.newAgent(wsconn, true)
+	this.newAgent(wsconn)
 }
 
 // 收到1个新的 tcp 连接对象 [ITcpConnManager]
 func (this *ConnMgr) OnTcpConn(conn net.Conn) {
+	// 参数效验
+	if nil == conn {
+		return
+	}
+
 	// 超过最大连接数
 	if this.connNum.Load() >= this.maxConn {
 		conn.Close()
@@ -99,7 +109,7 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 
 	// 创建代理
 	zaplog.Debugf("[ConnMgr] 新 tcp 连接，ip=%s", conn.RemoteAddr())
-	this.newAgent(conn, true)
+	this.newAgent(conn)
 }
 
 // 某个 Agent 停止
@@ -117,23 +127,19 @@ func (this *ConnMgr) OnAgentStop(a *Agent) {
 }
 
 // 创建代理
-func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
+func (this *ConnMgr) newAgent(conn net.Conn) {
 	s, err := NewSocket(conn)
 	if nil != err {
 		return
 	}
 
-	ao := NewAgentOpt()
-	if "" != this.key {
-		ao.Key = this.key
-	}
-	ao.Heartbeat = this.heartbeat
-
-	a, err := NewAgent(s, ao)
+	a, err := NewAgent(s)
 	if nil != err {
 		return
 	}
 
+	a.SetKey(this.key)
+	a.SetHeartbeat(this.heartbeat)
 	a.SetHandler(this.handler)
 	id := this.agentId.Add(1)
 	a.SetId(id)
