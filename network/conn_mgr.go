@@ -102,7 +102,10 @@ func (this *ConnMgr) SetHandler(h IHandler) {
 // 创建代理
 func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
 	ao := NewAgentOpt()
-	s := NewSocket(conn)
+	s, err := NewSocket(conn)
+	if nil != err {
+		return
+	}
 
 	a, err := NewAgent(s, ao)
 	if nil != err {

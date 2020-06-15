@@ -12,7 +12,7 @@ import (
 
 // 常量 -- packet 数据大小定义
 const (
-	mincap        int = 1024                    // buff 最小有效容量（buff 对象池使用）
+	mincap        int = 512                     // buff 最小有效容量（buff 对象池使用）
 	bodyMaxLenInt int = int(C_PKT_BODY_MAX_LEN) // body最大长度（int）
 )
 

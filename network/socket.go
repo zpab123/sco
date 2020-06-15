@@ -38,12 +38,13 @@ type Socket struct {
 }
 
 // 创建1个 *Socket
-// 成功：返回 *Socket
-// 失败：返回 nil
-func NewSocket(conn net.Conn) *Socket {
+// 成功：返回 *Socket, nil
+// 失败：返回 nil error
+func NewSocket(conn net.Conn) (*Socket, error) {
 	// 参数效验
 	if nil == conn {
-		return nil
+		err := errors.New("参数 conn 为空")
+		return nil, err
 	}
 
 	// 创建对象
@@ -56,12 +57,12 @@ func NewSocket(conn net.Conn) *Socket {
 	}
 	s.cond = sync.NewCond(&s.mutex)
 
-	return &s
+	return &s, nil
 }
 
 // 关闭 socket
-// 成功，返回 nil
-// 失败，返回 error
+// 成功: 返回 nil
+// 失败: 返回 error
 func (this *Socket) Close() error {
 	return this.conn.Close()
 }
@@ -78,6 +79,11 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 
 	mid := socketEndian.Uint16(this.head[0:C_PKT_MID_LEN])
 	bl := socketEndian.Uint32(this.head[C_PKT_MID_LEN:])
+	if bl == 0 {
+		pkt := NewPacket(mid)
+		return pkt, nil
+	}
+
 	if bl > C_PKT_BODY_MAX_LEN {
 		return nil, V_ERR_BODY_LEN
 	}

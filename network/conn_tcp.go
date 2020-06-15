@@ -45,7 +45,12 @@ func (this *TcpConn) Run() error {
 		return err
 	}
 
-	this.socket = NewSocket(conn)
+	s, err := NewSocket(conn)
+	if nil != err {
+		return err
+	}
+
+	this.socket = s
 
 	// 发送线程
 	go this.sendLoop()
