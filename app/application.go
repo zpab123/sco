@@ -264,6 +264,8 @@ func (this *Application) stopFrontend() {
 // 创建默认连接管理
 func (this *Application) newConnMgr() {
 	this.connMgr = network.NewConnMgr(this.Options.Net.MaxConn)
+	this.connMgr.SetKey(this.Options.Net.Key)
+	this.connMgr.SetHeartbeat(this.Options.Net.Heartbeat)
 	this.connMgr.SetHandler(this)
 }
 

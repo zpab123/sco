@@ -6,6 +6,7 @@ package network
 import (
 	"net"
 	"sync"
+	"time"
 
 	"github.com/zpab123/syncutil"
 	"github.com/zpab123/zaplog"
@@ -17,11 +18,13 @@ import (
 
 // 连接管理
 type ConnMgr struct {
-	maxConn  int32                // 最大连接数量，超过此数值后，不再接收新连接
-	connNum  syncutil.AtomicInt32 // 当前连接数
-	agentMap sync.Map             // agent 集合
-	agentId  syncutil.AtomicInt32 // agent id
-	handler  IHandler             // 消息处理器
+	maxConn   int32                // 最大连接数量，超过此数值后，不再接收新连接
+	key       string               // 握手key
+	heartbeat time.Duration        // 心跳周期
+	handler   IHandler             // 消息处理器
+	connNum   syncutil.AtomicInt32 // 当前连接数
+	agentMap  sync.Map             // agent 集合
+	agentId   syncutil.AtomicInt32 // agent id
 }
 
 // 新建1个 ConnMgr
@@ -31,7 +34,9 @@ func NewConnMgr(max int32) IConnManager {
 	}
 
 	mgr := ConnMgr{
-		maxConn: max,
+		maxConn:   max,
+		key:       C_AGENT_KEY,
+		heartbeat: C_AGENT_HEARTBEAT,
 	}
 
 	return &mgr
@@ -47,6 +52,25 @@ func (this *ConnMgr) Stop() {
 		this.agentMap.Delete(key)
 		return true
 	})
+}
+
+// 设置握手 key
+func (this *ConnMgr) SetKey(k string) {
+	if "" != k {
+		this.key = k
+	}
+}
+
+// 设置心跳 key
+func (this *ConnMgr) SetHeartbeat(h time.Duration) {
+	this.heartbeat = h
+}
+
+// 设置 handler
+func (this *ConnMgr) SetHandler(h IHandler) {
+	if nil != h {
+		this.handler = h
+	}
 }
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
@@ -92,20 +116,18 @@ func (this *ConnMgr) OnAgentStop(a *Agent) {
 	}
 }
 
-// 设置 handler
-func (this *ConnMgr) SetHandler(h IHandler) {
-	if nil != h {
-		this.handler = h
-	}
-}
-
 // 创建代理
 func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
-	ao := NewAgentOpt()
 	s, err := NewSocket(conn)
 	if nil != err {
 		return
 	}
+
+	ao := NewAgentOpt()
+	if "" != this.key {
+		ao.Key = this.key
+	}
+	ao.Heartbeat = this.heartbeat
 
 	a, err := NewAgent(s, ao)
 	if nil != err {

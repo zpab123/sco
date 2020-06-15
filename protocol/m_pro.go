@@ -17,6 +17,7 @@ const (
 
 // 消息码
 const (
-	C_CODE_FAIL uint32 = 0 // 失败
-	C_CODE_OK   uint32 = 1 // 成功
+	C_CODE_FAIL    uint32 = 0 // 失败
+	C_CODE_OK      uint32 = 1 // 成功
+	C_CODE_KEY_ERR uint32 = 3 // 握手 key 错误
 )

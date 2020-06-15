@@ -34,13 +34,14 @@ const (
 
 // agent 常量
 const (
-	C_AGENT_HEARTBEAT   time.Duration = 3 * time.Second // Agent 默认心跳周期
-	C_AGENT_ST_INIT     uint32        = iota            // 初始化状态
-	C_AGENT_ST_SHAKE                                    // 握手状态
-	C_AGENT_ST_WAIT_ACK                                 // 等待远端握手ACK
-	C_AGENT_ST_WORKING                                  // 工作中
-	C_AGENT_ST_CLOSING                                  // 正在关闭
-	C_AGENT_ST_CLOSED                                   // 关闭状态
+	C_AGENT_HEARTBEAT   time.Duration = 3 * time.Second    // 默认心跳周期
+	C_AGENT_KEY         string        = "scob9kxH6FdqOKnA" // 握手 key
+	C_AGENT_ST_INIT     uint32        = iota               // 初始化状态
+	C_AGENT_ST_SHAKE                                       // 握手状态
+	C_AGENT_ST_WAIT_ACK                                    // 等待远端握手ACK
+	C_AGENT_ST_WORKING                                     // 工作中
+	C_AGENT_ST_CLOSING                                     // 正在关闭
+	C_AGENT_ST_CLOSED                                      // 关闭状态
 )
 
 // conn 常量
@@ -68,11 +69,13 @@ type IAcceptor interface {
 
 // 连接管理
 type IConnManager interface {
-	ITcpConnManager        // 接口继承： tcp 连接管理
-	IWsConnManager         // 接口继承： websocket 连接管理
-	Stop()                 // 停止
-	SetHandler(h IHandler) // 设置消息处理器
-	OnAgentStop(a *Agent)  // 某个 Agent 停止
+	ITcpConnManager               // 接口继承： tcp 连接管理
+	IWsConnManager                // 接口继承： websocket 连接管理
+	Stop()                        // 停止
+	SetKey(k string)              // 设置握手key
+	SetHeartbeat(h time.Duration) // 设置心跳
+	SetHandler(h IHandler)        // 设置消息处理器
+	OnAgentStop(a *Agent)         // 某个 Agent 停止
 }
 
 // tcp 连接管理
@@ -103,6 +106,7 @@ type NetOptions struct {
 	TcpAddr   string        // tcp 监听链接 格式 "192.168.1.222:8080"
 	WsAddr    string        // websocket 监听链接 格式 "192.168.1.222:8080"
 	MaxConn   int32         // 最大连接数量，超过此数值后，不再接收新连接
+	Key       string        // 握手key
 	Heartbeat time.Duration // 心跳周期
 }
 
@@ -110,6 +114,7 @@ type NetOptions struct {
 func NewNetOptions() *NetOptions {
 	opt := NetOptions{
 		MaxConn:   C_CONN_MAX,
+		Key:       C_AGENT_KEY,
 		Heartbeat: C_AGENT_HEARTBEAT,
 	}
 

@@ -248,10 +248,25 @@ func (this *Agent) onPacket(pkt *Packet) {
 func (this *Agent) onHandshake(body []byte) {
 	// 状态效验
 	if this.state.Get() != C_AGENT_ST_INIT {
+		this.Stop()
 		return
 	}
 
-	// 握手协议检查
+	// 解码消息
+	req := &protocol.HandshakeReq{}
+	err := json.Unmarshal(body, req)
+	if nil != err {
+		this.Stop()
+		return
+	}
+
+	// 握手key检查
+	if this.options.Key != req.Key {
+		this.handshakeFail(protocol.C_CODE_KEY_ERR)
+		return
+	}
+
+	// 其他验证
 
 	// 握手成功
 	this.handshakeOk()
@@ -288,7 +303,6 @@ func (this *Agent) handshakeFail(code uint32) {
 	data, err := json.Marshal(res)
 	if nil != err {
 		zaplog.Error("握手失败，但服务器未返回消息：编码握手消息出错")
-
 		return
 	}
 
@@ -301,6 +315,7 @@ func (this *Agent) handshakeFail(code uint32) {
 func (this *Agent) onAck() {
 	// 状态：工作中
 	if !this.state.CompareAndSwap(C_AGENT_ST_WAIT_ACK, C_AGENT_ST_WORKING) {
+		this.Stop()
 		return
 	}
 
@@ -319,7 +334,7 @@ func (this *Agent) sendHeartbeat() error {
 
 // 处理 pkcket
 func (this *Agent) handle(pkt *Packet) {
-	if pkt.GetMid() <= protocol.C_MID_SCO {
+	if pkt.mid <= protocol.C_MID_SCO {
 		this.Stop()
 		return
 	}
@@ -335,12 +350,14 @@ func (this *Agent) handle(pkt *Packet) {
 // Agent 配置参数
 type AgentOpt struct {
 	Heartbeat time.Duration // 心跳周期
+	Key       string        // 握手key
 }
 
 // 创建1个默认的 TAgentOpt
 func NewAgentOpt() *AgentOpt {
 	o := AgentOpt{
 		Heartbeat: C_AGENT_HEARTBEAT,
+		Key:       C_AGENT_KEY,
 	}
 
 	return &o
