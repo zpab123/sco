@@ -36,7 +36,7 @@ type Agent struct {
 	options  *AgentOpt            // 配置参数
 	id       int32                // id 标识
 	socket   *Socket              // socket
-	stateMgr *state.StateManager  // 状态管理
+	state    *state.State         // 状态管理
 	handler  IHandler             // 消息处理
 	connMgr  IConnManager         // 连接管理
 	lastTime syncutil.AtomicInt64 // 上次收到客户端消息的时间
@@ -59,19 +59,19 @@ func NewAgent(socket *Socket, opt *AgentOpt) (*Agent, error) {
 	}
 
 	// 状态管理
-	st := state.NewStateManager()
+	st := state.NewState()
 
 	// 创建对象
 	a := Agent{
-		options:  opt,
-		socket:   socket,
-		stateMgr: st,
-		chDie:    make(chan struct{}),
+		options: opt,
+		socket:  socket,
+		state:   st,
+		chDie:   make(chan struct{}),
 	}
 	a.lastTime.Store(time.Now().Unix())
 
 	// 设置为初始化状态
-	a.stateMgr.SetState(C_AGENT_ST_INIT)
+	a.state.Set(C_AGENT_ST_INIT)
 
 	return &a, nil
 }
@@ -88,15 +88,15 @@ func (this *Agent) Run() {
 
 // 停止
 func (this *Agent) Stop() {
-	if this.stateMgr.GetState() == C_AGENT_ST_CLOSING {
+	if this.state.Get() == C_AGENT_ST_CLOSING {
 		return
 	}
 
-	if this.stateMgr.GetState() == C_AGENT_ST_CLOSED {
+	if this.state.Get() == C_AGENT_ST_CLOSED {
 		return
 	}
 
-	this.stateMgr.SetState(C_AGENT_ST_CLOSING)
+	this.state.Set(C_AGENT_ST_CLOSING)
 
 	close(this.chDie)
 
@@ -105,7 +105,7 @@ func (this *Agent) Stop() {
 		this.connMgr.OnAgentStop(this)
 	}
 
-	this.stateMgr.SetState(C_AGENT_ST_CLOSED)
+	this.state.Set(C_AGENT_ST_CLOSED)
 }
 
 // 设置连接管理
@@ -130,7 +130,7 @@ func (this *Agent) GetId() int32 {
 // 发送1个 packet 消息
 func (this *Agent) SendPacket(pkt *Packet) error {
 	// 状态效验
-	if this.stateMgr.GetState() != C_AGENT_ST_WORKING {
+	if this.state.Get() != C_AGENT_ST_WORKING {
 		return errState
 	}
 
@@ -142,7 +142,7 @@ func (this *Agent) SendPacket(pkt *Packet) error {
 // 发送 []byte
 func (this *Agent) SendBytes(bytes []byte) error {
 	// 状态效验
-	if this.stateMgr.GetState() != C_AGENT_ST_WORKING {
+	if this.state.Get() != C_AGENT_ST_WORKING {
 		return errState
 	}
 
@@ -247,7 +247,7 @@ func (this *Agent) onPacket(pkt *Packet) {
 // 握手消息
 func (this *Agent) onHandshake(body []byte) {
 	// 状态效验
-	if this.stateMgr.GetState() != C_AGENT_ST_INIT {
+	if this.state.Get() != C_AGENT_ST_INIT {
 		return
 	}
 
@@ -275,7 +275,7 @@ func (this *Agent) handshakeOk() {
 	this.socket.SendPacket(pkt) // 越过工作状态发送消息
 
 	// 状态： 等待握手 ack
-	this.stateMgr.SetState(C_AGENT_ST_WAIT_ACK)
+	this.state.Set(C_AGENT_ST_WAIT_ACK)
 }
 
 //  握手失败
@@ -300,7 +300,7 @@ func (this *Agent) handshakeFail(code uint32) {
 //  握手ACK
 func (this *Agent) onAck() {
 	// 状态：工作中
-	if !this.stateMgr.CompareAndSwap(C_AGENT_ST_WAIT_ACK, C_AGENT_ST_WORKING) {
+	if !this.state.CompareAndSwap(C_AGENT_ST_WAIT_ACK, C_AGENT_ST_WORKING) {
 		return
 	}
 

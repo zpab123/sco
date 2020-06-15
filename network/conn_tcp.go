@@ -17,23 +17,23 @@ import (
 
 // tcp 客户端
 type TcpConn struct {
-	addr     string              // 远端地址
-	socket   *Socket             // socket
-	stateMgr *state.StateManager // 状态管理
-	handler  IClientHandler      // 消息处理
+	addr    string         // 远端地址
+	socket  *Socket        // socket
+	state   *state.State   // 状态管理
+	handler IClientHandler // 消息处理
 }
 
 // 新建1个 tcp 连接
 func NewTcpConn(addr string) *TcpConn {
 	// 状态管理
-	st := state.NewStateManager()
+	st := state.NewState()
 
 	c := TcpConn{
-		addr:     addr,
-		stateMgr: st,
+		addr:  addr,
+		state: st,
 	}
 	// 设置为初始化状态
-	c.stateMgr.SetState(C_CLI_ST_INIT)
+	c.state.Set(C_CLI_ST_INIT)
 
 	return &c
 }
@@ -69,7 +69,7 @@ func (this *TcpConn) Stop() {
 // 发送1个 packet 消息
 func (this *TcpConn) SendPacket(pkt *Packet) error {
 	// 状态效验
-	if this.stateMgr.GetState() != C_CLI_ST_WORKING {
+	if this.state.Get() != C_CLI_ST_WORKING {
 		return errState
 	}
 
@@ -81,7 +81,7 @@ func (this *TcpConn) SendPacket(pkt *Packet) error {
 // 发送 []byte
 func (this *TcpConn) SendBytes(bytes []byte) error {
 	// 状态效验
-	if this.stateMgr.GetState() != C_CLI_ST_WORKING {
+	if this.state.Get() != C_CLI_ST_WORKING {
 		return errState
 	}
 
@@ -162,7 +162,7 @@ func (this *TcpConn) sendAck() {
 	pkt := NewPacket(protocol.C_MID_HANDSHAKE_ACK)
 	this.socket.SendBytes(pkt.Data())
 
-	this.stateMgr.SetState(C_CLI_ST_WORKING)
+	this.state.Set(C_CLI_ST_WORKING)
 }
 
 // 收到1个 pakcet
@@ -194,7 +194,7 @@ func (this *TcpConn) onHandshake(data []byte) {
 
 // 需要处理的消息
 func (this *TcpConn) handle(pkt *Packet) {
-	if this.stateMgr.GetState() != C_CLI_ST_WORKING {
+	if this.state.Get() != C_CLI_ST_WORKING {
 		this.Stop()
 		return
 	}
