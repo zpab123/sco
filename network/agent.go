@@ -5,9 +5,9 @@ package network
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/sco/state"
 	"github.com/zpab123/syncutil"
@@ -38,14 +38,22 @@ type Agent struct {
 	socket   *Socket              // socket
 	stateMgr *state.StateManager  // 状态管理
 	handler  IHandler             // 消息处理
-	connMgr  IConnManager         // 连接诶管理
+	connMgr  IConnManager         // 连接管理
 	lastTime syncutil.AtomicInt64 // 上次收到客户端消息的时间
+	chDie    chan struct{}        // 关闭通道
 	//checkHandshake interface // 握手检查函数（返回值为：握手数据）
 }
 
 // 新建1个 *Agent 对象
-func NewAgent(socket *Socket, opt *AgentOpt) *Agent {
+// 成功：返回 *Agent nil
+// 失败：返回 nil error
+func NewAgent(socket *Socket, opt *AgentOpt) (*Agent, error) {
 	// 参数效验
+	if nil == socket {
+		err := errors.New("参数 socket 为空")
+		return nil, err
+	}
+
 	if nil == opt {
 		opt = NewAgentOpt()
 	}
@@ -58,13 +66,14 @@ func NewAgent(socket *Socket, opt *AgentOpt) *Agent {
 		options:  opt,
 		socket:   socket,
 		stateMgr: st,
+		chDie:    make(chan struct{}),
 	}
 	a.lastTime.Store(time.Now().Unix())
 
 	// 设置为初始化状态
 	a.stateMgr.SetState(C_AGENT_ST_INIT)
 
-	return &a
+	return &a, nil
 }
 
 // 启动
@@ -88,6 +97,8 @@ func (this *Agent) Stop() {
 	}
 
 	this.stateMgr.SetState(C_AGENT_ST_CLOSING)
+
+	close(this.chDie)
 
 	this.socket.Close()
 	if nil != this.connMgr {
@@ -140,7 +151,7 @@ func (this *Agent) SendBytes(bytes []byte) error {
 	return nil
 }
 
-// 设置处理器
+// 设置 Handler 处理器
 func (this *Agent) SetHandler(h IHandler) {
 	if nil != h {
 		this.handler = h
@@ -196,6 +207,7 @@ func (this *Agent) heartbeatLoop() {
 	ticker := time.NewTicker(this.options.Heartbeat)
 
 	defer func() {
+		zaplog.Debugf("[Agent] heartbeatLoop 结束")
 		ticker.Stop()
 		this.Stop()
 	}()
@@ -210,6 +222,8 @@ func (this *Agent) heartbeatLoop() {
 			} else if pass >= heartbeatInt64 {
 				this.sendHeartbeat()
 			}
+		case <-this.chDie:
+			return
 		}
 	}
 }

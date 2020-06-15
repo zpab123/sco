@@ -22,7 +22,6 @@ type ConnMgr struct {
 	agentMap sync.Map             // agent 集合
 	agentId  syncutil.AtomicInt32 // agent id
 	handler  IHandler             // 消息处理器
-
 }
 
 // 新建1个 ConnMgr
@@ -45,6 +44,7 @@ func (this *ConnMgr) Stop() {
 			a.Stop()
 		}
 
+		this.agentMap.Delete(key)
 		return true
 	})
 }
@@ -104,7 +104,11 @@ func (this *ConnMgr) newAgent(conn net.Conn, isWebSocket bool) {
 	ao := NewAgentOpt()
 	s := NewSocket(conn)
 
-	a := NewAgent(s, ao)
+	a, err := NewAgent(s, ao)
+	if nil != err {
+		return
+	}
+
 	a.SetHandler(this.handler)
 	id := this.agentId.Add(1)
 	a.SetId(id)
