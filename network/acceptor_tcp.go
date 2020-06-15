@@ -4,6 +4,7 @@
 package network
 
 import (
+	"crypto/tls"
 	"net"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,10 @@ func NewTcpAcceptor(laddr string) (IAcceptor, error) {
 // 成功，返回 nil
 // 失败，返回 error
 func (this *TcpAcceptor) Run() error {
+	if this.certFile != "" && this.keyFile != "" {
+		return this.runTLS()
+	}
+
 	lis, err := net.Listen("tcp", this.laddr)
 	if nil != err {
 		return err
@@ -75,6 +80,28 @@ func (this *TcpAcceptor) SetConnMgr(mgr IConnManager) {
 func (this *TcpAcceptor) SetTLS(cert string, key string) {
 	this.certFile = cert
 	this.keyFile = key
+}
+
+// 以 tls 方式启动
+func (this *TcpAcceptor) runTLS() error {
+	crt, err := tls.LoadX509KeyPair(this.certFile, this.keyFile)
+	if nil != err {
+		return err
+	}
+
+	c := tls.Config{
+		Certificates: []tls.Certificate{crt},
+	}
+
+	lis, err := tls.Listen("tcp", this.laddr, &c)
+	if nil != err {
+		return err
+	}
+
+	this.listener = lis
+	go this.accept()
+
+	return nil
 }
 
 // 侦听连接
