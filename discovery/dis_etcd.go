@@ -338,10 +338,10 @@ func (this *EtcdDiscovery) deleteInvalid(validName []string) {
 // 删除某个服务
 func (this *EtcdDiscovery) deleteService(name string) {
 	if v, ok := this.svcMapByName.Load(name); ok {
-		svc, r := v.(*ServiceDesc)
 		// 删除
 		this.svcMapByName.Delete(name)
 
+		svc, r := v.(*ServiceDesc)
 		if !r {
 			return
 		}
