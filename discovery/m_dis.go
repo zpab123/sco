@@ -35,6 +35,7 @@ const (
 type IDiscovery interface {
 	SetService(svcDesc *ServiceDesc) // 设置服务
 	Run() error                      // 启动服务发现
+	Stop() error                     // 停止服务发现
 	AddListener(listener IListener)  // 添加侦听者
 }
 

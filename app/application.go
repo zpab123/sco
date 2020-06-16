@@ -308,22 +308,38 @@ func (this *Application) runCluster() {
 	if nil == this.rpcServer {
 		this.newRpcServer()
 	}
-	go this.rpcServer.Run()
+	if nil != this.rpcServer {
+		go this.rpcServer.Run()
+	}
 
 	if nil == this.rpcClient {
 		this.newRpcClient()
 	}
-	go this.rpcClient.Run(this.ctx)
+	if nil != this.rpcClient {
+		go this.rpcClient.Run()
+	}
 
 	if nil == this.discovery {
 		this.newDiscovery()
 	}
-	go this.discovery.Run()
+	if nil != this.discovery {
+		go this.discovery.Run()
+	}
 }
 
 // 停止集群
 func (this *Application) stopCluster() {
+	if nil != this.rpcServer {
+		this.rpcServer.Stop()
+	}
 
+	if nil != this.rpcClient {
+		this.rpcClient.Stop()
+	}
+
+	if nil != this.discovery {
+		this.discovery.Stop()
+	}
 }
 
 // 创建 rpcserver
@@ -331,12 +347,12 @@ func (this *Application) newRpcServer() {
 	s, err := rpc.NewGrpcServer(this.Options.RpcServer.Laddr)
 	if nil != err {
 		zaplog.Warnf("[Application] 创建 GrpcServer 失败。err=%s", err.Error())
+		return
 	}
 
-	if nil != s {
-		s.SetService(this)
-		this.rpcServer = s
-	}
+	s.SetService(this)
+	this.rpcServer = s
+
 }
 
 // 创建 rpcClient

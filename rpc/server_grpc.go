@@ -58,8 +58,10 @@ func (this *GrpcServer) Run() error {
 }
 
 // 停止 grpc
-func (this *GrpcServer) Stop() {
+func (this *GrpcServer) Stop() error {
 	this.server.GracefulStop()
+	zaplog.Debugf("[GrpcServer] 停止")
+	return nil
 }
 
 // 设置 rpc 服务

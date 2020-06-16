@@ -105,8 +105,8 @@ func (this *EtcdDiscovery) Run() error {
 }
 
 // 停止服务发现
-func (this *EtcdDiscovery) Stop() {
-	this.revoke()
+func (this *EtcdDiscovery) Stop() error {
+	return this.revoke()
 }
 
 // 获取 EtcdDiscovery 可选参数

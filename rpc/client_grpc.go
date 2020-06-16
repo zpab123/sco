@@ -27,23 +27,31 @@ type GrpcClient struct {
 
 // 新建1个 GrpcClient
 func NewGrpcClient() IClient {
-	gc := &GrpcClient{
+	gc := GrpcClient{
 		connMapByMid: make(map[uint16]map[string]*GrpcConn),
 		reqTimeout:   5 * time.Second,
 		dialTimeout:  5 * time.Second,
 	}
 
-	return gc
+	return &gc
 }
 
 // 启动
-func (this *GrpcClient) Run(ctx context.Context) {
-	zaplog.Debugf("GrpcClient 启动成功")
+func (this *GrpcClient) Run() error {
+	zaplog.Infof("[GrpcClient] 启动成功")
+	return nil
 }
 
 // 停止
-func (this *GrpcClient) Stop() {
+func (this *GrpcClient) Stop() error {
+	for _, nMap := range this.connMapByMid {
+		for _, gc := range nMap {
+			gc.close()
+		}
+	}
 
+	zaplog.Infof("[GrpcClient] 停止成功")
+	return nil
 }
 
 // Handler 调用
@@ -59,7 +67,7 @@ func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 
 	res, err := gc.HandlerCall(context.Background(), &req)
 	if nil != err {
-		zaplog.Debugf("[GrpcClient] HandlerCall_err=%s", err.Error())
+		zaplog.Debugf("[GrpcClient] HandlerCall 错误=%s", err.Error())
 		return true, nil
 	}
 
@@ -79,7 +87,7 @@ func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
 
 	res, err := gc.RemoteCall(context.Background(), &req)
 	if nil != err {
-		zaplog.Debugf("[GrpcClient] RemoteCall_err=%s", err.Error())
+		zaplog.Debugf("[GrpcClient] RemoteCall 错误=%s", err.Error())
 		return nil
 	}
 
