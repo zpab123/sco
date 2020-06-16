@@ -318,7 +318,7 @@ func (this *Application) runCluster() {
 	if nil == this.discovery {
 		this.newDiscovery()
 	}
-	go this.discovery.Run(this.ctx)
+	go this.discovery.Run()
 }
 
 // 停止集群

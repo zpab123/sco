@@ -5,13 +5,13 @@ package rpc
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/zpab123/sco/discovery" // 服务发现
-	"github.com/zpab123/sco/protocol"  // 消息协议
-	"github.com/zpab123/zaplog"        // log
-	//"google.golang.org/grpc"           // grpc
+	"github.com/zpab123/sco/discovery"
+	"github.com/zpab123/sco/protocol"
+	"github.com/zpab123/zaplog"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -19,17 +19,18 @@ import (
 
 // grpc 客户端
 type GrpcClient struct {
-	connMapByName sync.Map      // rpc 连接集合
-	connMapByMid  sync.Map      // rpc 连接集合
-	reqTimeout    time.Duration // 请求超时
-	dialTimeout   time.Duration // 连接超时
+	connMapByMid map[uint16]map[string]*GrpcConn // 服务器集群信息集合
+	reqTimeout   time.Duration                   // 请求超时
+	dialTimeout  time.Duration                   // 连接超时
+	mutex        sync.Mutex                      // 锁
 }
 
 // 新建1个 GrpcClient
 func NewGrpcClient() IClient {
 	gc := &GrpcClient{
-		reqTimeout:  5 * time.Second,
-		dialTimeout: 5 * time.Second,
+		connMapByMid: make(map[uint16]map[string]*GrpcConn),
+		reqTimeout:   5 * time.Second,
+		dialTimeout:  5 * time.Second,
 	}
 
 	return gc
@@ -51,12 +52,12 @@ func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 		Data: data,
 	}
 
-	c, ok := this.connMapByName.Load("chat_1")
-	if !ok {
+	gc := this.randConn(mid)
+	if nil == gc {
 		return true, nil
 	}
 
-	res, err := c.(*GrpcConn).HandlerCall(context.Background(), &req)
+	res, err := gc.HandlerCall(context.Background(), &req)
 	if nil != err {
 		zaplog.Debugf("[GrpcClient] HandlerCall_err=%s", err.Error())
 		return true, nil
@@ -71,12 +72,12 @@ func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
 		Data: data,
 	}
 
-	c, ok := this.connMapByName.Load("chat_1")
-	if !ok {
+	gc := this.randConn(mid)
+	if nil == gc {
 		return nil
 	}
 
-	res, err := c.(*GrpcConn).RemoteCall(context.Background(), &req)
+	res, err := gc.RemoteCall(context.Background(), &req)
 	if nil != err {
 		zaplog.Debugf("[GrpcClient] RemoteCall_err=%s", err.Error())
 		return nil
@@ -87,28 +88,67 @@ func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
 
 // 添加 rpc 服务信息
 func (this *GrpcClient) AddService(desc *discovery.ServiceDesc) {
-	addr := desc.Address()
-
-	gc := NewGrpcConn(addr)
-	err := gc.connect()
-	if nil != err {
-		zaplog.Debugf("[GrpcClient] 连接 rpcServer 失败。err=%s", err.Error())
+	if nil == desc {
 		return
 	}
 
-	this.connMapByName.Store(desc.Name, gc)
-	// this.connMapByMid.Store(desc., desc)
+	gc := NewGrpcConn(desc.Laddr)
+	err := gc.connect()
+	if nil != err {
+		zaplog.Debugf("[GrpcClient] 连接 rpcServer=%s 失败。err=%s", desc.Laddr, err.Error())
+		return
+	}
+
+	this.mutex.Lock()
+	nMap, ok := this.connMapByMid[desc.Mid]
+	if !ok {
+		nMap = make(map[string]*GrpcConn)
+		this.connMapByMid[desc.Mid] = nMap
+	}
+	nMap[desc.Name] = gc
+	this.mutex.Unlock()
 }
 
 // 移除 rpc 服务信息
 func (this *GrpcClient) RemoveService(desc *discovery.ServiceDesc) {
-	if c, ok := this.connMapByName.Load(desc.Name); ok {
-		this.connMapByName.Delete(desc.Name)
-		gc, r := c.(*GrpcConn)
-		if r {
-			gc.close()
-		}
-
-		zaplog.Debugf("[GrpcClient] 移除 rpc 连接%s", desc.Address())
+	if nil == desc {
+		return
 	}
+
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	nMap, ok := this.connMapByMid[desc.Mid]
+	if !ok {
+		return
+	}
+	gc, ok := nMap[desc.Name]
+	if !ok {
+		return
+	}
+	gc.close()
+	delete(nMap, desc.Name)
+}
+
+// 根据 mid 随机1个 GrpcConn
+func (this *GrpcClient) randConn(mid uint16) *GrpcConn {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	nMap, ok := this.connMapByMid[mid]
+	if !ok {
+		return nil
+	}
+
+	lis := make([]*GrpcConn, 0)
+	for _, gc := range nMap {
+		lis = append(lis, gc)
+	}
+
+	n := len(lis)
+	if n <= 0 {
+		return nil
+	}
+
+	return lis[rand.Intn(n)]
 }

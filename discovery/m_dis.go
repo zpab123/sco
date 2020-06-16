@@ -4,7 +4,6 @@
 package discovery
 
 import (
-	"context"
 	"time"
 )
 
@@ -35,7 +34,7 @@ const (
 // 服务发现接口
 type IDiscovery interface {
 	SetService(svcDesc *ServiceDesc) // 设置服务
-	Run(ctx context.Context)         // 启动服务发现
+	Run() error                      // 启动服务发现
 	AddListener(listener IListener)  // 添加侦听者
 }
 
@@ -43,35 +42,4 @@ type IDiscovery interface {
 type IListener interface {
 	AddService(svcDec *ServiceDesc)    // 添加1个服务
 	RemoveService(svcDec *ServiceDesc) // 移除1个服务
-}
-
-// /////////////////////////////////////////////////////////////////////////////
-// etcdDiscovery
-
-// etcdDiscovery 配置参数
-type TEtcdDiscoveryOpt struct {
-	Enable             bool          // 是否启用
-	DialTimeout        time.Duration // 连接注册中心超时时间
-	HeartbeatTTL       time.Duration // 租约时间
-	UpdateInterval     time.Duration // 服务更新周期
-	RenewLeaseTimeout  time.Duration // 重新续约超时时间
-	RenewLeaseMacCount int           // 重新续约最大次数
-	RenewLeaseInterval time.Duration // 重新续约间隔
-	RevokeTimeout      time.Duration // 废除超时时间
-}
-
-// 新建1个 etcdDiscovery 对象
-func NewTEtcdDiscoveryOpt() *TEtcdDiscoveryOpt {
-	opt := TEtcdDiscoveryOpt{
-		Enable:             true,
-		DialTimeout:        C_ED_DT,
-		HeartbeatTTL:       C_ED_HEARTBEAT,
-		UpdateInterval:     C_ED_UI,
-		RenewLeaseTimeout:  C_ED_RLT,
-		RenewLeaseMacCount: C_ED_RLC,
-		RenewLeaseInterval: C_ED_RLI,
-		RevokeTimeout:      C_ED_RT,
-	}
-
-	return &opt
 }
