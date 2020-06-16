@@ -23,3 +23,8 @@ const (
 type IHandler interface {
 	OnData(data []byte) (bool, []byte) // 收到数据
 }
+
+// reomte 服务
+type IRemote interface {
+	OnData(data []byte) []byte // 收到数据
+}

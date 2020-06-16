@@ -10,11 +10,6 @@ import (
 // /////////////////////////////////////////////////////////////////////////////
 // 常量
 
-// 服务描述
-const (
-	C_SVC_NAME = "sco.rpcService" // sco rpc服务名称
-)
-
 // /////////////////////////////////////////////////////////////////////////////
 // 接口
 
@@ -34,18 +29,8 @@ type IClient interface {
 	RemoteCall(mid uint16, data []byte) []byte          // remote 调用
 }
 
-// handler 服务
-type IHandler interface {
-	OnData(data []byte) (bool, []byte) // 收到 handler 数据
-}
-
-// remote 服务
-type IRemoteService interface {
-	OnData(data []byte) []byte // 收到 remote 数据
-}
-
 // rpc 服务
 type IService interface {
 	OnHandlerCall(data []byte) (bool, []byte) // Handler 调用
-	OnRemoteCall(data []byte) (bool, []byte)  // Remote 调用
+	OnRemoteCall(data []byte) []byte          // Remote 调用
 }

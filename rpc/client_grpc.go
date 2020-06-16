@@ -76,6 +76,10 @@ func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 
 // 远程调用
 func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
+	if nil == data {
+		return nil
+	}
+
 	req := protocol.RemoteReq{
 		Data: data,
 	}

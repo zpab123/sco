@@ -18,10 +18,9 @@ import (
 
 // grpc 服务
 type GrpcServer struct {
-	laddr   string         // 监听地址
-	server  *grpc.Server   // grpc 服务器
-	remote  IRemoteService // remote 服务
-	service IService       // rpc 服务
+	laddr   string       // 监听地址
+	server  *grpc.Server // grpc 服务器
+	service IService     // rpc 服务
 }
 
 // 新建1个 GrpcServer
@@ -86,7 +85,17 @@ func (this *GrpcServer) HandlerCall(ctx context.Context, req *protocol.HandlerRe
 
 // Remote 调用
 func (this *GrpcServer) RemoteCall(ctx context.Context, req *protocol.RemoteReq) (*protocol.RemoteRes, error) {
-	return nil, nil
+	res := protocol.RemoteRes{
+		Ok: true,
+	}
+
+	if nil == this.service {
+		return &res, nil
+	}
+
+	res.Data = this.service.OnRemoteCall(req.Data)
+
+	return &res, nil
 }
 
 // 注册服务

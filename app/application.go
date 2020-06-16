@@ -22,16 +22,16 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options       *Options             // 配置选项
-	acceptors     []network.IAcceptor  // 接收器切片
-	connMgr       network.IConnManager // 连接管理
-	handler       IHandler             // handler 服务
-	rpcServer     rpc.IServer          // rpc 服务端
-	rpcClient     rpc.IClient          // rpc 客户端
-	discovery     discovery.IDiscovery // 服务发现
-	signalChan    chan os.Signal       // 操作系统信号
-	stopGroup     sync.WaitGroup       // 停止等待组
-	remoteService rpc.IRemoteService   // remote 服务
+	Options    *Options             // 配置选项
+	acceptors  []network.IAcceptor  // 接收器切片
+	connMgr    network.IConnManager // 连接管理
+	handler    IHandler             // handler 服务
+	rpcServer  rpc.IServer          // rpc 服务端
+	rpcClient  rpc.IClient          // rpc 客户端
+	discovery  discovery.IDiscovery // 服务发现
+	remote     IRemote              // remote 服务
+	signalChan chan os.Signal       // 操作系统信号
+	stopGroup  sync.WaitGroup       // 停止等待组
 }
 
 // 创建1个新的 Application 对象
@@ -116,10 +116,19 @@ func (this *Application) SetHandler(h IHandler) {
 }
 
 // 设置 remote 服务
-func (this *Application) SetRemoteService(rs rpc.IRemoteService) {
-	if nil != rs {
-		this.remoteService = rs
+func (this *Application) SetRemote(r IRemote) {
+	if nil != r {
+		this.remote = r
 	}
+}
+
+// 以 rpc 的方式获取远程数据
+func (this *Application) Call(mid uint16, data []byte) []byte {
+	if nil == this.rpcClient {
+		return nil
+	}
+
+	return this.rpcClient.RemoteCall(mid, data)
 }
 
 // 收到1个 pakcet
@@ -170,8 +179,16 @@ func (this *Application) OnHandlerCall(data []byte) (bool, []byte) {
 }
 
 // 收到 Remote 请求
-func (this *Application) OnRemoteCall(data []byte) (bool, []byte) {
-	return true, nil
+func (this *Application) OnRemoteCall(data []byte) []byte {
+	if nil == data {
+		return nil
+	}
+
+	if nil == this.remote {
+		return nil
+	}
+
+	return this.remote.OnData(data)
 }
 
 // 初始化

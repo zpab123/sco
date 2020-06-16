@@ -30,7 +30,7 @@ func (m *RemoteReq) Reset()         { *m = RemoteReq{} }
 func (m *RemoteReq) String() string { return proto.CompactTextString(m) }
 func (*RemoteReq) ProtoMessage()    {}
 func (*RemoteReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_remote_61fa8b216a8331d9, []int{0}
+	return fileDescriptor_remote_69fda316c4bb5f71, []int{0}
 }
 func (m *RemoteReq) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RemoteReq.Unmarshal(m, b)
@@ -59,7 +59,8 @@ func (m *RemoteReq) GetData() []byte {
 
 // server->server 回复数据
 type RemoteRes struct {
-	Data                 []byte   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	Ok                   bool     `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -69,7 +70,7 @@ func (m *RemoteRes) Reset()         { *m = RemoteRes{} }
 func (m *RemoteRes) String() string { return proto.CompactTextString(m) }
 func (*RemoteRes) ProtoMessage()    {}
 func (*RemoteRes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_remote_61fa8b216a8331d9, []int{1}
+	return fileDescriptor_remote_69fda316c4bb5f71, []int{1}
 }
 func (m *RemoteRes) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RemoteRes.Unmarshal(m, b)
@@ -89,6 +90,13 @@ func (m *RemoteRes) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_RemoteRes proto.InternalMessageInfo
 
+func (m *RemoteRes) GetOk() bool {
+	if m != nil {
+		return m.Ok
+	}
+	return false
+}
+
 func (m *RemoteRes) GetData() []byte {
 	if m != nil {
 		return m.Data
@@ -101,14 +109,15 @@ func init() {
 	proto.RegisterType((*RemoteRes)(nil), "protocol.RemoteRes")
 }
 
-func init() { proto.RegisterFile("remote.proto", fileDescriptor_remote_61fa8b216a8331d9) }
+func init() { proto.RegisterFile("remote.proto", fileDescriptor_remote_69fda316c4bb5f71) }
 
-var fileDescriptor_remote_61fa8b216a8331d9 = []byte{
-	// 82 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_remote_69fda316c4bb5f71 = []byte{
+	// 99 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x29, 0x4a, 0xcd, 0xcd,
 	0x2f, 0x49, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x00, 0x53, 0xc9, 0xf9, 0x39, 0x4a,
 	0xf2, 0x5c, 0x9c, 0x41, 0x60, 0x99, 0xa0, 0xd4, 0x42, 0x21, 0x21, 0x2e, 0x96, 0x94, 0xc4, 0x92,
-	0x44, 0x09, 0x46, 0x05, 0x46, 0x0d, 0x9e, 0x20, 0x30, 0x1b, 0x59, 0x41, 0x31, 0x36, 0x05, 0x49,
-	0x6c, 0x60, 0xb3, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0xde, 0xaf, 0x80, 0x8e, 0x62, 0x00,
-	0x00, 0x00,
+	0x44, 0x09, 0x46, 0x05, 0x46, 0x0d, 0x9e, 0x20, 0x30, 0x5b, 0x49, 0x1f, 0xa1, 0xa0, 0x58, 0x88,
+	0x8f, 0x8b, 0x29, 0x3f, 0x1b, 0x2c, 0xcd, 0x11, 0xc4, 0x94, 0x9f, 0x0d, 0xd7, 0xc0, 0x84, 0xd0,
+	0x90, 0xc4, 0x06, 0x36, 0xdb, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0x69, 0x6c, 0xa7, 0x6b, 0x72,
+	0x00, 0x00, 0x00,
 }
