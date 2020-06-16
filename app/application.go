@@ -4,7 +4,6 @@
 package app
 
 import (
-	"context"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -32,40 +31,26 @@ type Application struct {
 	discovery     discovery.IDiscovery // 服务发现
 	signalChan    chan os.Signal       // 操作系统信号
 	stopGroup     sync.WaitGroup       // 停止等待组
-	ctx           context.Context      // 上下文
-	cancel        context.CancelFunc   // 退出通知函数
-	remoteChan    chan *network.Packet // remote 消息
-	handleChan    chan *network.Packet // 本地消息
-	packetChan    chan *network.Packet // 消息处理器
-	localPacket   chan *network.Packet // 本地消息
-	remotePacket  chan *network.Packet // 远程消息
 	remoteService rpc.IRemoteService   // remote 服务
 }
 
 // 创建1个新的 Application 对象
-func NewApplication() *Application {
+func NewApplication(opts ...*Options) *Application {
+	var opt *Options
+	if len(opts) <= 0 {
+		opt = NewOptions()
+	} else {
+		opt = opts[0]
+	}
+
 	// 创建对象
 	sig := make(chan os.Signal, 1)
-	opt := NewOptions()
-	rc := make(chan *network.Packet, 1000)
-	hc := make(chan *network.Packet, 1000)
-	pc := make(chan *network.Packet, 1000)
-	lp := make(chan *network.Packet, 1000)
-	rp := make(chan *network.Packet, 1000)
-	ctx, cancel := context.WithCancel(context.Background())
 
 	// 创建 app
 	a := Application{
-		signalChan:   sig,
-		Options:      opt,
-		acceptors:    []network.IAcceptor{},
-		remoteChan:   rc,
-		handleChan:   hc,
-		packetChan:   pc,
-		localPacket:  lp,
-		remotePacket: rp,
-		ctx:          ctx,
-		cancel:       cancel,
+		signalChan: sig,
+		Options:    opt,
+		acceptors:  []network.IAcceptor{},
 	}
 	a.init()
 
