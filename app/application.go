@@ -364,13 +364,18 @@ func (this *Application) newRpcClient() {
 
 // 创建服务发现
 func (this *Application) newDiscovery() {
-	endpoints := []string{
-		"http://192.168.1.69:2379",
-		"http://192.168.1.69:2479",
-		"http://192.168.1.69:2579",
+	e := this.Options.Discovery.Endpoints
+	if len(e) <= 0 {
+		return
 	}
 
-	this.discovery, _ = discovery.NewEtcdDiscovery(endpoints)
+	o := this.Options.Discovery.Etcd
+	d, err := discovery.NewEtcdDiscovery(e, o)
+	if nil != err {
+		zaplog.Errorf("[Application] 创建 EtcdDiscovery 失败。err=%s", err.Error())
+		return
+	}
+	this.discovery = d
 
 	// 服务描述
 	desc := discovery.ServiceDesc{

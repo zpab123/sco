@@ -44,3 +44,22 @@ type IListener interface {
 	AddService(svcDec *ServiceDesc)    // 添加1个服务
 	RemoveService(svcDec *ServiceDesc) // 移除1个服务
 }
+
+// /////////////////////////////////////////////////////////////////////////////
+// Options
+
+// 服务发现选项
+type Options struct {
+	Endpoints []string          // 服务发现地址列表
+	Etcd      *EtcdDiscoveryOpt // etcd 参数
+}
+
+// 服务发现选项
+func NewOptions() *Options {
+	e := NewEtcdDiscoveryOpt()
+	o := Options{
+		Etcd: e,
+	}
+
+	return &o
+}

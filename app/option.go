@@ -4,6 +4,7 @@
 package app
 
 import (
+	"github.com/zpab123/sco/discovery"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/rpc"
 )
@@ -19,18 +20,21 @@ type Options struct {
 	Cluster   bool               // 是否开启集群服务
 	Frontend  *network.Frontend  // 前端网络配置
 	RpcServer *rpc.ServerOptions // rpc 服务选项
+	Discovery *discovery.Options // 服务发现选项
 }
 
 // 新建1个默认 Options
 func NewOptions() *Options {
 	fo := network.NewFrontend()
 	rso := rpc.NewServerOptions()
+	dis := discovery.NewOptions()
 
 	o := Options{
 		AppType:   C_APP_TYPE_FRONTEND,
 		Cluster:   false,
 		Frontend:  fo,
 		RpcServer: rso,
+		Discovery: dis,
 	}
 
 	return &o
