@@ -4,6 +4,8 @@
 package app
 
 import (
+	"flag"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -194,8 +196,8 @@ func (this *Application) OnRemoteCall(data []byte) []byte {
 // 初始化
 func (this *Application) init() {
 	// 默认设置
-	this.defaultConfig()
-	// 解析参数
+	//this.defaultConfig()
+	// 解析启动参数
 	this.parseArgs()
 }
 
@@ -218,14 +220,20 @@ func (this *Application) waitStopSignal() {
 	}
 }
 
-// 设置默认
-func (this *Application) defaultConfig() {
-
-}
-
-// 解析命令行参数
+// 解析启动参数
 func (this *Application) parseArgs() {
+	did := "sco_server"
+	id := flag.String("id", did, "server id") // 服务器唯一id
 
+	// 解析参数
+	flag.Parse()
+
+	if *id == "" || *id == did {
+		log.Println("[Application] 未设置 appid。使用默认设置: sco_server")
+		this.Options.Id = did
+	} else {
+		this.Options.Id = *id
+	}
 }
 
 // 启动前端
