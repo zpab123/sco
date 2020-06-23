@@ -72,7 +72,7 @@ func (this *Application) Run() {
 		this.runCluster()
 	}
 
-	zaplog.Infof("[%s] 启动成功...", this.Options.Name)
+	zaplog.Infof("[%s] 启动成功...", this.Options.Id)
 
 	// 侦听结束信号
 	this.waitStopSignal()
@@ -80,7 +80,7 @@ func (this *Application) Run() {
 
 // 停止 app
 func (this *Application) Stop() {
-	zaplog.Infof("[Application] %s 正在结束...", this.Options.Name)
+	zaplog.Infof("[Application] %s 正在结束...", this.Options.Id)
 
 	// 停止前端
 	this.stopFrontend()
@@ -90,7 +90,7 @@ func (this *Application) Stop() {
 
 	this.stopGroup.Wait()
 
-	zaplog.Infof("[Application] %s 优雅退出", this.Options.Name)
+	zaplog.Infof("[Application] %s 优雅退出", this.Options.Id)
 	os.Exit(0)
 }
 
@@ -239,7 +239,7 @@ func (this *Application) runFrontend() {
 	}
 
 	if len(this.acceptors) <= 0 {
-		zaplog.Warnf("[Application] %s 为前端app，但无接收器", this.Options.Name)
+		zaplog.Warnf("[Application] %s 为前端app，但无接收器", this.Options.Id)
 		return
 	}
 
@@ -379,7 +379,7 @@ func (this *Application) newDiscovery() {
 
 	// 服务描述
 	desc := discovery.ServiceDesc{
-		Name:  this.Options.Name,
+		Name:  this.Options.Id,
 		Mid:   this.Options.Mid,
 		Laddr: this.Options.RpcServer.Laddr,
 	}

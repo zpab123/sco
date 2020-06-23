@@ -15,7 +15,7 @@ import (
 // app 配置参数
 type Options struct {
 	AppType   byte               // app 类型
-	Name      string             // app名字，不同的app名字不要相同
+	Id        string             // app 唯一标识
 	Mid       uint16             // 服务ID
 	Cluster   bool               // 是否开启集群服务
 	Frontend  *network.Frontend  // 前端网络配置
