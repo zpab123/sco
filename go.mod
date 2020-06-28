@@ -14,7 +14,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0 // indirect
 	github.com/zpab123/syncutil v1.0.0 // indirect
-	github.com/zpab123/zaplog v1.0.0
+	github.com/zpab123/zaplog v1.3.0
 	go.etcd.io/etcd v3.3.22+incompatible
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	google.golang.org/grpc v1.26.0
