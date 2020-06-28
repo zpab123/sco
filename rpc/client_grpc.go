@@ -105,11 +105,14 @@ func (this *GrpcClient) AddService(desc *discovery.ServiceDesc) {
 	}
 
 	gc := NewGrpcConn(desc.Laddr)
-	err := gc.connect()
-	if nil != err {
-		zaplog.Debugf("[GrpcClient] 连接 rpcServer=%s 失败。err=%s", desc.Laddr, err.Error())
-		return
-	}
+
+	/*
+		err := gc.connect()
+		if nil != err {
+			zaplog.Debugf("[GrpcClient] 连接 rpcServer=%s 失败。err=%s", desc.Laddr, err.Error())
+			return
+		}
+	*/
 
 	this.mutex.Lock()
 	nMap, ok := this.connMapByMid[desc.Mid]
