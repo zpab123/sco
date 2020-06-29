@@ -133,10 +133,12 @@ func (this *Application) Call(mid uint16, data []byte) []byte {
 
 // 收到1个 pakcet
 func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
-	// 远端
-	if pkt.GetMid() != this.Options.Mid {
-		this.onRemotePacket(a, pkt)
-		return
+	// 集群
+	if this.Options.Cluster {
+		if pkt.GetMid() != this.Options.Mid {
+			this.onRemotePacket(a, pkt)
+			return
+		}
 	}
 
 	if nil == this.handler {
