@@ -16,9 +16,9 @@ import (
 type Options struct {
 	AppType   byte               // app 类型
 	Id        string             // app 唯一标识
-	Mid       uint16             // 服务ID
+	ServiceId uint16             // 服务ID
 	Cluster   bool               // 是否开启集群服务
-	Frontend  *network.Frontend  // 前端网络配置
+	Frontend  *network.Frontend  // 前端网络配置ss
 	RpcServer *rpc.ServerOptions // rpc 服务选项
 	Discovery *discovery.Options // 服务发现选项
 }

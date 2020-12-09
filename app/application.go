@@ -135,7 +135,7 @@ func (this *Application) Call(mid uint16, data []byte) []byte {
 func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
 	// 集群
 	if this.Options.Cluster {
-		if pkt.GetMid() != this.Options.Mid {
+		if pkt.GetMid() != this.Options.ServiceId {
 			this.onRemotePacket(a, pkt)
 			return
 		}
@@ -369,7 +369,7 @@ func (this *Application) newDiscovery() {
 	// 服务描述
 	desc := discovery.ServiceDesc{
 		Name:  this.Options.Id,
-		Mid:   this.Options.Mid,
+		Mid:   this.Options.ServiceId,
 		Laddr: this.Options.RpcServer.Laddr,
 	}
 	this.discovery.SetService(&desc)
