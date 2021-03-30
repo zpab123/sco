@@ -22,16 +22,18 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options    *Options             // 配置选项
-	acceptors  []network.IAcceptor  // 接收器切片
-	connMgr    network.IConnManager // 连接管理
-	handler    IHandler             // handler 服务
-	rpcServer  rpc.IServer          // rpc 服务端
-	rpcClient  rpc.IClient          // rpc 客户端
-	discovery  discovery.IDiscovery // 服务发现
-	remote     IRemote              // remote 服务
-	signalChan chan os.Signal       // 操作系统信号
-	stopGroup  sync.WaitGroup       // 停止等待组
+	Options      *Options             // 配置选项
+	acceptors    []network.IAcceptor  // 接收器切片
+	connMgr      network.IConnManager // 连接管理
+	handler      IHandler             // handler 服务
+	rpcServer    rpc.IServer          // rpc 服务端
+	rpcClient    rpc.IClient          // rpc 客户端
+	discovery    discovery.IDiscovery // 服务发现
+	remote       IRemote              // remote 服务
+	signalChan   chan os.Signal       // 操作系统信号
+	stopGroup    sync.WaitGroup       // 停止等待组
+	localPacet   chan *network.Packet // 本地消息
+	remotePacket chan *network.Packet // 远端消息
 }
 
 // 创建1个新的 Application 对象
@@ -45,12 +47,16 @@ func NewApplication(opts ...*Options) *Application {
 
 	// 创建对象
 	sig := make(chan os.Signal, 1)
+	lp := make(chan *network.Packet, 1000)
+	rp := make(chan *network.Packet, 1000)
 
 	// 创建 app
 	a := Application{
-		signalChan: sig,
-		Options:    opt,
-		acceptors:  []network.IAcceptor{},
+		signalChan:   sig,
+		Options:      opt,
+		acceptors:    []network.IAcceptor{},
+		localPacet:   lp,
+		remotePacket: rp,
 	}
 	a.init()
 
@@ -79,8 +85,11 @@ func (this *Application) Run() {
 		log.String("id=", this.Options.Id),
 	)
 
-	// 侦听结束信号
-	this.waitStopSignal()
+	// 侦听信号
+	this.listenSignal()
+
+	// 主循环
+	this.mainLoop()
 }
 
 // 停止 app
@@ -145,29 +154,24 @@ func (this *Application) Call(mid uint16, data []byte) []byte {
 	return this.rpcClient.RemoteCall(mid, data)
 }
 
+// -----------------------------------------------------------------------------
+// Agent -> IHandler 接口
+
 // 收到1个 pakcet
 func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
 	// 集群
 	if this.Options.Cluster {
 		if pkt.GetMid() != this.Options.Mid {
-			this.onRemotePacket(a, pkt)
+			this.remotePacket <- pkt
 			return
 		}
 	}
 
-	if nil == this.handler {
-		return
-	}
-
-	r, data := this.handler.OnData(pkt.GetBody())
-	if nil != data {
-		a.SendBytes(data)
-	}
-
-	if !r {
-		a.Stop()
-	}
+	this.localPacet <- pkt
 }
+
+// -----------------------------------------------------------------------------
+//
 
 // 收到1个远端 pakcet
 func (this *Application) onRemotePacket(a *network.Agent, pkt *network.Packet) {
@@ -184,6 +188,9 @@ func (this *Application) onRemotePacket(a *network.Agent, pkt *network.Packet) {
 		a.Stop()
 	}
 }
+
+// -----------------------------------------------------------------------------
+// rpc -> IService 接口
 
 // 收到 Handler 请求
 func (this *Application) OnHandlerCall(data []byte) (bool, []byte) {
@@ -207,35 +214,31 @@ func (this *Application) OnRemoteCall(data []byte) []byte {
 	return this.remote.OnData(data)
 }
 
+// -----------------------------------------------------------------------------
+//
+
 // 初始化
 func (this *Application) init() {
 
 }
 
-// 侦听结束信号
-func (this *Application) waitStopSignal() {
-	defer log.Logger.Sync()
-
+// 侦听信号
+func (this *Application) listenSignal() {
 	// 排除信号
 	signal.Ignore(syscall.Signal(10), syscall.Signal(12), syscall.SIGPIPE, syscall.SIGHUP)
 	signal.Notify(this.signalChan, syscall.SIGINT, syscall.SIGTERM)
+}
 
+// 主循环
+func (this *Application) mainLoop() {
 	for {
-		sig := <-this.signalChan
-		if syscall.SIGINT == sig || syscall.SIGTERM == sig {
-			go this.Stop()
-			time.Sleep(C_STOP_OUT_TIME)
-			log.Logger.Warn(
-				"[Application] 关闭超时，强制关闭",
-				log.Uint16("超时时间(秒)=", uint16(C_STOP_OUT_TIME/time.Second)),
-			)
-
-			os.Exit(1)
-		} else {
-			log.Logger.Warn(
-				"[Application] 异常的操作系统信号",
-				log.String("sid=", sig.String()),
-			)
+		select {
+		case lp := <-this.localPacet:
+			this.onLocalPacket(lp)
+		case rp := <-this.remotePacket:
+			this.onRemotePacket(rp)
+		case sig := <-this.signalChan:
+			this.onSignal(sig)
 		}
 	}
 }
@@ -417,5 +420,40 @@ func (this *Application) newDiscovery() {
 
 	if nil != this.rpcClient {
 		this.discovery.AddListener(this.rpcClient)
+	}
+}
+
+//  本地消息
+func (this *Application) onLocalPacket(pkt *network.Packet) {
+	if this.handler {
+		// this.handler.OnData()
+	}
+}
+
+//  远端消息
+func (this *Application) onRemotePacket(pkt *network.Packet) {
+	if this.handler {
+		// this.handler.OnData()
+	}
+}
+
+// 操作系统信号
+func (this *Application) onSignal(sig os.Signal) {
+	defer log.Logger.Sync()
+
+	if syscall.SIGINT == sig || syscall.SIGTERM == sig {
+		go this.Stop()
+		time.Sleep(C_STOP_OUT_TIME)
+		log.Logger.Warn(
+			"[Application] 关闭超时，强制关闭",
+			log.Uint16("超时时间(秒)=", uint16(C_STOP_OUT_TIME/time.Second)),
+		)
+
+		os.Exit(1)
+	} else {
+		log.Logger.Warn(
+			"[Application] 异常的操作系统信号",
+			log.String("sid=", sig.String()),
+		)
 	}
 }

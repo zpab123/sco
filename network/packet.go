@@ -30,6 +30,7 @@ type Packet struct {
 	bytes    []byte // 用于存放需要通过网络 发送/接收 的数据 （head + body）
 	readPos  int    // 读取位置
 	wirtePos int    // 写入位置
+	agent    *Agent // 代理
 }
 
 // 新建1个 Packet 对象 (从对象池创建)

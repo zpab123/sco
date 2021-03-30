@@ -367,6 +367,7 @@ func (this *Agent) handle(pkt *Packet) {
 	}
 
 	if nil != this.handler {
+		pkt.agent = this
 		this.handler.OnPacket(this, pkt)
 	}
 }
