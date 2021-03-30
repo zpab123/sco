@@ -32,7 +32,7 @@ type Application struct {
 	remote       IRemote              // remote 服务
 	signalChan   chan os.Signal       // 操作系统信号
 	stopGroup    sync.WaitGroup       // 停止等待组
-	localPacet   chan *network.Packet // 本地消息
+	clientPacet  chan *network.Packet // 来自客户端的消息
 	remotePacket chan *network.Packet // 远端消息
 }
 
@@ -47,7 +47,7 @@ func NewApplication(opts ...*Options) *Application {
 
 	// 创建对象
 	sig := make(chan os.Signal, 1)
-	lp := make(chan *network.Packet, 1000)
+	cp := make(chan *network.Packet, 1000)
 	rp := make(chan *network.Packet, 1000)
 
 	// 创建 app
@@ -55,7 +55,7 @@ func NewApplication(opts ...*Options) *Application {
 		signalChan:   sig,
 		Options:      opt,
 		acceptors:    []network.IAcceptor{},
-		localPacet:   lp,
+		clientPacet:  cp,
 		remotePacket: rp,
 	}
 	a.init()
@@ -158,7 +158,7 @@ func (this *Application) Call(mid uint16, data []byte) []byte {
 // Agent -> IHandler 接口
 
 // 收到1个 pakcet
-func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
+func (this *Application) OnPacket(pkt *network.Packet) {
 	// 集群
 	if this.Options.Cluster {
 		if pkt.GetMid() != this.Options.Mid {
@@ -167,7 +167,7 @@ func (this *Application) OnPacket(a *network.Agent, pkt *network.Packet) {
 		}
 	}
 
-	this.localPacet <- pkt
+	this.clientPacet <- pkt
 }
 
 // -----------------------------------------------------------------------------
@@ -233,10 +233,10 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
-		case lp := <-this.localPacet:
-			this.onLocalPacket(lp)
+		case cp := <-this.clientPacet:
+			this.onClientPacket(cp)
 		case rp := <-this.remotePacket:
-			this.onRemotePacket(rp)
+			this.doRemotePacket(rp)
 		case sig := <-this.signalChan:
 			this.onSignal(sig)
 		}
@@ -424,17 +424,13 @@ func (this *Application) newDiscovery() {
 }
 
 //  本地消息
-func (this *Application) onLocalPacket(pkt *network.Packet) {
-	if this.handler {
-		// this.handler.OnData()
-	}
+func (this *Application) onClientPacket(pkt *network.Packet) {
+
 }
 
 //  远端消息
-func (this *Application) onRemotePacket(pkt *network.Packet) {
-	if this.handler {
-		// this.handler.OnData()
-	}
+func (this *Application) doRemotePacket(pkt *network.Packet) {
+
 }
 
 // 操作系统信号

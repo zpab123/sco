@@ -57,6 +57,11 @@ func (this *Packet) GetMid() uint16 {
 	return this.mid
 }
 
+// 获取 Agent
+func (this *Packet) GetAgent() *Agent {
+	return this.agent
+}
+
 // 获取 Packet 的 body 部分
 func (this *Packet) GetBody() []byte {
 	return this.bytes[C_PKT_HEAD_LEN:this.wirtePos]

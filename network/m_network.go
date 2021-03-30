@@ -95,7 +95,7 @@ type IAgentManager interface {
 
 // packet 处理器
 type IHandler interface {
-	OnPacket(a *Agent, pkt *Packet) // 收到1个 packet 消息
+	OnPacket(pkt *Packet) // 收到1个 packet 消息
 }
 
 // Client packet 处理器
