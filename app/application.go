@@ -76,7 +76,7 @@ func (this *Application) Run() {
 
 	log.Logger.Info(
 		"[Application] 启动成功",
-		log.String("id=", this.Options.id),
+		log.String("id=", this.Options.Id),
 	)
 
 	// 侦听结束信号
@@ -89,7 +89,7 @@ func (this *Application) Stop() {
 
 	log.Logger.Info(
 		"[Application] 正在结束",
-		log.String("id=", this.Options.id),
+		log.String("id=", this.Options.Id),
 	)
 
 	// 停止前端
@@ -102,7 +102,7 @@ func (this *Application) Stop() {
 
 	log.Logger.Info(
 		"[Application] 优雅退出",
-		log.String("id=", this.Options.id),
+		log.String("id=", this.Options.Id),
 	)
 
 	os.Exit(0)
@@ -227,7 +227,7 @@ func (this *Application) waitStopSignal() {
 			time.Sleep(C_STOP_OUT_TIME)
 			log.Logger.Warn(
 				"[Application] 关闭超时，强制关闭",
-				log.Uint16("超时时间(秒)=", uint16(C_STOP_OUT_TIME)),
+				log.Uint16("超时时间(秒)=", uint16(C_STOP_OUT_TIME/time.Second)),
 			)
 
 			os.Exit(1)

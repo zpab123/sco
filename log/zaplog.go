@@ -39,8 +39,8 @@ func init() {
 	cfg = zap.Config{
 		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
 		Development:      true,
-		DisableCaller:    false,
-		Encoding:         "json",
+		DisableCaller:    true, // 是否打印行号
+		Encoding:         "console",
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
 		EncoderConfig:    ec,

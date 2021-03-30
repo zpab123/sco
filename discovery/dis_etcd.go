@@ -436,7 +436,7 @@ func (this *EtcdDiscovery) watchEtcdChanges() {
 					log.Logger.Debug(
 						"[EtcdDiscovery] 发现新服务",
 						log.String("name=", sd.Name),
-						log.String("mid=", sd.Mid),
+						log.Uint16("mid=", sd.Mid),
 					)
 				case clientv3.EventTypeDelete: // 删除服务
 					_, name, err := parseServiceKey(string(evt.Kv.Key))

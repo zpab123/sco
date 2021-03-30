@@ -97,7 +97,7 @@ func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
 	// 创建代理
 	log.Logger.Debug(
 		"[ConnMgr] 新 ws 连接",
-		log.String("ip=", wsconn.RemoteAddr()),
+		log.String("ip=", wsconn.RemoteAddr().String()),
 	)
 
 	this.newAgent(wsconn)
@@ -125,7 +125,7 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 	// 创建代理
 	log.Logger.Debug(
 		"[ConnMgr] 新 tcp 连接",
-		log.String("ip=", conn.RemoteAddr()),
+		log.String("ip=", conn.RemoteAddr().String()),
 	)
 
 	this.newAgent(conn)
