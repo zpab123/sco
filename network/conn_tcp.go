@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"net"
 
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/sco/state"
-	"github.com/zpab123/zaplog"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -105,7 +105,10 @@ func (this *TcpConn) SetHandler(h IClientHandler) {
 // 接收线程
 func (this *TcpConn) recvLoop() {
 	defer func() {
-		zaplog.Debugf("[TcpConn] recvLoop 结束")
+		log.Logger.Debug(
+			"[TcpConn] recvLoop 结束",
+		)
+
 		this.socket.SendPacket(nil) // 用于结束 sendLoop
 	}()
 
@@ -125,7 +128,10 @@ func (this *TcpConn) recvLoop() {
 // 发送线程
 func (this *TcpConn) sendLoop() {
 	defer func() {
-		zaplog.Debugf("[TcpConn] sendLoop 结束")
+		log.Logger.Debug(
+			"[TcpConn] sendLoop 结束",
+		)
+
 		this.Stop()
 	}()
 
@@ -146,7 +152,10 @@ func (this *TcpConn) reqHandShake() {
 
 	data, err := json.Marshal(&req)
 	if nil != err {
-		zaplog.Debugf("[TcpConn] 编码握手消息失败")
+		log.Logger.Debug(
+			"[TcpConn] 编码握手消息失败",
+		)
+
 		this.Stop()
 		return
 	}
@@ -182,7 +191,10 @@ func (this *TcpConn) onHandshake(data []byte) {
 	res := protocol.HandshakeRes{}
 	err := json.Unmarshal(data, &res)
 	if nil != err {
-		zaplog.Debugf("[TcpConn] 解码握手结果失败")
+		log.Logger.Debug(
+			"[TcpConn] 解码握手结果失败",
+		)
+
 		this.Stop()
 		return
 	}

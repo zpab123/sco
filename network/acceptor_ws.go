@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/zpab123/zaplog"
+	"github.com/zpab123/sco/log"
 	"golang.org/x/net/websocket"
 )
 
@@ -75,18 +75,32 @@ func (this *WsAcceptor) Run() error {
 // 成功，返回 nil
 // 失败，返回 error
 func (this *WsAcceptor) Stop() error {
-	zaplog.Debugf("[WsAcceptor] 停止中... ip=%s", this.laddr)
+	defer log.Logger.Sync()
+
+	log.Logger.Debug(
+		"[WsAcceptor] 停止中...",
+		log.String("ip=", this.laddr),
+	)
 
 	err := this.httpServer.Close()
 	if nil != err {
 		this.listener.Close()
-		zaplog.Warnf("[WsAcceptor] 停止 httpServer 失败。ip=%s，err=%s", this.laddr, err.Error())
+
+		log.Logger.Warn(
+			"[WsAcceptor] 停止 httpServer 失败",
+			log.String("ip=", this.laddr),
+			log.String("err=", err.Error()),
+		)
+
 		return err
 	}
 
 	this.stopGroup.Wait()
 
-	zaplog.Debugf("[WsAcceptor] 停止。ip=%s", this.laddr)
+	log.Logger.Debug(
+		"[WsAcceptor] 停止",
+		log.String("ip=", this.laddr),
+	)
 
 	return nil
 }
@@ -124,7 +138,11 @@ func (this *WsAcceptor) accept() {
 
 	// 开启服务器
 	var err error
-	zaplog.Debugf("[WsAcceptor] 启动成功。ip=%s", this.laddr)
+
+	log.Logger.Debug(
+		"[WsAcceptor] 启动成功",
+		log.String("ip=", this.laddr),
+	)
 
 	if this.certFile != "" && this.keyFile != "" {
 		err = this.httpServer.ServeTLS(this.listener, this.certFile, this.keyFile)
@@ -134,6 +152,10 @@ func (this *WsAcceptor) accept() {
 
 	// 错误信息
 	if nil != err {
-		zaplog.Debugf("[WsAcceptor] 停止侦听新连接。ip=%s，err=%s", this.laddr, err.Error())
+		log.Logger.Debug(
+			"[WsAcceptor] 停止侦听新连接",
+			log.String("ip=", this.laddr),
+			log.String("err=", err.Error()),
+		)
 	}
 }

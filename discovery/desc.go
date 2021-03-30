@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/zpab123/zaplog"
+	"github.com/zpab123/sco/log"
 )
 
 // 注册到服务发现的服务描述
@@ -24,9 +24,15 @@ func (this *ServiceDesc) Key() string {
 
 // 按照 json 格式化后的字符串
 func (this *ServiceDesc) JsonString() string {
+	defer log.Logger.Sync()
+
 	bytes, err := json.Marshal(this)
 	if nil != err {
-		zaplog.Errorf("[ServiceDesc] 服务器[mid=% Id=%s]服务发现描述信息，转化为json失败，返回空字符串", this.Mid, this.Name)
+		log.Logger.Error(
+			"[ServiceDesc] 服务发现描述信息，转化为json失败，返回空字符串",
+			log.Uint16("mid=", this.Mid),
+			log.String("name=", this.Name),
+		)
 
 		return ""
 	}

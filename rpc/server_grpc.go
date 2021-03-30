@@ -8,8 +8,8 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/protocol"
-	"github.com/zpab123/zaplog"
 	"google.golang.org/grpc"
 )
 
@@ -41,6 +41,8 @@ func NewGrpcServer(laddr string) (*GrpcServer, error) {
 
 // 启动 rpc 服务
 func (this *GrpcServer) Run() error {
+	defer log.Logger.Sync()
+
 	ln, err := net.Listen("tcp", this.laddr)
 	if nil != err {
 		return err
@@ -51,7 +53,10 @@ func (this *GrpcServer) Run() error {
 
 	go this.server.Serve(ln)
 
-	zaplog.Infof("[GrpcServer] [%s] 启动成功", this.laddr)
+	log.Logger.Info(
+		"[GrpcServer] 启动成功",
+		log.String("ip=", this.laddr),
+	)
 
 	return nil
 }
@@ -59,7 +64,10 @@ func (this *GrpcServer) Run() error {
 // 停止 grpc
 func (this *GrpcServer) Stop() error {
 	this.server.GracefulStop()
-	zaplog.Debugf("[GrpcServer] 停止")
+	log.Logger.Debug(
+		"[GrpcServer] 停止",
+	)
+
 	return nil
 }
 

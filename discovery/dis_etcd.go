@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"     // 异常库
-	"github.com/zpab123/zaplog" // log
-	"go.etcd.io/etcd/clientv3"  // etcd 客户端
+	"github.com/pkg/errors"      // 异常库
+	"github.com/zpab123/sco/log" // log
+	"go.etcd.io/etcd/clientv3"   // etcd 客户端
 )
 
 var (
@@ -65,6 +65,8 @@ func NewEtcdDiscovery(endpoints []string, opts ...*EtcdDiscoveryOpt) (IDiscovery
 
 // 启动服务发现
 func (this *EtcdDiscovery) Run() error {
+	defer log.Logger.Sync()
+
 	var err error
 	// 建立连接
 	if this.client == nil {
@@ -99,7 +101,9 @@ func (this *EtcdDiscovery) Run() error {
 	// 侦听etcd事件
 	go this.watchEtcdChanges()
 
-	zaplog.Infof("[EtcdDiscovery] 启动成功")
+	log.Logger.Info(
+		"[EtcdDiscovery] 启动成功",
+	)
 
 	return nil
 }
@@ -183,6 +187,8 @@ func (this *EtcdDiscovery) grantLease() error {
 
 // 监听租约通道
 func (this *EtcdDiscovery) watchLeaseChan(leaseChan <-chan *clientv3.LeaseKeepAliveResponse) {
+	defer log.Logger.Sync()
+
 	// 重新续约次数
 	renewCount := 0
 
@@ -212,7 +218,10 @@ func (this *EtcdDiscovery) watchLeaseChan(leaseChan <-chan *clientv3.LeaseKeepAl
 						return
 					}
 
-					zaplog.Warnf("[EtcdDiscovery] 签约失败，%d秒后重新签约", uint64(this.options.RenewLeaseInterval.Seconds()))
+					log.Logger.Warn(
+						"[EtcdDiscovery] 签约失败",
+						log.Uint64("下次签约时间(秒):", uint64(this.options.RenewLeaseInterval.Seconds())),
+					)
 
 					time.Sleep(this.options.RenewLeaseInterval)
 					continue
@@ -296,7 +305,11 @@ func (this *EtcdDiscovery) writeLockScope(f func()) {
 
 // 通知
 func (this *EtcdDiscovery) notifyListeners(act int, sd *ServiceDesc) {
-	zaplog.Debugf("[EtcdDiscovery] 服务%s，发生变化%d", sd.Name, act)
+	log.Logger.Debug(
+		"[EtcdDiscovery] 服务发生变化",
+		log.String("name=", sd.Name),
+		log.Int64("act=", int64(act)),
+	)
 
 	if C_SERVICE_ADD == act {
 		for _, ln := range this.listeners {
@@ -409,12 +422,22 @@ func (this *EtcdDiscovery) watchEtcdChanges() {
 					var sd *ServiceDesc
 					var err error
 					if sd, err = parseService(evt.Kv.Value); err != nil {
-						zaplog.Warnf("[EtcdDiscovery] 发现新服务，但是解析服务发现json信息失败。err=%s", err.Error())
+						log.Logger.Warn(
+							"[EtcdDiscovery] 发现新服务，但是解析服务发现json信息失败",
+							log.String("err=", err.Error()),
+						)
+						log.Logger.Sync()
+
 						continue
 					}
 
 					this.addService(sd)
-					zaplog.Debugf("[EtcdDiscovery] 发现新服务，name=%s，mid=%d", sd.Name, sd.Mid)
+
+					log.Logger.Debug(
+						"[EtcdDiscovery] 发现新服务",
+						log.String("name=", sd.Name),
+						log.String("mid=", sd.Mid),
+					)
 				case clientv3.EventTypeDelete: // 删除服务
 					_, name, err := parseServiceKey(string(evt.Kv.Key))
 					if nil != err {

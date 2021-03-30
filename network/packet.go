@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"unsafe"
 
-	"github.com/zpab123/zaplog"
+	"github.com/zpab123/sco/log"
 )
 
 // 常量 -- packet 数据大小定义
@@ -226,11 +226,16 @@ func (this *Packet) AppendBytes(v []byte) {
 //
 // size=读取字节数量
 func (this *Packet) ReadBytes(size uint32) []byte {
+	defer log.Logger.Sync()
+
 	s := int(size)
 
 	// 越界错误
 	if this.readPos > len(this.bytes) || (this.readPos+s) > len(this.bytes) {
-		zaplog.Panicf("从 Packet 包中读取 Bytes 出错：Bytes 大小超过 packet 剩余可读数据大小")
+		log.Logger.Panic(
+			"从 Packet 包中读取 Bytes 出错：Bytes 大小超过 packet 剩余可读数据大小",
+		)
+
 	}
 
 	// 读取数据
@@ -287,6 +292,8 @@ func (this *Packet) Data() []byte {
 
 // 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
 func (this *Packet) allocCap(need int) {
+	defer log.Logger.Sync()
+
 	// 超长
 	pcap := this.getPayloadCap() // 有效容量
 	if pcap >= bodyMaxLenInt {
@@ -309,7 +316,10 @@ func (this *Packet) allocCap(need int) {
 		b := make([]byte, headLenInt+nb)
 		copy(b, this.Data())
 	} else {
-		zaplog.Warnf("[Packet] 容量达到最大=%d", bodyMaxLenInt)
+		log.Logger.Warn(
+			"[Packet] 容量达到最大",
+			log.Int64("容量=", int64(bodyMaxLenInt)),
+		)
 	}
 }
 

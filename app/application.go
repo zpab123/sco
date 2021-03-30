@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/discovery"
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/rpc"
-	"github.com/zpab123/zaplog"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -59,6 +59,8 @@ func NewApplication(opts ...*Options) *Application {
 
 // 启动 app
 func (this *Application) Run() {
+	defer log.Logger.Sync()
+
 	// 设置随机种子
 	rand.Seed(time.Now().UnixNano())
 
@@ -72,7 +74,10 @@ func (this *Application) Run() {
 		this.runCluster()
 	}
 
-	zaplog.Infof("[%s] 启动成功...", this.Options.Id)
+	log.Logger.Info(
+		"[Application] 启动成功",
+		log.String("id=", this.Options.id),
+	)
 
 	// 侦听结束信号
 	this.waitStopSignal()
@@ -80,7 +85,12 @@ func (this *Application) Run() {
 
 // 停止 app
 func (this *Application) Stop() {
-	zaplog.Infof("[Application] %s 正在结束...", this.Options.Id)
+	defer log.Logger.Sync()
+
+	log.Logger.Info(
+		"[Application] 正在结束",
+		log.String("id=", this.Options.id),
+	)
 
 	// 停止前端
 	this.stopFrontend()
@@ -90,7 +100,11 @@ func (this *Application) Stop() {
 
 	this.stopGroup.Wait()
 
-	zaplog.Infof("[Application] %s 优雅退出", this.Options.Id)
+	log.Logger.Info(
+		"[Application] 优雅退出",
+		log.String("id=", this.Options.id),
+	)
+
 	os.Exit(0)
 }
 
@@ -200,6 +214,8 @@ func (this *Application) init() {
 
 // 侦听结束信号
 func (this *Application) waitStopSignal() {
+	defer log.Logger.Sync()
+
 	// 排除信号
 	signal.Ignore(syscall.Signal(10), syscall.Signal(12), syscall.SIGPIPE, syscall.SIGHUP)
 	signal.Notify(this.signalChan, syscall.SIGINT, syscall.SIGTERM)
@@ -209,16 +225,25 @@ func (this *Application) waitStopSignal() {
 		if syscall.SIGINT == sig || syscall.SIGTERM == sig {
 			go this.Stop()
 			time.Sleep(C_STOP_OUT_TIME)
-			zaplog.Warnf("服务器，超过 %v 秒未优雅关闭，强制关闭", C_STOP_OUT_TIME)
+			log.Logger.Warn(
+				"[Application] 关闭超时，强制关闭",
+				log.Uint16("超时时间(秒)=", uint16(C_STOP_OUT_TIME)),
+			)
+
 			os.Exit(1)
 		} else {
-			zaplog.Warnf("异常的操作系统信号=%s", sig)
+			log.Logger.Warn(
+				"[Application] 异常的操作系统信号",
+				log.String("sid=", sig.String()),
+			)
 		}
 	}
 }
 
 // 启动前端
 func (this *Application) runFrontend() {
+	defer log.Logger.Sync()
+
 	if nil == this.connMgr {
 		this.newConnMgr()
 	}
@@ -228,7 +253,11 @@ func (this *Application) runFrontend() {
 	}
 
 	if len(this.acceptors) <= 0 {
-		zaplog.Warnf("[Application] %s 为前端app，但无接收器", this.Options.Id)
+		log.Logger.Warn(
+			"[Application] 为前端app，但无接收器",
+			log.String("id=", this.Options.Id),
+		)
+
 		return
 	}
 
@@ -335,9 +364,15 @@ func (this *Application) stopCluster() {
 
 // 创建 rpcserver
 func (this *Application) newRpcServer() {
+	defer log.Logger.Sync()
+
 	s, err := rpc.NewGrpcServer(this.Options.RpcServer.Laddr)
 	if nil != err {
-		zaplog.Warnf("[Application] 创建 GrpcServer 失败。err=%s", err.Error())
+		log.Logger.Warn(
+			"[Application] 创建 GrpcServer 失败",
+			log.String("err=", err.Error()),
+		)
+
 		return
 	}
 
@@ -353,6 +388,8 @@ func (this *Application) newRpcClient() {
 
 // 创建服务发现
 func (this *Application) newDiscovery() {
+	defer log.Logger.Sync()
+
 	e := this.Options.Discovery.Endpoints
 	if len(e) <= 0 {
 		return
@@ -361,7 +398,11 @@ func (this *Application) newDiscovery() {
 	o := this.Options.Discovery.Etcd
 	d, err := discovery.NewEtcdDiscovery(e, o)
 	if nil != err {
-		zaplog.Errorf("[Application] 创建 EtcdDiscovery 失败。err=%s", err.Error())
+		log.Logger.Warn(
+			"[Application] 创建 EtcdDiscovery 失败",
+			log.String("err=", err.Error()),
+		)
+
 		return
 	}
 	this.discovery = d

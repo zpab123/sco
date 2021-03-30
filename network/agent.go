@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/sco/state"
-	"github.com/zpab123/syncutil"
-	"github.com/zpab123/zaplog"
+	"github.com/zpab123/sco/syncutil"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,10 @@ func (this *Agent) String() string {
 // 接收线程
 func (this *Agent) recvLoop() {
 	defer func() {
-		zaplog.Debugf("[Agent] recvLoop 结束")
+		log.Logger.Debug(
+			"[Agent] recvLoop 结束",
+		)
+
 		this.socket.SendPacket(nil) // 用于结束 sendLoop
 	}()
 
@@ -189,7 +192,10 @@ func (this *Agent) recvLoop() {
 // 发送线程
 func (this *Agent) sendLoop() {
 	defer func() {
-		zaplog.Debugf("[Agent] sendLoop 结束")
+		log.Logger.Debug(
+			"[Agent] sendLoop 结束",
+		)
+
 		this.Stop()
 	}()
 
@@ -210,7 +216,10 @@ func (this *Agent) heartbeatLoop() {
 	ticker := time.NewTicker(this.heartbeat)
 
 	defer func() {
-		zaplog.Debugf("[Agent] heartbeatLoop 结束")
+		log.Logger.Debug(
+			"[Agent] heartbeatLoop 结束",
+		)
+
 		ticker.Stop()
 		this.Stop()
 	}()
@@ -222,7 +231,10 @@ func (this *Agent) heartbeatLoop() {
 		case <-ticker.C:
 			pass := time.Now().Unix() - this.lastTime.Load()
 			if pass > hInt64*2 {
-				zaplog.Debugf("[Agent] %s 心跳超时，关闭连接", this)
+				log.Logger.Debug(
+					"[Agent] 心跳超时，关闭连接",
+				)
+
 				return
 			} else if pass >= hInt64 {
 				this.sendHeartbeat()
@@ -279,6 +291,8 @@ func (this *Agent) onHandshake(body []byte) {
 
 //  握手成功
 func (this *Agent) handshakeOk() {
+	defer log.Logger.Sync()
+
 	hUint16 := uint16(this.heartbeat / time.Second)
 
 	// 返回数据
@@ -288,7 +302,10 @@ func (this *Agent) handshakeOk() {
 	}
 	data, err := json.Marshal(res)
 	if nil != err {
-		zaplog.Error("[Agent] 握手成功，但服务器未返回消息：编码握手消息出错")
+		log.Logger.Error(
+			"[Agent] 握手成功，但服务器未返回消息：编码握手消息出错",
+		)
+
 		return
 	}
 
@@ -309,7 +326,10 @@ func (this *Agent) handshakeFail(code uint32) {
 	}
 	data, err := json.Marshal(res)
 	if nil != err {
-		zaplog.Error("握手失败，但服务器未返回消息：编码握手消息出错")
+		log.Logger.Error(
+			"[Agent] 握手失败，但服务器未返回消息：编码握手消息出错",
+		)
+
 		return
 	}
 

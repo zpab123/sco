@@ -7,7 +7,7 @@ package state
 // 包 初始化
 
 import (
-	"github.com/zpab123/syncutil" // 原子变量工具
+	"github.com/zpab123/sco/syncutil" // 原子变量工具
 )
 
 // /////////////////////////////////////////////////////////////////////////////

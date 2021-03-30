@@ -6,10 +6,9 @@ package dispatch
 import (
 	"sync"
 
-	//"github.com/pkg/errors"
-	"github.com/zpab123/sco/discovery" // 服务发现
+	"github.com/zpab123/sco/discovery"
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
-	"github.com/zpab123/zaplog"
 )
 
 // tcp Client
@@ -46,7 +45,11 @@ func (this *TcpClient) OnPacket(c *network.TcpConn, pkt *network.Packet) {
 // 添加集群服务信息
 func (this *TcpClient) AddService(desc *discovery.ServiceDesc) {
 	addr := desc.Address()
-	zaplog.Debugf("发现新服务，%s", addr)
+
+	log.Logger.Debug(
+		"发现新服务",
+		log.String("addr=", addr),
+	)
 
 	c := network.NewTcpConn(addr)
 	c.SetHandler(this)
@@ -65,6 +68,9 @@ func (this *TcpClient) RemoveService(desc *discovery.ServiceDesc) {
 			tc.Stop()
 		}
 
-		zaplog.Debugf("移除服务%s", desc.Address())
+		log.Logger.Debug(
+			"移除服务",
+			log.String("addr=", desc.Address()),
+		)
 	}
 }

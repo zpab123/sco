@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zpab123/syncutil"
-	"github.com/zpab123/zaplog"
+	"github.com/zpab123/sco/log"
+	"github.com/zpab123/sco/syncutil"
 	"golang.org/x/net/websocket"
 )
 
@@ -75,6 +75,8 @@ func (this *ConnMgr) SetHandler(h IHandler) {
 
 // 收到1个新的 websocket 连接对象 [IWsConnManager]
 func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
+	defer log.Logger.Sync()
+
 	// 参数效验
 	if nil == wsconn {
 		return
@@ -83,19 +85,28 @@ func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
 	// 超过最大连接数
 	if this.connNum.Load() >= this.maxConn {
 		wsconn.Close()
-		zaplog.Warnf("[ConnMgr] 达到最大连接数，关闭新连接。当前连接数=%d", this.connNum.Load())
+		log.Logger.Warn(
+			"[ConnMgr] 达到最大连接数，关闭新连接",
+			log.Int32("当前连接数=", this.connNum.Load()),
+		)
 	}
 
 	// 参数设置
 	wsconn.PayloadType = websocket.BinaryFrame // 以二进制方式接受数据
 
 	// 创建代理
-	zaplog.Debugf("[ConnMgr] 新 ws 连接，ip=%s", wsconn.RemoteAddr())
+	log.Logger.Debug(
+		"[ConnMgr] 新 ws 连接",
+		log.String("ip=", wsconn.RemoteAddr()),
+	)
+
 	this.newAgent(wsconn)
 }
 
 // 收到1个新的 tcp 连接对象 [ITcpConnManager]
 func (this *ConnMgr) OnTcpConn(conn net.Conn) {
+	defer log.Logger.Sync()
+
 	// 参数效验
 	if nil == conn {
 		return
@@ -104,11 +115,19 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 	// 超过最大连接数
 	if this.connNum.Load() >= this.maxConn {
 		conn.Close()
-		zaplog.Warnf("[ConnMgr] 达到最大连接数，关闭新连接。当前连接数=%d", this.connNum.Load())
+
+		log.Logger.Warn(
+			"[ConnMgr] 达到最大连接数，关闭新连接",
+			log.Int32("当前连接数=", this.connNum.Load()),
+		)
 	}
 
 	// 创建代理
-	zaplog.Debugf("[ConnMgr] 新 tcp 连接，ip=%s", conn.RemoteAddr())
+	log.Logger.Debug(
+		"[ConnMgr] 新 tcp 连接",
+		log.String("ip=", conn.RemoteAddr()),
+	)
+
 	this.newAgent(conn)
 }
 
@@ -122,7 +141,12 @@ func (this *ConnMgr) OnAgentStop(a *Agent) {
 	if _, ok := this.agentMap.Load(id); ok {
 		this.agentMap.Delete(id)
 		this.connNum.Add(-1)
-		zaplog.Debugf("[ConnMgr] Agent 断开，当前连接数=%d", this.connNum.Load())
+
+		log.Logger.Debug(
+			"[ConnMgr] Agent 断开",
+			log.Int32("当前连接数=", this.connNum.Load()),
+		)
+
 	}
 }
 

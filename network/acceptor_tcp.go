@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/zpab123/zaplog"
+	"github.com/zpab123/sco/log"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -106,12 +106,19 @@ func (this *TcpAcceptor) runTLS() error {
 
 // 侦听连接
 func (this *TcpAcceptor) accept() {
-	zaplog.Debugf("[TcpAcceptor] 启动成功。ip=%s", this.laddr)
+	log.Logger.Debug(
+		"[TcpAcceptor] 启动成功",
+		log.String("ip=", this.laddr),
+	)
 
 	for {
 		conn, err := this.listener.Accept()
 		if nil != err {
-			zaplog.Debugf("[TcpAcceptor] 停止侦听新连接。err=%s", err.Error())
+			log.Logger.Debug(
+				"TcpAcceptor] 停止侦听新连接",
+				log.String("err=", err.Error()),
+			)
+
 			return
 		}
 

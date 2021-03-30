@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/discovery"
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/protocol"
-	"github.com/zpab123/zaplog"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -38,19 +38,29 @@ func NewGrpcClient() IClient {
 
 // 启动
 func (this *GrpcClient) Run() error {
-	zaplog.Infof("[GrpcClient] 启动成功")
+	defer log.Logger.Sync()
+
+	log.Logger.Info(
+		"[GrpcClient] 启动成功",
+	)
+
 	return nil
 }
 
 // 停止
 func (this *GrpcClient) Stop() error {
+	defer log.Logger.Sync()
+
 	for _, nMap := range this.connMapByMid {
 		for _, gc := range nMap {
 			gc.close()
 		}
 	}
 
-	zaplog.Infof("[GrpcClient] 停止成功")
+	log.Logger.Info(
+		"[GrpcClient] 停止成功",
+	)
+
 	return nil
 }
 
@@ -67,7 +77,11 @@ func (this *GrpcClient) HandlerCall(mid uint16, data []byte) (bool, []byte) {
 
 	res, err := gc.HandlerCall(context.Background(), &req)
 	if nil != err {
-		zaplog.Debugf("[GrpcClient] HandlerCall 错误=%s", err.Error())
+		log.Logger.Debug(
+			"[GrpcClient] HandlerCall 错误",
+			log.String("err=", err.Error()),
+		)
+
 		return true, nil
 	}
 
@@ -91,7 +105,11 @@ func (this *GrpcClient) RemoteCall(mid uint16, data []byte) []byte {
 
 	res, err := gc.RemoteCall(context.Background(), &req)
 	if nil != err {
-		zaplog.Debugf("[GrpcClient] RemoteCall 错误=%s", err.Error())
+		log.Logger.Debug(
+			"[GrpcClient] RemoteCall 错误",
+			log.String("err=", err.Error()),
+		)
+
 		return nil
 	}
 

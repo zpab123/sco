@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/zpab123/sco/protocol"
-	//"github.com/zpab123/zaplog"
 	"google.golang.org/grpc"
 )
 
