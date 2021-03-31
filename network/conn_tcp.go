@@ -22,7 +22,7 @@ type TcpConn struct {
 	addr      string               // 远端地址
 	socket    *Socket              // socket
 	state     *state.State         // 状态管理
-	handler   IClientHandler       // 消息处理
+	handler   IHandler             // 消息处理
 	heartbeat time.Duration        // 心跳周期
 	lastTime  syncutil.AtomicInt64 // 上次发送数据的时间
 	chDie     chan struct{}        // 关闭通道
@@ -107,7 +107,7 @@ func (this *TcpConn) String() string {
 }
 
 // 设置处理器
-func (this *TcpConn) SetHandler(h IClientHandler) {
+func (this *TcpConn) SetHandler(h IHandler) {
 	if nil != h {
 		this.handler = h
 	}
@@ -267,6 +267,6 @@ func (this *TcpConn) handle(pkt *Packet) {
 	}
 
 	if nil != this.handler {
-		this.handler.OnPacket(this, pkt)
+		this.handler.OnPacket(pkt)
 	}
 }
