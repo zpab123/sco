@@ -25,7 +25,7 @@ type Application struct {
 	Options      *Options             // 配置选项
 	acceptors    []network.IAcceptor  // 接收器切片
 	connMgr      network.IConnManager // 连接管理
-	handler      IHandler             // handler 服务
+	handler      network.IHandler     // handler 服务
 	rpcServer    rpc.IServer          // rpc 服务端
 	rpcClient    rpc.IClient          // rpc 客户端
 	discovery    discovery.IDiscovery // 服务发现
@@ -132,7 +132,7 @@ func (this *Application) AddAcceptor(acc network.IAcceptor) {
 }
 
 // 设置 handler
-func (this *Application) SetHandler(h IHandler) {
+func (this *Application) SetHandler(h network.IHandler) {
 	if nil != h {
 		this.handler = h
 	}
@@ -198,7 +198,8 @@ func (this *Application) OnHandlerCall(data []byte) (bool, []byte) {
 		return true, nil
 	}
 
-	return this.handler.OnData(data)
+	// return this.handler.OnData(data)
+	return true, nil
 }
 
 // 收到 Remote 请求
@@ -425,7 +426,7 @@ func (this *Application) newDiscovery() {
 
 //  本地消息
 func (this *Application) onClientPacket(pkt *network.Packet) {
-
+	this.handler.OnPacket(pkt)
 }
 
 //  远端消息
