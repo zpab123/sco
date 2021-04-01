@@ -243,6 +243,8 @@ func (this *Application) mainLoop() {
 			this.onClientPacket(cp)
 		case rp := <-this.remotePacket:
 			this.doRemotePacket(rp)
+		case sp := <-this.serverPacket:
+			this.onServerPacket(sp)
 		case sig := <-this.signalChan:
 			this.onSignal(sig)
 		}
@@ -463,6 +465,13 @@ func (this *Application) onClientPacket(pkt *network.Packet) {
 //  远端消息
 func (this *Application) doRemotePacket(pkt *network.Packet) {
 
+}
+
+// 服务器消息
+func (this *Application) onServerPacket(pkt *network.Packet) {
+	// 来自客户的 onClientPacket()
+
+	// 来自其他服务器的
 }
 
 // 操作系统信号
