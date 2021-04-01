@@ -27,15 +27,16 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	id        int32                // id 标识
-	socket    *Socket              // socket
-	key       string               // 握手key
-	heartbeat time.Duration        // 心跳周期
-	handler   IHandler             // 消息处理
-	state     *state.State         // 状态管理
-	mgr       IAgentManager        // 连接管理
-	lastTime  syncutil.AtomicInt64 // 上次收到客户端消息的时间
-	chDie     chan struct{}        // 关闭通道
+	id         int32                // id 标识
+	socket     *Socket              // socket
+	key        string               // 握手key
+	heartbeat  time.Duration        // 心跳周期
+	handler    IHandler             // 消息处理
+	state      *state.State         // 状态管理
+	mgr        IAgentManager        // 连接管理
+	lastTime   syncutil.AtomicInt64 // 上次收到客户端消息的时间
+	chDie      chan struct{}        // 关闭通道
+	packetChan chan *Packet         // 消息通道
 }
 
 // 新建1个 *Agent 对象
@@ -128,6 +129,13 @@ func (this *Agent) SetId(id int32) {
 // 获取 id
 func (this *Agent) GetId() int32 {
 	return this.id
+}
+
+// 设置消息通道
+func (this *Agent) SetPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.packetChan = ch
+	}
 }
 
 // 发送1个 packet 消息
@@ -366,8 +374,7 @@ func (this *Agent) handle(pkt *Packet) {
 		return
 	}
 
-	if nil != this.handler {
-		pkt.agent = this
-		this.handler.OnPacket(pkt)
+	if this.packetChan != nil {
+		this.packetChan <- pkt
 	}
 }

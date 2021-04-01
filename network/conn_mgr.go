@@ -18,13 +18,14 @@ import (
 
 // 连接管理
 type ConnMgr struct {
-	maxConn   int32                // 最大连接数量，超过此数值后，不再接收新连接
-	key       string               // 握手key
-	heartbeat time.Duration        // 心跳周期
-	handler   IHandler             // 消息处理器
-	connNum   syncutil.AtomicInt32 // 当前连接数
-	agentMap  sync.Map             // agent 集合
-	agentId   syncutil.AtomicInt32 // agent id
+	maxConn    int32                // 最大连接数量，超过此数值后，不再接收新连接
+	key        string               // 握手key
+	heartbeat  time.Duration        // 心跳周期
+	handler    IHandler             // 消息处理器
+	connNum    syncutil.AtomicInt32 // 当前连接数
+	agentMap   sync.Map             // agent 集合
+	agentId    syncutil.AtomicInt32 // agent id
+	packetChan chan *Packet         // 消息通道
 }
 
 // 新建1个 ConnMgr
@@ -70,6 +71,13 @@ func (this *ConnMgr) SetHeartbeat(h time.Duration) {
 func (this *ConnMgr) SetHandler(h IHandler) {
 	if nil != h {
 		this.handler = h
+	}
+}
+
+// 设置消息通道
+func (this *ConnMgr) SetPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.packetChan = ch
 	}
 }
 
@@ -164,7 +172,7 @@ func (this *ConnMgr) newAgent(conn net.Conn) {
 
 	a.SetKey(this.key)
 	a.SetHeartbeat(this.heartbeat)
-	a.SetHandler(this.handler)
+	a.SetPacketChan(this.packetChan)
 	id := this.agentId.Add(1)
 	a.SetId(id)
 	a.SetConnMgr(this)

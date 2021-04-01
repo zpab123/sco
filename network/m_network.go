@@ -76,6 +76,7 @@ type IConnManager interface {
 	SetKey(k string)              // 设置握手key
 	SetHeartbeat(h time.Duration) // 设置心跳
 	SetHandler(h IHandler)        // 设置消息处理器
+	SetPacketChan(chan *Packet)   // 设置消息通道
 }
 
 // tcp 连接管理

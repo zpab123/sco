@@ -22,18 +22,21 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options      *Options             // 配置选项
-	acceptors    []network.IAcceptor  // 接收器切片
-	connMgr      network.IConnManager // 连接管理
-	handler      network.IHandler     // handler 服务
-	rpcServer    rpc.IServer          // rpc 服务端
-	rpcClient    rpc.IClient          // rpc 客户端
-	discovery    discovery.IDiscovery // 服务发现
-	remote       IRemote              // remote 服务
-	signalChan   chan os.Signal       // 操作系统信号
-	stopGroup    sync.WaitGroup       // 停止等待组
-	clientPacet  chan *network.Packet // 来自客户端的消息
-	remotePacket chan *network.Packet // 远端消息
+	Options           *Options             // 配置选项
+	acceptors         []network.IAcceptor  // 接收器切片
+	connMgr           network.IConnManager // 连接管理
+	handler           network.IHandler     // handler 服务
+	rpcServer         rpc.IServer          // rpc 服务端
+	rpcClient         rpc.IClient          // rpc 客户端
+	discovery         discovery.IDiscovery // 服务发现
+	remote            IRemote              // remote 服务
+	signalChan        chan os.Signal       // 操作系统信号
+	stopGroup         sync.WaitGroup       // 停止等待组
+	clientPacet       chan *network.Packet // 来自客户端的消息
+	serverPacket      chan *network.Packet // 来自服务器的消息
+	remotePacket      chan *network.Packet // 远端消息
+	acceptorForServer network.IAcceptor    // 用于服务器之间的相互连接
+	serverConnMgr     network.IConnManager // 用于服务器连接管理
 }
 
 // 创建1个新的 Application 对象
@@ -49,6 +52,7 @@ func NewApplication(opts ...*Options) *Application {
 	sig := make(chan os.Signal, 1)
 	cp := make(chan *network.Packet, 1000)
 	rp := make(chan *network.Packet, 1000)
+	sp := make(chan *network.Packet, 1000)
 
 	// 创建 app
 	a := Application{
@@ -56,6 +60,7 @@ func NewApplication(opts ...*Options) *Application {
 		Options:      opt,
 		acceptors:    []network.IAcceptor{},
 		clientPacet:  cp,
+		serverPacket: sp,
 		remotePacket: rp,
 	}
 	a.init()
@@ -290,7 +295,7 @@ func (this *Application) newConnMgr() {
 	this.connMgr = network.NewConnMgr(this.Options.Frontend.MaxConn)
 	this.connMgr.SetKey(this.Options.Frontend.Key)
 	this.connMgr.SetHeartbeat(this.Options.Frontend.Heartbeat)
-	this.connMgr.SetHandler(this)
+	this.connMgr.SetPacketChan(this.clientPacet)
 }
 
 // 创建默认接收器
@@ -329,25 +334,34 @@ func (this *Application) newWsAcceptor() {
 
 // 启动集群
 func (this *Application) runCluster() {
-	if nil == this.rpcServer {
-		this.newRpcServer()
-	}
-	if nil != this.rpcServer {
-		go this.rpcServer.Run()
+	/*
+		if nil == this.rpcServer {
+			this.newRpcServer()
+		}
+		if nil != this.rpcServer {
+			go this.rpcServer.Run()
+		}
+
+		if nil == this.rpcClient {
+			this.newRpcClient()
+		}
+		if nil != this.rpcClient {
+			go this.rpcClient.Run()
+		}
+
+		if nil == this.discovery {
+			this.newDiscovery()
+		}
+		if nil != this.discovery {
+			go this.discovery.Run()
+		}
+	*/
+	if this.acceptorForServer == nil {
+		this.newAcceptorForServer()
 	}
 
-	if nil == this.rpcClient {
-		this.newRpcClient()
-	}
-	if nil != this.rpcClient {
-		go this.rpcClient.Run()
-	}
-
-	if nil == this.discovery {
-		this.newDiscovery()
-	}
-	if nil != this.discovery {
-		go this.discovery.Run()
+	if this.acceptorForServer != nil {
+		go this.acceptorForServer.Run()
 	}
 }
 
@@ -383,6 +397,23 @@ func (this *Application) newRpcServer() {
 	s.SetService(this)
 	this.rpcServer = s
 
+}
+
+func (this *Application) newAcceptorForServer() {
+	this.serverConnMgr = network.NewConnMgr(this.Options.Frontend.MaxConn)
+	this.serverConnMgr.SetKey(this.Options.Frontend.Key)
+	this.serverConnMgr.SetHeartbeat(this.Options.Frontend.Heartbeat)
+	this.serverConnMgr.SetPacketChan(this.serverPacket)
+	if "" == this.Options.RpcServer.Laddr {
+		return
+	}
+
+	a, err := network.NewTcpAcceptor(this.Options.RpcServer.Laddr)
+	if nil != err {
+		return
+	}
+	a.SetConnMgr(this.serverConnMgr)
+	this.acceptorForServer = a
 }
 
 // 创建 rpcClient
