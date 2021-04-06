@@ -4,7 +4,7 @@
 package module
 
 import (
-	"sync"
+	"context"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -16,6 +16,6 @@ import (
 // 模块接口
 type IModule interface {
 	OnInit()
-	OnDestroy(wg sync.WaitGroup)
-	Run(closeSig chan bool)
+	OnDestroy()
+	Run(ctx context.Context)
 }

@@ -4,6 +4,7 @@
 package app
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/module"
+	"github.com/zpab123/sco/state"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -20,25 +22,28 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods       []module.IModule // 模块集合
-	stopGroup  sync.WaitGroup   // 停止等待组
-	closeSig   chan bool        // 关闭信号
-	signalChan chan os.Signal   // 操作系统信号
+	mods       []module.IModule   // 模块集合
+	stopGroup  sync.WaitGroup     // 停止等待组
+	signalChan chan os.Signal     // 操作系统信号
+	state      state.State        // 状态
+	ctx        context.Context    // 退出 ctx
+	cancel     context.CancelFunc // 退出 ctx
 }
 
 // 创建1个新的 Application 对象
 func NewApplication() *Application {
 
 	// 创建对象
-	cs := make(chan bool, 1)
 	mod := make([]module.IModule, 0)
 	sch := make(chan os.Signal, 1)
+	cx, cc := context.WithCancel(context.Background())
 
 	// 创建 app
 	a := Application{
 		mods:       mod,
-		closeSig:   cs,
 		signalChan: sch,
+		ctx:        cx,
+		cancel:     cc,
 	}
 
 	return &a
@@ -66,12 +71,18 @@ func (this *Application) Run() {
 
 // 停止app
 func (this *Application) Stop() {
+	if this.state.Get() == state.C_STOPING {
+		return
+	}
+	this.state.Set(state.C_STOPING)
+
 	log.Logger.Info(
 		"[Application] 关闭中",
 	)
 
 	// 发出关闭信号
-	this.closeSig <- true
+	this.cancel()
+	go this.onStop()
 	this.stopGroup.Wait()
 
 	log.Logger.Info(
@@ -115,14 +126,6 @@ func (this *Application) onSignal(sig os.Signal) {
 
 	if syscall.SIGINT == sig || syscall.SIGTERM == sig {
 		this.Stop()
-
-		time.Sleep(C_STOP_TIME_OUT)
-		log.Logger.Warn(
-			"[Application] 关闭超时，强制关闭",
-			log.Uint16("超时时间(秒)=", uint16(C_STOP_TIME_OUT/time.Second)),
-		)
-
-		os.Exit(1)
 	} else {
 		log.Logger.Warn(
 			"[Application] 异常的操作系统信号",
@@ -133,6 +136,17 @@ func (this *Application) onSignal(sig os.Signal) {
 
 // 启动一个 mod
 func (this *Application) runMod(mod module.IModule) {
-	mod.Run(this.closeSig)
+	mod.Run(this.ctx)
 	this.stopGroup.Done()
+}
+
+// app 准备关闭
+func (this *Application) onStop() {
+	time.Sleep(C_STOP_TIME_OUT)
+	log.Logger.Warn(
+		"[Application] 关闭超时，强制关闭",
+		log.Uint16("超时时间(秒)=", uint16(C_STOP_TIME_OUT/time.Second)),
+	)
+
+	os.Exit(1)
 }
