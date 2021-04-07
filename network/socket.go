@@ -78,9 +78,10 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 	}
 
 	mid := socketEndian.Uint16(this.head[0:C_PKT_MID_LEN])
-	bl := socketEndian.Uint32(this.head[C_PKT_MID_LEN:])
+	sid := socketEndian.Uint16(this.head[C_PKT_MID_LEN : C_PKT_MID_LEN+C_PKT_SID_LEN])
+	bl := socketEndian.Uint32(this.head[C_PKT_MID_LEN+C_PKT_SID_LEN:])
 	if bl == 0 {
-		pkt := NewPacket(mid)
+		pkt := NewPacket(mid, sid)
 		return pkt, nil
 	}
 
@@ -94,7 +95,7 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	pkt := NewPacket(mid)
+	pkt := NewPacket(mid, sid)
 	pkt.AppendBytes(body)
 
 	return pkt, nil

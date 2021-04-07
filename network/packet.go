@@ -26,7 +26,8 @@ var (
 
 // 网络通信二进制数据
 type Packet struct {
-	mid      uint16 // packet 主id
+	mid      uint16 // packet 主 id
+	sid      uint16 // packet 子 id
 	bytes    []byte // 用于存放需要通过网络 发送/接收 的数据 （head + body）
 	readPos  int    // 读取位置
 	wirtePos int    // 写入位置
@@ -34,14 +35,15 @@ type Packet struct {
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
-func NewPacket(mid uint16) *Packet {
+func NewPacket(mid uint16, sid uint16) *Packet {
 	pkt := Packet{
 		bytes:    make([]byte, headLenInt+mincap),
 		readPos:  headLenInt,
 		wirtePos: headLenInt,
 	}
-
 	pkt.SetMid(mid)
+	pkt.SetSid(sid)
+
 	return &pkt
 }
 
@@ -50,6 +52,13 @@ func (this *Packet) SetMid(v uint16) {
 	// 记录消息类型
 	packetEndian.PutUint16(this.bytes[0:C_PKT_MID_LEN], v)
 	this.mid = v
+}
+
+// 设置 packet 的 sid
+func (this *Packet) SetSid(v uint16) {
+	// 记录消息类型
+	packetEndian.PutUint16(this.bytes[C_PKT_MID_LEN:C_PKT_MID_LEN+C_PKT_SID_LEN], v)
+	this.sid = v
 }
 
 // 获取 Packet 的 id

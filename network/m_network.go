@@ -16,10 +16,11 @@ import (
 
 // packet 常量
 const (
-	C_PKT_MID_LEN      uint32 = 2                             // packet 主 id 长度
-	C_PKT_LEN_LEN      uint32 = 4                             // packet 长度信息长度
-	C_PKT_HEAD_LEN     uint32 = C_PKT_MID_LEN + C_PKT_LEN_LEN // 消息头大小:字节 main_id + length
-	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024              // body 最大长度 25M
+	C_PKT_MID_LEN      uint32 = 2                                             // packet 主 id 长度
+	C_PKT_SID_LEN      uint32 = 2                                             // packet 子 id 长度
+	C_PKT_LEN_LEN      uint32 = 4                                             // packet 长度信息长度
+	C_PKT_HEAD_LEN     uint32 = C_PKT_MID_LEN + C_PKT_SID_LEN + C_PKT_LEN_LEN // 消息头大小:字节 main_id + length
+	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024                              // body 最大长度 25M
 )
 
 // client 状态
