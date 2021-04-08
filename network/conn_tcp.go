@@ -19,13 +19,13 @@ import (
 
 // tcp 客户端
 type TcpConn struct {
-	addr      string               // 远端地址
-	socket    *Socket              // socket
-	state     *state.State         // 状态管理
-	handler   IHandler             // 消息处理
-	heartbeat time.Duration        // 心跳周期
-	lastTime  syncutil.AtomicInt64 // 上次发送数据的时间
-	chDie     chan struct{}        // 关闭通道
+	addr       string               // 远端地址
+	socket     *Socket              // socket
+	state      *state.State         // 状态管理
+	heartbeat  time.Duration        // 心跳周期
+	lastTime   syncutil.AtomicInt64 // 上次发送数据的时间
+	chDie      chan struct{}        // 关闭通道
+	packetChan chan *Packet         // 消息通道
 }
 
 // 新建1个 tcp 连接
@@ -106,12 +106,15 @@ func (this *TcpConn) String() string {
 	return this.socket.String()
 }
 
-// 设置处理器
-func (this *TcpConn) SetHandler(h IHandler) {
-	if nil != h {
-		this.handler = h
+// 设置消息通道
+func (this *TcpConn) SetPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.packetChan = ch
 	}
 }
+
+// -----------------------------------------------------------------------------
+// private
 
 // 接收线程
 func (this *TcpConn) recvLoop() {
@@ -206,7 +209,7 @@ func (this *TcpConn) reqHandShake() {
 		return
 	}
 
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE)
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
 	pkt.AppendBytes(data)
 
 	this.socket.SendBytes(pkt.Data())
@@ -214,7 +217,7 @@ func (this *TcpConn) reqHandShake() {
 
 // 发送握手ack
 func (this *TcpConn) sendAck() {
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE_ACK)
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE_ACK, 0)
 	this.socket.SendBytes(pkt.Data())
 
 	this.state.Set(C_CLI_ST_WORKING)
@@ -253,7 +256,7 @@ func (this *TcpConn) onHandshake(data []byte) {
 // 发送心跳数据
 func (this *TcpConn) sendHeartbeat() error {
 	// 发送心跳数据
-	pkt := NewPacket(protocol.C_MID_HEARTBEAT)
+	pkt := NewPacket(protocol.C_MID_HEARTBEAT, 0)
 	err := this.SendPacket(pkt)
 
 	return err
@@ -266,7 +269,7 @@ func (this *TcpConn) handle(pkt *Packet) {
 		return
 	}
 
-	if nil != this.handler {
-		this.handler.OnPacket(pkt)
+	if this.packetChan != nil {
+		this.packetChan <- pkt
 	}
 }

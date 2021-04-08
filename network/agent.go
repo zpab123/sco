@@ -317,7 +317,7 @@ func (this *Agent) handshakeOk() {
 		return
 	}
 
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE)
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
 	pkt.AppendBytes(data)
 	this.socket.SendPacket(pkt) // 越过工作状态发送消息
 
@@ -341,7 +341,7 @@ func (this *Agent) handshakeFail(code uint32) {
 		return
 	}
 
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE)
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
 	pkt.AppendBytes(data)
 	this.socket.SendPacket(pkt) // 越过工作状态发送消息
 }
@@ -361,7 +361,7 @@ func (this *Agent) onAck() {
 //  发送心跳数据
 func (this *Agent) sendHeartbeat() error {
 	// 发送心跳数据
-	pkt := NewPacket(protocol.C_MID_HEARTBEAT)
+	pkt := NewPacket(protocol.C_MID_HEARTBEAT, 0)
 	err := this.SendPacket(pkt)
 
 	return err

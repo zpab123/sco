@@ -345,7 +345,7 @@ func (this *Packet) getPayloadCap() int {
 
 // 增加 body 长度
 func (this *Packet) addBodyLen(ln uint32) {
-	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN]))
+	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN+C_PKT_SID_LEN]))
 
 	*bl += ln
 	this.wirtePos += int(ln)

@@ -14,6 +14,7 @@ import (
 
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/module"
+	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
 )
 
@@ -22,12 +23,14 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods       []module.IModule   // 模块集合
-	stopGroup  sync.WaitGroup     // 停止等待组
-	signalChan chan os.Signal     // 操作系统信号
-	state      state.State        // 状态
-	ctx        context.Context    // 退出 ctx
-	cancel     context.CancelFunc // 退出 ctx
+	mods       []module.IModule                // 模块集合
+	stopGroup  sync.WaitGroup                  // 停止等待组
+	signalChan chan os.Signal                  // 操作系统信号
+	state      state.State                     // 状态
+	ctx        context.Context                 // 退出 ctx
+	cancel     context.CancelFunc              // 退出 ctx
+	subMap     map[uint16]chan *network.Packet // 订阅消息列表
+	suber      map[uint16]int64                // id -> 订阅者 集合，预防重复订阅
 }
 
 // 创建1个新的 Application 对象
@@ -98,6 +101,18 @@ func (this *Application) RegisterMod(mod module.IModule) {
 		this.mods = append(this.mods, mod)
 		mod.OnInit()
 	}
+}
+
+// 订阅消息
+func (this *Application) Subscribe(mid uint16, c chan *network.Packet) {
+	// 重复订阅验证?
+	// 加入订阅列表
+}
+
+// 发布消息
+func (this *Application) Publish(mid uint16) {
+	// 复制消息
+	// 发送给每个订阅者
 }
 
 // -----------------------------------------------------------------------------
