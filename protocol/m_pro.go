@@ -12,7 +12,8 @@ const (
 	C_MID_HANDSHAKE     uint16 = 1 // 握手消息ID
 	C_MID_HANDSHAKE_ACK uint16 = 2 // 握手 ACK
 	C_MID_HEARTBEAT     uint16 = 3 // 心跳
-	C_MID_SCO           uint16 = 4 // 分界线： 以上由 SocConn 处理的消息
+	C_MID_WORKING       uint16 = 4 // 连接为工作状态
+	C_MID_SCO           uint16 = 5 // 分界线： 以上由 SocConn 处理的消息
 )
 
 // 消息码

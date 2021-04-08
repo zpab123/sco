@@ -221,6 +221,12 @@ func (this *TcpConn) sendAck() {
 	this.socket.SendBytes(pkt.Data())
 
 	this.state.Set(C_CLI_ST_WORKING)
+
+	// 通知可以发送数据了
+	if this.packetChan != nil {
+		pkt := NewPacket(protocol.C_MID_WORKING, 0)
+		this.packetChan <- pkt
+	}
 }
 
 // 收到1个 pakcet
