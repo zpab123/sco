@@ -109,7 +109,7 @@ func (this *Application) Subscribe(mid uint16, c chan *network.Packet) {
 	// 加入订阅列表
 }
 
-// 发布消息
+// 发布消息 dispatch  broadcast
 func (this *Application) Publish(mid uint16) {
 	// 复制消息
 	// 发送给每个订阅者
