@@ -23,14 +23,14 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods       []module.IModule                // 模块集合
-	stopGroup  sync.WaitGroup                  // 停止等待组
-	signalChan chan os.Signal                  // 操作系统信号
-	state      state.State                     // 状态
-	ctx        context.Context                 // 退出 ctx
-	cancel     context.CancelFunc              // 退出 ctx
-	subMap     map[uint16]chan *network.Packet // 订阅消息列表
-	suber      map[uint16]int64                // id -> 订阅者 集合，预防重复订阅
+	mods       []module.IModule             // 模块集合
+	stopGroup  sync.WaitGroup               // 停止等待组
+	signalChan chan os.Signal               // 操作系统信号
+	state      state.State                  // 状态
+	ctx        context.Context              // 退出 ctx
+	cancel     context.CancelFunc           // 退出 ctx
+	subMap     map[string][]chan module.Msg // 订阅消息列表
+	suber      map[string]string            // id -> 订阅者 集合，预防重复订阅
 }
 
 // 创建1个新的 Application 对象
@@ -40,6 +40,8 @@ func NewApplication() *Application {
 	mod := make([]module.IModule, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
+	sm := make(map[string][]chan module.Msg, 0)
+	sb := make(map[string]string, 0)
 
 	// 创建 app
 	a := Application{
@@ -47,6 +49,8 @@ func NewApplication() *Application {
 		signalChan: sch,
 		ctx:        cx,
 		cancel:     cc,
+		subMap:     sm,
+		suber:      sb,
 	}
 
 	return &a
@@ -104,15 +108,44 @@ func (this *Application) RegisterMod(mod module.IModule) {
 }
 
 // 订阅消息
-func (this *Application) Subscribe(mid uint16, c chan *network.Packet) {
-	// 重复订阅验证?
+func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
+	// 存在数据竞争？
+
+	// 重复订阅验证
+	_, ok := this.suber[ber]
+	if ok {
+		return
+	}
+
+	this.suber[ber] = msg
+
 	// 加入订阅列表
+	lis, ok := this.subMap[msg]
+	if !ok {
+		lis = make([]chan module.Msg, 1)
+	}
+
+	lis = append(lis, ch)
+	this.subMap[msg] = lis
 }
 
 // 发布消息 dispatch  broadcast
-func (this *Application) Publish(mid uint16) {
-	// 复制消息
+func (this *Application) Publish(msg module.Msg) {
+	// 这里存在数据竞争
+	// 加锁？
+	// 或者使用 chan
+
+	if msg == nil {
+		return
+	}
+
 	// 发送给每个订阅者
+	lis, ok := this.subMap[msg.Name]
+	if ok {
+		for _, ch := range lis {
+			ch <- msg
+		}
+	}
 }
 
 // -----------------------------------------------------------------------------
