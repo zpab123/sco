@@ -14,7 +14,6 @@ import (
 
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/module"
-	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
 )
 
@@ -23,14 +22,16 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods       []module.IModule             // 模块集合
-	stopGroup  sync.WaitGroup               // 停止等待组
-	signalChan chan os.Signal               // 操作系统信号
-	state      state.State                  // 状态
-	ctx        context.Context              // 退出 ctx
-	cancel     context.CancelFunc           // 退出 ctx
-	subMap     map[string][]chan module.Msg // 订阅消息列表
-	suber      map[string]string            // id -> 订阅者 集合，预防重复订阅
+	mods        []module.IModule             // 模块集合
+	stopGroup   sync.WaitGroup               // 停止等待组
+	signalChan  chan os.Signal               // 操作系统信号
+	state       state.State                  // 状态
+	ctx         context.Context              // 退出 ctx
+	cancel      context.CancelFunc           // 退出 ctx
+	subMutex    sync.Mutex                   // subMap 数据锁
+	subMap      map[string][]chan module.Msg // 订阅消息列表
+	suber       map[string][]string          // 订阅者->消息列表
+	chBroadcast chan module.Msg              // 需要广播的消息
 }
 
 // 创建1个新的 Application 对象
@@ -41,16 +42,18 @@ func NewApplication() *Application {
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
 	sm := make(map[string][]chan module.Msg, 0)
-	sb := make(map[string]string, 0)
+	sb := make(map[string][]string, 0)
+	cb := make(chan module.Msg, 100)
 
 	// 创建 app
 	a := Application{
-		mods:       mod,
-		signalChan: sch,
-		ctx:        cx,
-		cancel:     cc,
-		subMap:     sm,
-		suber:      sb,
+		mods:        mod,
+		signalChan:  sch,
+		ctx:         cx,
+		cancel:      cc,
+		subMap:      sm,
+		suber:       sb,
+		chBroadcast: cb,
 	}
 
 	return &a
@@ -109,15 +112,21 @@ func (this *Application) RegisterMod(mod module.IModule) {
 
 // 订阅消息
 func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
-	// 存在数据竞争？
+	defer this.subMutex.Unlock()
 
+	this.subMutex.Lock()
 	// 重复订阅验证
-	_, ok := this.suber[ber]
-	if ok {
-		return
-	}
+	lb, has := this.suber[ber]
+	if has {
+		for _, name := range lb {
+			if name == msg {
+				return
+			}
+		}
 
-	this.suber[ber] = msg
+		lb = append(lb, msg)
+		this.suber[ber] = lb
+	}
 
 	// 加入订阅列表
 	lis, ok := this.subMap[msg]
@@ -131,21 +140,7 @@ func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
 
 // 发布消息 dispatch  broadcast
 func (this *Application) Publish(msg module.Msg) {
-	// 这里存在数据竞争
-	// 加锁？
-	// 或者使用 chan
-
-	if msg == nil {
-		return
-	}
-
-	// 发送给每个订阅者
-	lis, ok := this.subMap[msg.Name]
-	if ok {
-		for _, ch := range lis {
-			ch <- msg
-		}
-	}
+	this.chBroadcast <- msg
 }
 
 // -----------------------------------------------------------------------------
@@ -164,6 +159,8 @@ func (this *Application) mainLoop() {
 		select {
 		case sig := <-this.signalChan:
 			this.onSignal(sig)
+		case msg := <-this.chBroadcast:
+			this.broadcast(msg)
 		}
 	}
 }
@@ -197,4 +194,16 @@ func (this *Application) onStop() {
 	)
 
 	os.Exit(1)
+}
+
+// 广播消息
+func (this *Application) broadcast(msg module.Msg) {
+	sub, ok := this.subMap[msg.Name]
+	if !ok {
+		return
+	}
+
+	for _, ch := range sub {
+		ch <- msg
+	}
 }

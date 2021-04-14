@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/log"
-	"github.com/zpab123/sco/syncutil"
+	"github.com/zpab123/sco/syncs"
 	"golang.org/x/net/websocket"
 )
 
@@ -18,14 +18,14 @@ import (
 
 // 连接管理
 type ConnMgr struct {
-	maxConn    int32                // 最大连接数量，超过此数值后，不再接收新连接
-	key        string               // 握手key
-	heartbeat  time.Duration        // 心跳周期
-	handler    IHandler             // 消息处理器
-	connNum    syncutil.AtomicInt32 // 当前连接数
-	agentMap   sync.Map             // agent 集合
-	agentId    syncutil.AtomicInt32 // agent id
-	packetChan chan *Packet         // 消息通道
+	maxConn    int32             // 最大连接数量，超过此数值后，不再接收新连接
+	key        string            // 握手key
+	heartbeat  time.Duration     // 心跳周期
+	handler    IHandler          // 消息处理器
+	connNum    syncs.AtomicInt32 // 当前连接数
+	agentMap   sync.Map          // agent 集合
+	agentId    syncs.AtomicInt32 // agent id
+	packetChan chan *Packet      // 消息通道
 }
 
 // 新建1个 ConnMgr

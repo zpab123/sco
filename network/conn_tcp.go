@@ -11,7 +11,7 @@ import (
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/sco/state"
-	"github.com/zpab123/sco/syncutil"
+	"github.com/zpab123/sco/syncs"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -19,13 +19,13 @@ import (
 
 // tcp 客户端
 type TcpConn struct {
-	addr       string               // 远端地址
-	socket     *Socket              // socket
-	state      *state.State         // 状态管理
-	heartbeat  time.Duration        // 心跳周期
-	lastTime   syncutil.AtomicInt64 // 上次发送数据的时间
-	chDie      chan struct{}        // 关闭通道
-	packetChan chan *Packet         // 消息通道
+	addr       string            // 远端地址
+	socket     *Socket           // socket
+	state      *state.State      // 状态管理
+	heartbeat  time.Duration     // 心跳周期
+	lastTime   syncs.AtomicInt64 // 上次发送数据的时间
+	chDie      chan struct{}     // 关闭通道
+	packetChan chan *Packet      // 消息通道
 }
 
 // 新建1个 tcp 连接

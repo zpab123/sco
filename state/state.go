@@ -7,7 +7,7 @@ package state
 // 包 初始化
 
 import (
-	"github.com/zpab123/sco/syncutil" // 原子变量工具
+	"github.com/zpab123/sco/syncs" // 原子变量工具
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -15,7 +15,7 @@ import (
 
 // 状态管理，可以安全地被多个线程访问
 type State struct {
-	state syncutil.AtomicUint32 // 当前状态
+	state syncs.AtomicUint32 // 当前状态
 }
 
 // 新建1个 State 对象

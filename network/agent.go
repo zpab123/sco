@@ -11,7 +11,7 @@ import (
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/protocol"
 	"github.com/zpab123/sco/state"
-	"github.com/zpab123/sco/syncutil"
+	"github.com/zpab123/sco/syncs"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -27,16 +27,16 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	id         int32                // id 标识
-	socket     *Socket              // socket
-	key        string               // 握手key
-	heartbeat  time.Duration        // 心跳周期
-	handler    IHandler             // 消息处理
-	state      *state.State         // 状态管理
-	mgr        IAgentManager        // 连接管理
-	lastTime   syncutil.AtomicInt64 // 上次收到客户端消息的时间
-	chDie      chan struct{}        // 关闭通道
-	packetChan chan *Packet         // 消息通道
+	id         int32             // id 标识
+	socket     *Socket           // socket
+	key        string            // 握手key
+	heartbeat  time.Duration     // 心跳周期
+	handler    IHandler          // 消息处理
+	state      *state.State      // 状态管理
+	mgr        IAgentManager     // 连接管理
+	lastTime   syncs.AtomicInt64 // 上次收到客户端消息的时间
+	chDie      chan struct{}     // 关闭通道
+	packetChan chan *Packet      // 消息通道
 }
 
 // 新建1个 *Agent 对象
