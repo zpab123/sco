@@ -138,6 +138,8 @@ func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
 	this.subMap[msg] = lis
 }
 
+// 取消订阅
+
 // 发布消息 dispatch  broadcast
 func (this *Application) Publish(msg module.Msg) {
 	this.chBroadcast <- msg
@@ -198,6 +200,9 @@ func (this *Application) onStop() {
 
 // 广播消息
 func (this *Application) broadcast(msg module.Msg) {
+	defer this.subMutex.Unlock()
+
+	this.subMutex.Lock()
 	sub, ok := this.subMap[msg.Name]
 	if !ok {
 		return

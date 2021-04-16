@@ -19,13 +19,15 @@ import (
 
 // tcp 客户端
 type TcpConn struct {
-	addr       string            // 远端地址
-	socket     *Socket           // socket
-	state      *state.State      // 状态管理
-	heartbeat  time.Duration     // 心跳周期
-	lastTime   syncs.AtomicInt64 // 上次发送数据的时间
-	chDie      chan struct{}     // 关闭通道
-	packetChan chan *Packet      // 消息通道
+	addr           string            // 远端地址
+	socket         *Socket           // socket
+	state          *state.State      // 状态管理
+	heartbeat      time.Duration     // 心跳周期
+	heartbeatInt64 int64             // 心跳周期(毫秒)
+	lastRecv       syncs.AtomicInt64 // 上次收到数据的时间
+	lastSend       syncs.AtomicInt64 // 上次发送数据时间
+	chDie          chan struct{}     // 关闭通道
+	packetChan     chan *Packet      // 消息通道
 }
 
 // 新建1个 tcp 连接
@@ -34,12 +36,14 @@ func NewTcpConn(addr string) *TcpConn {
 	st := state.NewState()
 
 	c := TcpConn{
-		heartbeat: C_F_HEARTBEAT,
-		addr:      addr,
-		state:     st,
-		chDie:     make(chan struct{}),
+		heartbeat:      C_F_HEARTBEAT,
+		heartbeatInt64: int64(C_F_HEARTBEAT),
+		addr:           addr,
+		state:          st,
+		chDie:          make(chan struct{}),
 	}
-	c.lastTime.Store(time.Now().Unix())
+	c.lastRecv.Store(time.Now().Unix())
+	c.lastSend.Store(time.Now().Unix())
 
 	// 设置为初始化状态
 	c.state.Set(C_CLI_ST_INIT)
@@ -66,7 +70,9 @@ func (this *TcpConn) Run() error {
 	// 接收线程
 	go this.recvLoop()
 	// 心跳
-	go this.heartbeatLoop()
+	if this.heartbeatInt64 > 0 {
+		go this.heartbeatLoop()
+	}
 
 	return nil
 }
@@ -157,17 +163,15 @@ func (this *TcpConn) sendLoop() {
 		}
 
 		// 记录发送时间
-		this.lastTime.Store(time.Now().Unix())
+		this.lastSend.Store(time.Now().Unix())
 	}
 }
 
 // 心跳循环
 func (this *TcpConn) heartbeatLoop() {
-	if this.heartbeat <= 0 {
-		return
-	}
-
-	ticker := time.NewTicker(this.heartbeat)
+	// 半程检测
+	hb := this.heartbeat / 2
+	ticker := time.NewTicker(hb)
 
 	defer func() {
 		log.Logger.Debug(
@@ -177,15 +181,12 @@ func (this *TcpConn) heartbeatLoop() {
 		ticker.Stop()
 	}()
 
-	hInt64 := int64(this.heartbeat / time.Second)
-
 	for {
 		select {
 		case <-ticker.C:
-			pass := time.Now().Unix() - this.lastTime.Load()
-			if pass >= hInt64 {
-				this.sendHeartbeat()
-			}
+			t := time.Now()
+			this.checkRecvTime(t)
+			this.checkSendTime(t)
 		case <-this.chDie:
 			return
 		}
@@ -231,6 +232,7 @@ func (this *TcpConn) sendAck() {
 
 // 收到1个 pakcet
 func (this *TcpConn) onPacket(pkt *Packet) {
+	this.lastRecv.Store(time.Now().Unix())
 	switch pkt.mid {
 	case protocol.C_MID_HANDSHAKE: // 远端握手结果
 		this.onHandshake(pkt.GetBody())
@@ -277,5 +279,25 @@ func (this *TcpConn) handle(pkt *Packet) {
 
 	if this.packetChan != nil {
 		this.packetChan <- pkt
+	}
+}
+
+// 检查发送是否超时
+func (this *TcpConn) checkSendTime(t time.Time) {
+	pass := t.Unix() - this.lastSend.Load()
+	if pass >= this.heartbeatInt64/2 {
+		this.sendHeartbeat()
+	}
+}
+
+// 检查接收是否超时
+func (this *TcpConn) checkRecvTime(t time.Time) {
+	pass := t.Unix() - this.lastRecv.Load()
+	if pass >= this.heartbeatInt64 {
+		log.Logger.Debug(
+			"[TcpConn] 心跳超时，关闭连接",
+		)
+
+		this.Stop()
 	}
 }

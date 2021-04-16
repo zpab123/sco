@@ -27,16 +27,18 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	id         int32             // id 标识
-	socket     *Socket           // socket
-	key        string            // 握手key
-	heartbeat  time.Duration     // 心跳周期
-	handler    IHandler          // 消息处理
-	state      *state.State      // 状态管理
-	mgr        IAgentManager     // 连接管理
-	lastTime   syncs.AtomicInt64 // 上次收到客户端消息的时间
-	chDie      chan struct{}     // 关闭通道
-	packetChan chan *Packet      // 消息通道
+	id             int32             // id 标识
+	socket         *Socket           // socket
+	key            string            // 握手key
+	heartbeat      time.Duration     // 心跳周期
+	heartbeatInt64 int64             // 心跳周期(毫秒)
+	handler        IHandler          // 消息处理
+	state          *state.State      // 状态管理
+	mgr            IAgentManager     // 连接管理
+	lastRecv       syncs.AtomicInt64 // 上次收到数据的时间
+	lastSend       syncs.AtomicInt64 // 上次发送数据时间
+	chDie          chan struct{}     // 关闭通道
+	packetChan     chan *Packet      // 消息通道
 }
 
 // 新建1个 *Agent 对象
@@ -54,13 +56,15 @@ func NewAgent(socket *Socket) (*Agent, error) {
 
 	// 创建对象
 	a := Agent{
-		key:       C_F_KEY,
-		heartbeat: C_F_HEARTBEAT,
-		socket:    socket,
-		state:     st,
-		chDie:     make(chan struct{}),
+		key:            C_F_KEY,
+		heartbeat:      C_F_HEARTBEAT,
+		heartbeatInt64: int64(C_F_HEARTBEAT),
+		socket:         socket,
+		state:          st,
+		chDie:          make(chan struct{}),
 	}
-	a.lastTime.Store(time.Now().Unix())
+	a.lastRecv.Store(time.Now().Unix())
+	a.lastSend.Store(time.Now().Unix())
 
 	// 设置为初始化状态
 	a.state.Set(C_AGENT_ST_INIT)
@@ -72,8 +76,12 @@ func NewAgent(socket *Socket) (*Agent, error) {
 func (this *Agent) Run() {
 	// 发送线程
 	go this.sendLoop()
+
 	// 心跳
-	go this.heartbeatLoop()
+	if this.heartbeat > 0 {
+		go this.heartbeatLoop()
+	}
+
 	// 接收循环，这里不能 go this.recvLoop()，会导致 websocket 连接直接断开
 	this.recvLoop()
 }
@@ -212,16 +220,16 @@ func (this *Agent) sendLoop() {
 		if nil != err {
 			break
 		}
+
+		this.lastSend.Store(time.Now().Unix())
 	}
 }
 
 // 心跳线程
 func (this *Agent) heartbeatLoop() {
-	if this.heartbeat <= 0 {
-		return
-	}
-
-	ticker := time.NewTicker(this.heartbeat)
+	// 半程检测
+	hb := this.heartbeat / 2
+	ticker := time.NewTicker(hb)
 
 	defer func() {
 		log.Logger.Debug(
@@ -229,24 +237,14 @@ func (this *Agent) heartbeatLoop() {
 		)
 
 		ticker.Stop()
-		this.Stop()
 	}()
-
-	hInt64 := int64(this.heartbeat / time.Second)
 
 	for {
 		select {
 		case <-ticker.C:
-			pass := time.Now().Unix() - this.lastTime.Load()
-			if pass > hInt64*2 {
-				log.Logger.Debug(
-					"[Agent] 心跳超时，关闭连接",
-				)
-
-				return
-			} else if pass >= hInt64 {
-				this.sendHeartbeat()
-			}
+			t := time.Now()
+			this.checkRecvTime(t)
+			this.checkSendTime(t)
 		case <-this.chDie:
 			return
 		}
@@ -255,7 +253,7 @@ func (this *Agent) heartbeatLoop() {
 
 // 收到1个 pakcet
 func (this *Agent) onPacket(pkt *Packet) {
-	this.lastTime.Store(time.Now().Unix())
+	this.lastRecv.Store(time.Now().Unix())
 	switch pkt.mid {
 	case protocol.C_MID_INVALID: // 无效
 		this.Stop()
@@ -376,5 +374,25 @@ func (this *Agent) handle(pkt *Packet) {
 
 	if this.packetChan != nil {
 		this.packetChan <- pkt
+	}
+}
+
+// 检查发送是否超时
+func (this *Agent) checkSendTime(t time.Time) {
+	pass := t.Unix() - this.lastSend.Load()
+	if pass >= this.heartbeatInt64/2 {
+		this.sendHeartbeat()
+	}
+}
+
+// 检查接收是否超时
+func (this *Agent) checkRecvTime(t time.Time) {
+	pass := t.Unix() - this.lastRecv.Load()
+	if pass >= this.heartbeatInt64 {
+		log.Logger.Debug(
+			"[Agent] 心跳超时，关闭连接",
+		)
+
+		this.Stop()
 	}
 }
