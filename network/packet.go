@@ -66,6 +66,11 @@ func (this *Packet) GetMid() uint16 {
 	return this.mid
 }
 
+// 获取 Packet 的子id
+func (this *Packet) GetSid() uint16 {
+	return this.sid
+}
+
 // 获取 Agent
 func (this *Packet) GetAgent() *Agent {
 	return this.agent
