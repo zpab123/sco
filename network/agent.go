@@ -63,8 +63,8 @@ func NewAgent(socket *Socket) (*Agent, error) {
 		state:          st,
 		chDie:          make(chan struct{}),
 	}
-	a.lastRecv.Store(time.Now().Unix())
-	a.lastSend.Store(time.Now().Unix())
+	a.lastRecv.Store(time.Now().UnixNano())
+	a.lastSend.Store(time.Now().UnixNano())
 
 	// 设置为初始化状态
 	a.state.Set(C_AGENT_ST_INIT)
@@ -221,7 +221,7 @@ func (this *Agent) sendLoop() {
 			break
 		}
 
-		this.lastSend.Store(time.Now().Unix())
+		this.lastSend.Store(time.Now().UnixNano())
 	}
 }
 
@@ -253,7 +253,7 @@ func (this *Agent) heartbeatLoop() {
 
 // 收到1个 pakcet
 func (this *Agent) onPacket(pkt *Packet) {
-	this.lastRecv.Store(time.Now().Unix())
+	this.lastRecv.Store(time.Now().UnixNano())
 	switch pkt.mid {
 	case protocol.C_MID_INVALID: // 无效
 		this.Stop()
@@ -379,7 +379,7 @@ func (this *Agent) handle(pkt *Packet) {
 
 // 检查发送是否超时
 func (this *Agent) checkSendTime(t time.Time) {
-	pass := t.Unix() - this.lastSend.Load()
+	pass := t.UnixNano() - this.lastSend.Load()
 	if pass >= this.heartbeatInt64/2 {
 		this.sendHeartbeat()
 	}
@@ -387,7 +387,7 @@ func (this *Agent) checkSendTime(t time.Time) {
 
 // 检查接收是否超时
 func (this *Agent) checkRecvTime(t time.Time) {
-	pass := t.Unix() - this.lastRecv.Load()
+	pass := t.UnixNano() - this.lastRecv.Load()
 	if pass >= this.heartbeatInt64 {
 		log.Logger.Debug(
 			"[Agent] 心跳超时，关闭连接",

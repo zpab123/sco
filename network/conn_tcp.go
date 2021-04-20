@@ -42,8 +42,8 @@ func NewTcpConn(addr string) *TcpConn {
 		state:          st,
 		chDie:          make(chan struct{}),
 	}
-	c.lastRecv.Store(time.Now().Unix())
-	c.lastSend.Store(time.Now().Unix())
+	c.lastRecv.Store(time.Now().UnixNano())
+	c.lastSend.Store(time.Now().UnixNano())
 
 	// 设置为初始化状态
 	c.state.Set(C_CLI_ST_INIT)
@@ -163,7 +163,7 @@ func (this *TcpConn) sendLoop() {
 		}
 
 		// 记录发送时间
-		this.lastSend.Store(time.Now().Unix())
+		this.lastSend.Store(time.Now().UnixNano())
 	}
 }
 
@@ -232,7 +232,7 @@ func (this *TcpConn) sendAck() {
 
 // 收到1个 pakcet
 func (this *TcpConn) onPacket(pkt *Packet) {
-	this.lastRecv.Store(time.Now().Unix())
+	this.lastRecv.Store(time.Now().UnixNano())
 	switch pkt.mid {
 	case protocol.C_MID_HANDSHAKE: // 远端握手结果
 		this.onHandshake(pkt.GetBody())
@@ -284,7 +284,7 @@ func (this *TcpConn) handle(pkt *Packet) {
 
 // 检查发送是否超时
 func (this *TcpConn) checkSendTime(t time.Time) {
-	pass := t.Unix() - this.lastSend.Load()
+	pass := t.UnixNano() - this.lastSend.Load()
 	if pass >= this.heartbeatInt64/2 {
 		this.sendHeartbeat()
 	}
@@ -292,7 +292,7 @@ func (this *TcpConn) checkSendTime(t time.Time) {
 
 // 检查接收是否超时
 func (this *TcpConn) checkRecvTime(t time.Time) {
-	pass := t.Unix() - this.lastRecv.Load()
+	pass := t.UnixNano() - this.lastRecv.Load()
 	if pass >= this.heartbeatInt64 {
 		log.Logger.Debug(
 			"[TcpConn] 心跳超时，关闭连接",
