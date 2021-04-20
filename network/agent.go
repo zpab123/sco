@@ -199,6 +199,7 @@ func (this *Agent) recvLoop() {
 		}
 
 		if nil != pkt {
+			pkt.agent = this
 			this.onPacket(pkt)
 			continue
 		}
