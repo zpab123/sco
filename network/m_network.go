@@ -78,6 +78,7 @@ type IConnManager interface {
 	SetHeartbeat(h time.Duration) // 设置心跳
 	SetHandler(h IHandler)        // 设置消息处理器
 	SetPacketChan(chan *Packet)   // 设置消息通道
+	GetConnNum() int32            // 获取当前连接数
 }
 
 // tcp 连接管理

@@ -158,6 +158,11 @@ func (this *ConnMgr) OnAgentStop(a *Agent) {
 	}
 }
 
+// 获取当前连接数
+func (this *ConnMgr) GetConnNum() int32 {
+	return this.connNum.Load()
+}
+
 // 创建代理
 func (this *ConnMgr) newAgent(conn net.Conn) {
 	s, err := NewSocket(conn)
