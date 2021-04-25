@@ -15,7 +15,12 @@ import (
 
 // 模块接口
 type IModule interface {
+	// 获取 module id
+	ID() uint32
+	// 初始化 module
 	OnInit()
+	// 销毁 module
 	OnDestroy()
+	// 启动 module
 	Run(ctx context.Context)
 }

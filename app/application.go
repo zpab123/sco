@@ -140,9 +140,14 @@ func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
 
 // 取消订阅
 
-// 发布消息 dispatch  broadcast
-func (this *Application) Publish(msg module.Msg) {
-	this.chBroadcast <- msg
+// 发布消息
+func (this *Application) Publish(id uint16, data interface{}) {
+
+}
+
+// 向某个模块请求数据
+func (this *Application) Request(mod uint16, id, data interface{}) {
+
 }
 
 // -----------------------------------------------------------------------------
