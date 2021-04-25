@@ -22,16 +22,16 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods        []module.IModule             // 模块集合
-	stopGroup   sync.WaitGroup               // 停止等待组
-	signalChan  chan os.Signal               // 操作系统信号
-	state       state.State                  // 状态
-	ctx         context.Context              // 退出 ctx
-	cancel      context.CancelFunc           // 退出 ctx
-	subMutex    sync.Mutex                   // subMap 数据锁
-	subMap      map[string][]chan module.Msg // 订阅消息列表
-	suber       map[string][]string          // 订阅者->消息列表
-	chBroadcast chan module.Msg              // 需要广播的消息
+	mods       []module.IModule           // 模块集合
+	stopGroup  sync.WaitGroup             // 停止等待组
+	signalChan chan os.Signal             // 操作系统信号
+	state      state.State                // 状态
+	ctx        context.Context            // 退出 ctx
+	cancel     context.CancelFunc         // 退出 ctx
+	subAdd     chan *module.Subscriber    // 订阅消息
+	subDel     chan *module.Subscriber    // 取消订阅
+	postmans   map[uint32]*module.Postman // 模块消息投递员
+	modMsg     chan module.Messge         // 模块消息
 }
 
 // 创建1个新的 Application 对象
@@ -41,19 +41,21 @@ func NewApplication() *Application {
 	mod := make([]module.IModule, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
-	sm := make(map[string][]chan module.Msg, 0)
-	sb := make(map[string][]string, 0)
-	cb := make(chan module.Msg, 100)
+	sa := make(chan *module.Subscriber, 100)
+	sd := make(chan *module.Subscriber, 100)
+	pm := make(map[uint32]*module.Postman, 0)
+	msg := make(chan module.Messge, 100)
 
 	// 创建 app
 	a := Application{
-		mods:        mod,
-		signalChan:  sch,
-		ctx:         cx,
-		cancel:      cc,
-		subMap:      sm,
-		suber:       sb,
-		chBroadcast: cb,
+		mods:       mod,
+		signalChan: sch,
+		ctx:        cx,
+		cancel:     cc,
+		subAdd:     sa,
+		subDel:     sd,
+		postmans:   pm,
+		modMsg:     msg,
 	}
 
 	return &a
@@ -105,69 +107,58 @@ func (this *Application) Stop() {
 // 注册模块
 func (this *Application) RegisterMod(mod module.IModule) {
 	if mod != nil {
-		this.mods = append(this.mods, mod)
+		mod.SetMsgMgr(this)
 		mod.OnInit()
+		this.mods = append(this.mods, mod)
 	}
 }
 
-// 订阅消息
-func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
-	defer this.subMutex.Unlock()
+// -----------------------------------------------------------------------------
+// module.IMessgeMgr 接口
 
-	this.subMutex.Lock()
-	// 重复订阅验证
-	lb, has := this.suber[ber]
-	if has {
-		for _, name := range lb {
-			if name == msg {
-				return
-			}
-		}
-
-		lb = append(lb, msg)
-		this.suber[ber] = lb
+// 添加消息订阅者
+func (this *Application) AddSubscriber(suber *module.Subscriber) {
+	if suber == nil || suber.MsgChan == nil {
+		return
 	}
 
-	// 加入订阅列表
-	lis, ok := this.subMap[msg]
-	if !ok {
-		lis = make([]chan module.Msg, 1)
-	}
-
-	lis = append(lis, ch)
-	this.subMap[msg] = lis
+	this.subAdd <- suber
 }
 
 // 取消订阅
+func (this *Application) DelSubscriber(suber *module.Subscriber) {
+	if suber == nil {
+		return
+	}
 
-// 发布消息
-func (this *Application) Publish(id uint16, data interface{}) {
-	// 这里需要加锁
-	// 根据消息id 查找 map
-	// 遍历 map 发送信息
-
-	// 方法2
-	// 将消息组合，放入一个 chan，然后再在主循环里面处理
+	this.subDel <- suber
 }
 
-// 向某个模块请求数据
-func (this *Application) Request(mod uint16, id, data interface{}) {
-	for _, m := range this.mods {
-		if m.ID() == mod {
-			ch := m.MsgIn()
-			if ch == nil {
-				return
-			}
-
-			msg := module.Msg{
-				Id:   0,
-				Data: data,
-			}
-
-			ch <- msg
-			return
-		}
+// 广播消息
+// sender=发送者id msgId=消息id data=携带数据
+func (this *Application) Broadcast(sender uint32, msgId uint32, data interface{}) {
+	msg := module.Messge{
+		Id:     msgId,
+		Type:   module.C_MSG_TYPE_BROAD,
+		Sender: sender,
+		Data:   data,
 	}
+
+	this.modMsg <- msg
+}
+
+// 向某个模块发送消息
+// sender=发送者id recver=接收者id msgId=消息id data=携带数据
+func (this *Application) Post(sender uint32, recver uint32, msgId uint32, data interface{}) {
+	msg := module.Messge{
+		Id:     msgId,
+		Type:   module.C_MSG_TYPE_DIRECT,
+		Sender: sender,
+		Recver: recver,
+		Data:   data,
+	}
+
+	this.modMsg <- msg
 }
 
 // -----------------------------------------------------------------------------
@@ -184,10 +175,14 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
-		case sig := <-this.signalChan:
+		case sig := <-this.signalChan: // os 信号
 			this.onSignal(sig)
-		case msg := <-this.chBroadcast:
-			this.broadcast(msg)
+		case suber := <-this.subAdd: // 订阅请求
+			this.onSubAdd(suber)
+		case suber := <-this.subDel: // 取消订阅
+			this.onSubDel(suber)
+		case msg := <-this.modMsg: // 模块消息
+			this.onModMsg(msg)
 		}
 	}
 }
@@ -223,17 +218,52 @@ func (this *Application) onStop() {
 	os.Exit(1)
 }
 
-// 广播消息
-func (this *Application) broadcast(msg module.Msg) {
-	defer this.subMutex.Unlock()
-
-	this.subMutex.Lock()
-	sub, ok := this.subMap[msg.Name]
+// 订阅请求
+func (this *Application) onSubAdd(suber *module.Subscriber) {
+	pm, ok := this.postmans[suber.MsgId]
 	if !ok {
-		return
+		pm = module.NewPostman(suber.MsgId)
+		this.postmans[suber.MsgId] = pm
 	}
 
-	for _, ch := range sub {
-		ch <- msg
+	pm.AddSuber(suber)
+}
+
+// 取消订阅
+func (this *Application) onSubDel(suber *module.Subscriber) {
+	pm, ok := this.postmans[suber.MsgId]
+	if ok {
+		pm.DelSuber(suber)
+	}
+}
+
+// 模块消息
+func (this *Application) onModMsg(msg module.Messge) {
+	switch msg.Type {
+	case module.C_MSG_TYPE_BROAD: // 广播类
+		this.publish(msg)
+	case module.C_MSG_TYPE_DIRECT: // 定向类
+		this.toMod(msg)
+	}
+}
+
+// 发布一个消息
+func (this *Application) publish(msg module.Messge) {
+	pm, ok := this.postmans[msg.Id]
+	if ok {
+		pm.Dispath(msg)
+	}
+}
+
+// 发送给某个 mod
+func (this *Application) toMod(msg module.Messge) {
+	for i, _ := range this.mods {
+		if this.mods[i].GetId() == msg.Recver {
+			ch := this.mods[i].GetMsgChan()
+			if ch != nil {
+				ch <- msg
+			}
+			return
+		}
 	}
 }
