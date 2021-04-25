@@ -142,12 +142,32 @@ func (this *Application) Subscribe(ber string, msg string, ch chan module.Msg) {
 
 // 发布消息
 func (this *Application) Publish(id uint16, data interface{}) {
+	// 这里需要加锁
+	// 根据消息id 查找 map
+	// 遍历 map 发送信息
 
+	// 方法2
+	// 将消息组合，放入一个 chan，然后再在主循环里面处理
 }
 
 // 向某个模块请求数据
 func (this *Application) Request(mod uint16, id, data interface{}) {
+	for _, m := range this.mods {
+		if m.ID() == mod {
+			ch := m.MsgIn()
+			if ch == nil {
+				return
+			}
 
+			msg := module.Msg{
+				Id:   0,
+				Data: data,
+			}
+
+			ch <- msg
+			return
+		}
+	}
 }
 
 // -----------------------------------------------------------------------------

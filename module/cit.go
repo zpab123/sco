@@ -23,4 +23,6 @@ type IModule interface {
 	OnDestroy()
 	// 启动 module
 	Run(ctx context.Context)
+	// 侦听
+	MsgIn() chan Msg
 }
