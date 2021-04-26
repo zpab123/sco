@@ -116,31 +116,41 @@ func (this *Application) RegisterMod(mod module.IModule) {
 // -----------------------------------------------------------------------------
 // module.IMessgeMgr 接口
 
-// 添加消息订阅者
-func (this *Application) AddSubscriber(suber *module.Subscriber) {
-	if suber == nil || suber.MsgChan == nil {
+// 订阅消息
+func (this *Application) Subscribe(mod module.IModule, msgId uint32, ch chan module.Messge) {
+	if mod == nil || ch == nil {
 		return
 	}
 
-	this.subAdd <- suber
+	suber := module.Subscriber{
+		SuberId: mod.GetId(),
+		MsgId:   msgId,
+		MsgChan: ch,
+	}
+
+	this.subAdd <- &suber
 }
 
 // 取消订阅
-func (this *Application) DelSubscriber(suber *module.Subscriber) {
-	if suber == nil {
+func (this *Application) Unsubscribe(mod module.IModule, msgId uint32) {
+	if mod == nil {
 		return
 	}
 
-	this.subDel <- suber
+	suber := module.Subscriber{
+		SuberId: mod.GetId(),
+		MsgId:   msgId,
+	}
+
+	this.subDel <- &suber
 }
 
 // 广播消息
-// sender=发送者id msgId=消息id data=携带数据
-func (this *Application) Broadcast(sender uint32, msgId uint32, data interface{}) {
+func (this *Application) Broadcast(mod module.IModule, msgId uint32, data interface{}) {
 	msg := module.Messge{
 		Id:     msgId,
 		Type:   module.C_MSG_TYPE_BROAD,
-		Sender: sender,
+		Sender: mod.GetId(),
 		Data:   data,
 	}
 
@@ -148,12 +158,11 @@ func (this *Application) Broadcast(sender uint32, msgId uint32, data interface{}
 }
 
 // 向某个模块发送消息
-// sender=发送者id recver=接收者id msgId=消息id data=携带数据
-func (this *Application) Post(sender uint32, recver uint32, msgId uint32, data interface{}) {
+func (this *Application) Post(mod module.IModule, recver uint32, msgId uint32, data interface{}) {
 	msg := module.Messge{
 		Id:     msgId,
 		Type:   module.C_MSG_TYPE_DIRECT,
-		Sender: sender,
+		Sender: mod.GetId(),
 		Recver: recver,
 		Data:   data,
 	}

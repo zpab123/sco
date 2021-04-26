@@ -36,14 +36,16 @@ type IModule interface {
 
 // 模块消息管理者
 type IMessgeMgr interface {
-	// 添加消息订阅者
-	AddSubscriber(suber *Subscriber)
-	// 删除消息订阅者
-	DelSubscriber(suber *Subscriber)
+	// 订阅消息
+	// mod=订阅者 msgId=消息id
+	Subscribe(mod IModule, msgId uint32, ch chan Messge)
+	// 取消订阅
+	// mod=订阅者 msgId=消息id
+	Unsubscribe(mod IModule, msgId uint32)
 	// 广播消息
-	// sender=发送者id msgId=消息id data=携带数据
-	Broadcast(sender uint32, msgId uint32, data interface{})
+	// mod=发送者 msgId=消息id data=携带数据
+	Broadcast(mod IModule, msgId uint32, data interface{})
 	// 向某个模块发送消息
-	// sender=发送者id recver=接收者id msgId=消息id data=携带数据
-	Post(sender uint32, recver uint32, msgId uint32, data interface{})
+	// mod=发送者 recver=接收者id msgId=消息id data=携带数据
+	Post(mod IModule, recver uint32, msgId uint32, data interface{})
 }
