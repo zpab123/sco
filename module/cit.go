@@ -20,16 +20,18 @@ const (
 
 // 模块接口
 type IModule interface {
-	// 获取 module id
-	GetId() uint32
-	// 设置模块消息管理者
-	SetMsgMgr(mgr IMessgeMgr)
 	// 初始化 module
-	OnInit()
-	// 销毁 module
-	OnDestroy()
+	Init()
+	// 即将开始 module
+	Start()
 	// 启动 module
 	Run(ctx context.Context)
+	// 停止 module
+	Stop()
+	// 获取 module id
+	GetId() uint8
+	// 设置模块消息管理者
+	SetMsgMgr(mgr IMessgeMgr)
 	// 接收模块消息的通道
 	GetMsgChan() chan Messge
 }
@@ -47,5 +49,5 @@ type IMessgeMgr interface {
 	Broadcast(mod IModule, msgId uint32, data interface{})
 	// 向某个模块发送消息
 	// mod=发送者 recver=接收者id msgId=消息id data=携带数据
-	Post(mod IModule, recver uint32, msgId uint32, data interface{})
+	Post(mod IModule, recver uint8, msgId uint32, data interface{})
 }

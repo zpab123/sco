@@ -69,7 +69,10 @@ func (this *Application) Run() {
 	log.Logger.Debug("启动 app")
 
 	// 启动所有模块
-	for _, mod := range this.mods {
+	for i, _ := range this.mods {
+		mod := this.mods[i]
+		mod.Start()
+
 		this.stopGroup.Add(1)
 		go this.runMod(mod)
 	}
@@ -108,7 +111,7 @@ func (this *Application) Stop() {
 func (this *Application) RegisterMod(mod module.IModule) {
 	if mod != nil {
 		mod.SetMsgMgr(this)
-		mod.OnInit()
+		mod.Init()
 		this.mods = append(this.mods, mod)
 	}
 }
@@ -158,7 +161,7 @@ func (this *Application) Broadcast(mod module.IModule, msgId uint32, data interf
 }
 
 // 向某个模块发送消息
-func (this *Application) Post(mod module.IModule, recver uint32, msgId uint32, data interface{}) {
+func (this *Application) Post(mod module.IModule, recver uint8, msgId uint32, data interface{}) {
 	msg := module.Messge{
 		Id:     msgId,
 		Type:   module.C_MSG_TYPE_DIRECT,

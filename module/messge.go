@@ -10,7 +10,7 @@ package module
 type Messge struct {
 	Id     uint32      // 消息 id
 	Type   uint8       // 消息类型
-	Sender uint32      // 发送者 id
-	Recver uint32      // 接收者 id
+	Sender uint8       // 发送者 id
+	Recver uint8       // 接收者 id
 	Data   interface{} // 发送的数据
 }
