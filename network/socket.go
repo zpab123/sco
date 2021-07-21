@@ -60,7 +60,19 @@ func NewSocket(conn net.Conn) (*Socket, error) {
 	return &s, nil
 }
 
+// -----------------------------------------------------------------------------
+// 类似 fmt.Sprintf 中的打印接口
+
+// 打印信息
+func (this *Socket) String() string {
+	return fmt.Sprintf("[%s >>> %s]", this.LocalAddr(), this.RemoteAddr())
+}
+
+// -----------------------------------------------------------------------------
+// public
+
 // 关闭 socket
+//
 // 成功: 返回 nil
 // 失败: 返回 error
 func (this *Socket) Close() error {
@@ -167,9 +179,4 @@ func (this *Socket) RemoteAddr() net.Addr {
 // 获取本地 ip 地址
 func (this *Socket) LocalAddr() net.Addr {
 	return this.conn.LocalAddr()
-}
-
-// 打印信息
-func (this *Socket) String() string {
-	return fmt.Sprintf("[%s >>> %s]", this.LocalAddr(), this.RemoteAddr())
 }

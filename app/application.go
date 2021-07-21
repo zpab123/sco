@@ -14,6 +14,7 @@ import (
 
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/module"
+	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
 )
 
@@ -23,6 +24,7 @@ import (
 // 1个通用服务器对象
 type Application struct {
 	mods       []module.IModule           // 模块集合
+	acceptors  []network.IAcceptor        // 接收器切片
 	stopGroup  sync.WaitGroup             // 停止等待组
 	signalChan chan os.Signal             // 操作系统信号
 	state      state.State                // 状态
@@ -39,6 +41,7 @@ func NewApplication() *Application {
 
 	// 创建对象
 	mod := make([]module.IModule, 0)
+	acc := make([]network.IAcceptor, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
 	sa := make(chan *module.Subscriber, 100)
@@ -49,6 +52,7 @@ func NewApplication() *Application {
 	// 创建 app
 	a := Application{
 		mods:       mod,
+		acceptors:  acc,
 		signalChan: sch,
 		ctx:        cx,
 		cancel:     cc,

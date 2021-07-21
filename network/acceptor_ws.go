@@ -47,6 +47,9 @@ func NewWsAcceptor(laddr string) (IAcceptor, error) {
 	return &ws, nil
 }
 
+// -----------------------------------------------------------------------------
+// IAcceptor 接口
+
 // 启动 wsAcceptor
 //
 // 成功，返回 nil
@@ -105,6 +108,9 @@ func (this *WsAcceptor) Stop() error {
 	return nil
 }
 
+// -----------------------------------------------------------------------------
+// public
+
 // 设置连接管理
 func (this *WsAcceptor) SetConnMgr(mgr IConnManager) {
 	if nil != mgr {
@@ -117,6 +123,9 @@ func (this *WsAcceptor) SetTLS(cert string, key string) {
 	this.certFile = cert
 	this.keyFile = key
 }
+
+// -----------------------------------------------------------------------------
+// private
 
 // 侦听连接
 func (this *WsAcceptor) accept() {

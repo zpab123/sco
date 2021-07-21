@@ -47,6 +47,9 @@ func NewPacket(mid uint16, sid uint16) *Packet {
 	return &pkt
 }
 
+// -----------------------------------------------------------------------------
+// public
+
 // 设置 Packet 的 id
 func (this *Packet) SetMid(v uint16) {
 	// 记录消息类型
@@ -309,6 +312,9 @@ func (this *Packet) ReadString() string {
 func (this *Packet) Data() []byte {
 	return this.bytes[0:this.wirtePos]
 }
+
+// -----------------------------------------------------------------------------
+// private
 
 // 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
 func (this *Packet) allocCap(need int) {

@@ -41,6 +41,9 @@ func NewTcpAcceptor(laddr string) (IAcceptor, error) {
 	return &a, nil
 }
 
+// -----------------------------------------------------------------------------
+// IAcceptor 接口
+
 // 启动 wsAcceptor
 //
 // 成功，返回 nil
@@ -69,6 +72,9 @@ func (this *TcpAcceptor) Stop() error {
 	return this.listener.Close()
 }
 
+// -----------------------------------------------------------------------------
+// public
+
 // 设置连接管理
 func (this *TcpAcceptor) SetConnMgr(mgr IConnManager) {
 	if nil != mgr {
@@ -81,6 +87,9 @@ func (this *TcpAcceptor) SetTLS(cert string, key string) {
 	this.certFile = cert
 	this.keyFile = key
 }
+
+// -----------------------------------------------------------------------------
+// private
 
 // 以 tls 方式启动
 func (this *TcpAcceptor) runTLS() error {

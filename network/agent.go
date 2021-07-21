@@ -72,6 +72,17 @@ func NewAgent(socket *Socket) (*Agent, error) {
 	return &a, nil
 }
 
+// -----------------------------------------------------------------------------
+// 类似 fmt.Sprintf 中的打印接口
+
+// 打印信息
+func (this *Agent) String() string {
+	return this.socket.String()
+}
+
+// -----------------------------------------------------------------------------
+// public
+
 // 启动
 func (this *Agent) Run() {
 	// 发送线程
@@ -177,10 +188,8 @@ func (this *Agent) SetHandler(h IHandler) {
 	}
 }
 
-// 打印信息
-func (this *Agent) String() string {
-	return this.socket.String()
-}
+// -----------------------------------------------------------------------------
+// private
 
 // 接收线程
 func (this *Agent) recvLoop() {
@@ -396,4 +405,11 @@ func (this *Agent) checkRecvTime(t time.Time) {
 
 		this.Stop()
 	}
+}
+
+// 停止成功
+func (this *Agent) onStop() {
+	// 将信息打包
+	// 发送到主线程一个 chan 中
+	// 主线程将消息发送给服务方
 }
