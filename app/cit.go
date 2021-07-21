@@ -5,6 +5,8 @@ package app
 
 import (
 	"time"
+
+	"github.com/zpab123/sco/network"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -19,4 +21,14 @@ const (
 
 type ISubscriber interface {
 	Name() string // 订阅者的名字
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// types
+
+// 接收器选项
+type AcceptorOption struct {
+	laddr     string               // 连接地址，格式 192.168.1.1:8080
+	forclient bool                 // 面向客户端
+	connMgr   network.IConnManager // 连接管理
 }

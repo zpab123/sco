@@ -23,17 +23,19 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods       []module.IModule           // 模块集合
-	acceptors  []network.IAcceptor        // 接收器切片
-	stopGroup  sync.WaitGroup             // 停止等待组
-	signalChan chan os.Signal             // 操作系统信号
-	state      state.State                // 状态
-	ctx        context.Context            // 退出 ctx
-	cancel     context.CancelFunc         // 退出 ctx
-	subAdd     chan *module.Subscriber    // 订阅消息
-	subDel     chan *module.Subscriber    // 取消订阅
-	postmans   map[uint32]*module.Postman // 模块消息投递员
-	modMsg     chan module.Messge         // 模块消息
+	mods          []module.IModule           // 模块集合
+	acceptors     []network.IAcceptor        // 接收器切片
+	clinetConnMgr network.IConnManager       // 客户端连接管理
+	serverConnMgr network.IConnManager       // 服务器连接管理
+	stopGroup     sync.WaitGroup             // 停止等待组
+	signalChan    chan os.Signal             // 操作系统信号
+	state         state.State                // 状态
+	ctx           context.Context            // 退出 ctx
+	cancel        context.CancelFunc         // 退出 ctx
+	subAdd        chan *module.Subscriber    // 订阅消息
+	subDel        chan *module.Subscriber    // 取消订阅
+	postmans      map[uint32]*module.Postman // 模块消息投递员
+	modMsg        chan module.Messge         // 模块消息
 }
 
 // 创建1个新的 Application 对象
@@ -64,6 +66,9 @@ func NewApplication() *Application {
 
 	return &a
 }
+
+// -----------------------------------------------------------------------------
+// public
 
 // 启动 app
 func (this *Application) Run() {
@@ -109,6 +114,20 @@ func (this *Application) Stop() {
 	)
 
 	os.Exit(0)
+}
+
+// 添加 1个tcp 接收器
+//
+// opt=接收器参数
+func (this *Application) AddTcpAcceptor(opt *AcceptorOption) {
+
+}
+
+// 添加 1个tcp 接收器
+//
+// opt=接收器参数
+func (this *Application) AddWsAcceptor(opt *AcceptorOption) {
+
 }
 
 // 注册模块
