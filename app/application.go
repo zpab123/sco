@@ -16,6 +16,7 @@ import (
 	"github.com/zpab123/sco/module"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
+	"github.com/zpab123/sco/svc"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -27,6 +28,7 @@ type Application struct {
 	acceptors     []network.IAcceptor        // 接收器切片
 	clinetConnMgr network.IConnManager       // 客户端连接管理
 	serverConnMgr network.IConnManager       // 服务器连接管理
+	svcs          []svc.IService             // 服务列表
 	stopGroup     sync.WaitGroup             // 停止等待组
 	signalChan    chan os.Signal             // 操作系统信号
 	state         state.State                // 状态
@@ -44,6 +46,7 @@ func NewApplication() *Application {
 	// 创建对象
 	mod := make([]module.IModule, 0)
 	acc := make([]network.IAcceptor, 0)
+	ss := make([]svc.IService, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
 	sa := make(chan *module.Subscriber, 100)
@@ -55,6 +58,7 @@ func NewApplication() *Application {
 	a := Application{
 		mods:       mod,
 		acceptors:  acc,
+		svcs:       ss,
 		signalChan: sch,
 		ctx:        cx,
 		cancel:     cc,
@@ -128,6 +132,14 @@ func (this *Application) AddTcpAcceptor(opt *AcceptorOption) {
 // opt=接收器参数
 func (this *Application) AddWsAcceptor(opt *AcceptorOption) {
 
+}
+
+// 注册服务
+func (this *Application) RegService(s svc.IService) {
+	if s != nil {
+		s.Init()
+		this.svcs = append(this.svcs, s)
+	}
 }
 
 // 注册模块
