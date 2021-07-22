@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/zpab123/sco/log"
-	"github.com/zpab123/sco/module"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
 	"github.com/zpab123/sco/svc"
@@ -24,48 +23,36 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods          []module.IModule           // 模块集合
-	acceptors     []network.IAcceptor        // 接收器切片
-	clinetConnMgr network.IConnManager       // 客户端连接管理
-	serverConnMgr network.IConnManager       // 服务器连接管理
-	svcs          []svc.IService             // 服务列表
-	stopGroup     sync.WaitGroup             // 停止等待组
-	signalChan    chan os.Signal             // 操作系统信号
-	state         state.State                // 状态
-	ctx           context.Context            // 退出 ctx
-	cancel        context.CancelFunc         // 退出 ctx
-	subAdd        chan *module.Subscriber    // 订阅消息
-	subDel        chan *module.Subscriber    // 取消订阅
-	postmans      map[uint32]*module.Postman // 模块消息投递员
-	modMsg        chan module.Messge         // 模块消息
+	mods       []module.IModule     // 模块集合
+	connMgr    network.IConnManager // 连接管理
+	acceptors  []network.IAcceptor  // 接收器切片
+	packetChan chan *network.Packet // 网络数据包
+	svcs       []svc.IService       // 服务列表
+	stopGroup  sync.WaitGroup       // 停止等待组
+	signalChan chan os.Signal       // 操作系统信号
+	state      state.State          // 状态
+	ctx        context.Context      // 退出 ctx
+	cancel     context.CancelFunc   // 退出 ctx
 }
 
 // 创建1个新的 Application 对象
 func NewApplication() *Application {
 
 	// 创建对象
-	mod := make([]module.IModule, 0)
 	acc := make([]network.IAcceptor, 0)
 	ss := make([]svc.IService, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
-	sa := make(chan *module.Subscriber, 100)
-	sd := make(chan *module.Subscriber, 100)
-	pm := make(map[uint32]*module.Postman, 0)
-	msg := make(chan module.Messge, 100)
+	pc := make(chan *network.Packet, 1000)
 
 	// 创建 app
 	a := Application{
-		mods:       mod,
 		acceptors:  acc,
 		svcs:       ss,
 		signalChan: sch,
 		ctx:        cx,
 		cancel:     cc,
-		subAdd:     sa,
-		subDel:     sd,
-		postmans:   pm,
-		modMsg:     msg,
+		packetChan: pc,
 	}
 
 	return &a
@@ -81,14 +68,8 @@ func (this *Application) Run() {
 
 	log.Logger.Debug("启动 app")
 
-	// 启动所有模块
-	for i, _ := range this.mods {
-		mod := this.mods[i]
-		mod.Start()
-
-		this.stopGroup.Add(1)
-		go this.runMod(mod)
-	}
+	// 启动网络
+	this.runNet()
 
 	// 侦听信号
 	this.listenSignal()
@@ -225,6 +206,32 @@ func (this *Application) Post(mod module.IModule, recver uint8, msgId uint32, da
 // -----------------------------------------------------------------------------
 // private
 
+// 启动网络
+func (this *Application) runNet() {
+	// 连接管理
+	if nil == this.connMgr {
+		this.newConnMgr()
+	}
+
+	// 接收器
+	this.runAcceptor()
+}
+
+// 创建默认连接管理
+func (this *Application) newConnMgr() {
+	this.connMgr = network.NewConnMgr(10000)
+	this.connMgr.SetPacketChan(this.packetChan)
+}
+
+// 启动接收器
+func (this *Application) runAcceptor() {
+	for _, acc := range this.acceptors {
+		acc.SetConnMgr(this.connMgr)
+		// go acc.Run()
+		acc.Run()
+	}
+}
+
 // 侦听信号
 func (this *Application) listenSignal() {
 	// 排除信号
@@ -236,14 +243,10 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
+		case pkt := this.packetChan: // 网络消息
+			this.onPacket(pkt)
 		case sig := <-this.signalChan: // os 信号
 			this.onSignal(sig)
-		case suber := <-this.subAdd: // 订阅请求
-			this.onSubAdd(suber)
-		case suber := <-this.subDel: // 取消订阅
-			this.onSubDel(suber)
-		case msg := <-this.modMsg: // 模块消息
-			this.onModMsg(msg)
 		}
 	}
 }
@@ -306,6 +309,11 @@ func (this *Application) onModMsg(msg module.Messge) {
 	case module.C_MSG_TYPE_DIRECT: // 定向类
 		this.toMod(msg)
 	}
+}
+
+// 接收到网络数据
+func (this *Application) onPacket(pkt *network.Packet) {
+
 }
 
 // 发布一个消息
