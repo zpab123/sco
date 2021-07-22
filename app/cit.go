@@ -25,10 +25,3 @@ type ISubscriber interface {
 
 // /////////////////////////////////////////////////////////////////////////////
 // types
-
-// 接收器选项
-type AcceptorOption struct {
-	laddr     string               // 连接地址，格式 192.168.1.1:8080
-	forclient bool                 // 面向客户端
-	connMgr   network.IConnManager // 连接管理
-}

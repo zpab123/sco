@@ -120,18 +120,32 @@ func (this *Application) Stop() {
 	os.Exit(0)
 }
 
-// 添加 1个tcp 接收器
+// 添加 1个 tcp 接收器
 //
-// opt=接收器参数
-func (this *Application) AddTcpAcceptor(opt *AcceptorOption) {
+// laddr=接收器地址，格式 192.168.1.222:6980
+func (this *Application) AddTcpAcceptor(laddr string) error {
+	acc, err := network.NewTcpAcceptor(laddr)
+	if err != nil {
+		return err
+	}
 
+	this.acceptors = append(this.acceptors, acc)
+
+	return nil
 }
 
-// 添加 1个tcp 接收器
+// 添加 1个 weboscket 接收器
 //
-// opt=接收器参数
-func (this *Application) AddWsAcceptor(opt *AcceptorOption) {
+// laddr=接收器地址，格式 192.168.1.222:6980
+func (this *Application) AddWsAcceptor(opt *AcceptorOption) error {
+	acc, err := network.NewWsAcceptor(laddr)
+	if err != nil {
+		return err
+	}
 
+	this.acceptors = append(this.acceptors, acc)
+
+	return nil
 }
 
 // 注册服务
