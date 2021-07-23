@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/zpab123/sco/dispatch"
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
@@ -23,15 +24,18 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	connMgr    network.IConnManager // 连接管理
-	acceptors  []network.IAcceptor  // 接收器切片
-	packetChan chan *network.Packet // 网络数据包
-	svcs       []svc.IService       // 服务列表
-	stopGroup  sync.WaitGroup       // 停止等待组
-	signalChan chan os.Signal       // 操作系统信号
-	state      state.State          // 状态
-	ctx        context.Context      // 退出 ctx
-	cancel     context.CancelFunc   // 退出 ctx
+	Options      *Options             // 配置选项
+	connMgr      network.IConnManager // 连接管理
+	acceptors    []network.IAcceptor  // 接收器切片
+	packetChan   chan *network.Packet // 网络数据包
+	serverPacket chan *network.Packet // 服务器数据包
+	svcs         []svc.IService       // 服务列表
+	stopGroup    sync.WaitGroup       // 停止等待组
+	signalChan   chan os.Signal       // 操作系统信号
+	state        state.State          // 状态
+	ctx          context.Context      // 退出 ctx
+	cancel       context.CancelFunc   // 退出 ctx
+	delegate     IDelegate            // 代理对象
 }
 
 // 创建1个新的 Application 对象
@@ -46,6 +50,7 @@ func NewApplication() *Application {
 
 	// 创建 app
 	a := Application{
+		Options:    NewOptions(),
 		acceptors:  acc,
 		svcs:       ss,
 		signalChan: sch,
@@ -70,6 +75,11 @@ func (this *Application) Run() {
 	// 启动网络
 	this.runNet()
 
+	// 集群服务
+	if this.Options.Cluster {
+		this.runCluster()
+	}
+
 	// 侦听信号
 	this.listenSignal()
 
@@ -89,9 +99,9 @@ func (this *Application) Stop() {
 	)
 
 	// 发出关闭信号
-	this.cancel()
+	//this.cancel()
 	go this.onStop()
-	this.stopGroup.Wait()
+	// this.stopGroup.Wait()
 
 	log.Logger.Info(
 		"[Application] 优雅退出",
@@ -126,6 +136,13 @@ func (this *Application) AddWsAcceptor(laddr string) error {
 	this.acceptors = append(this.acceptors, acc)
 
 	return nil
+}
+
+// 设置代理
+func (this *Application) SetDelegate(d IDelegate) {
+	if d != nil {
+		this.delegate = d
+	}
 }
 
 // 注册服务
@@ -165,6 +182,21 @@ func (this *Application) runAcceptor() {
 	}
 }
 
+// 启动集群
+func (this *Application) runCluster() {
+	this.newPktChan()
+
+	// 连接分发器
+	for _, addr := range this.Options.Dispatchers {
+		dispatch.Connect(addr)
+	}
+}
+
+// 服务器消息通道
+func (this *Application) newPktChan() {
+	this.serverPacket = make(chan *network.Packet, 1000)
+}
+
 // 侦听信号
 func (this *Application) listenSignal() {
 	// 排除信号
@@ -178,6 +210,8 @@ func (this *Application) mainLoop() {
 		select {
 		case pkt := <-this.packetChan: // 网络消息
 			this.onPacket(pkt)
+		case pkt := <-this.serverPacket: // 服务器数据包
+			this.onServerPacket(pkt)
 		case sig := <-this.signalChan: // os 信号
 			this.onSignal(sig)
 		}
@@ -211,5 +245,17 @@ func (this *Application) onStop() {
 
 // 接收到网络数据
 func (this *Application) onPacket(pkt *network.Packet) {
+	if this.delegate != nil {
+		this.delegate.OnPacket(pkt)
+	}
+}
 
+// 服务器数据包
+func (this *Application) onServerPacket(pkt *network.Packet) {
+	switch pkt.GetMid() {
+	case 4: // 进入工作
+	case 5: // io 错误
+	case 6: // 掉线
+	default: // 数据包
+	}
 }

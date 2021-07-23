@@ -51,6 +51,9 @@ func NewTcpConn(addr string) *TcpConn {
 	return &c
 }
 
+// /////////////////////////////////////////////////////////////////////////////
+// public
+
 // 启动
 func (this *TcpConn) Run() error {
 	conn, err := net.Dial("tcp", this.addr)
