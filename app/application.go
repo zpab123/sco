@@ -23,7 +23,6 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	mods       []module.IModule     // 模块集合
 	connMgr    network.IConnManager // 连接管理
 	acceptors  []network.IAcceptor  // 接收器切片
 	packetChan chan *network.Packet // 网络数据包
@@ -118,7 +117,7 @@ func (this *Application) AddTcpAcceptor(laddr string) error {
 // 添加 1个 weboscket 接收器
 //
 // laddr=接收器地址，格式 192.168.1.222:6980
-func (this *Application) AddWsAcceptor(opt *AcceptorOption) error {
+func (this *Application) AddWsAcceptor(laddr string) error {
 	acc, err := network.NewWsAcceptor(laddr)
 	if err != nil {
 		return err
@@ -135,72 +134,6 @@ func (this *Application) RegService(s svc.IService) {
 		s.Init()
 		this.svcs = append(this.svcs, s)
 	}
-}
-
-// 注册模块
-func (this *Application) RegisterMod(mod module.IModule) {
-	if mod != nil {
-		mod.SetMsgMgr(this)
-		mod.Init()
-		this.mods = append(this.mods, mod)
-	}
-}
-
-// -----------------------------------------------------------------------------
-// module.IMessgeMgr 接口
-
-// 订阅消息
-func (this *Application) Subscribe(mod module.IModule, msgId uint32, ch chan module.Messge) {
-	if mod == nil || ch == nil {
-		return
-	}
-
-	suber := module.Subscriber{
-		SuberId: mod.GetId(),
-		MsgId:   msgId,
-		MsgChan: ch,
-	}
-
-	this.subAdd <- &suber
-}
-
-// 取消订阅
-func (this *Application) Unsubscribe(mod module.IModule, msgId uint32) {
-	if mod == nil {
-		return
-	}
-
-	suber := module.Subscriber{
-		SuberId: mod.GetId(),
-		MsgId:   msgId,
-	}
-
-	this.subDel <- &suber
-}
-
-// 广播消息
-func (this *Application) Broadcast(mod module.IModule, msgId uint32, data interface{}) {
-	msg := module.Messge{
-		Id:     msgId,
-		Type:   module.C_MSG_TYPE_BROAD,
-		Sender: mod.GetId(),
-		Data:   data,
-	}
-
-	this.modMsg <- msg
-}
-
-// 向某个模块发送消息
-func (this *Application) Post(mod module.IModule, recver uint8, msgId uint32, data interface{}) {
-	msg := module.Messge{
-		Id:     msgId,
-		Type:   module.C_MSG_TYPE_DIRECT,
-		Sender: mod.GetId(),
-		Recver: recver,
-		Data:   data,
-	}
-
-	this.modMsg <- msg
 }
 
 // -----------------------------------------------------------------------------
@@ -243,7 +176,7 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
-		case pkt := this.packetChan: // 网络消息
+		case pkt := <-this.packetChan: // 网络消息
 			this.onPacket(pkt)
 		case sig := <-this.signalChan: // os 信号
 			this.onSignal(sig)
@@ -265,12 +198,6 @@ func (this *Application) onSignal(sig os.Signal) {
 	}
 }
 
-// 启动一个 mod
-func (this *Application) runMod(mod module.IModule) {
-	mod.Run(this.ctx)
-	this.stopGroup.Done()
-}
-
 // app 准备关闭
 func (this *Application) onStop() {
 	time.Sleep(C_STOP_TIME_OUT)
@@ -282,57 +209,7 @@ func (this *Application) onStop() {
 	os.Exit(1)
 }
 
-// 订阅请求
-func (this *Application) onSubAdd(suber *module.Subscriber) {
-	pm, ok := this.postmans[suber.MsgId]
-	if !ok {
-		pm = module.NewPostman(suber.MsgId)
-		this.postmans[suber.MsgId] = pm
-	}
-
-	pm.AddSuber(suber)
-}
-
-// 取消订阅
-func (this *Application) onSubDel(suber *module.Subscriber) {
-	pm, ok := this.postmans[suber.MsgId]
-	if ok {
-		pm.DelSuber(suber)
-	}
-}
-
-// 模块消息
-func (this *Application) onModMsg(msg module.Messge) {
-	switch msg.Type {
-	case module.C_MSG_TYPE_BROAD: // 广播类
-		this.publish(msg)
-	case module.C_MSG_TYPE_DIRECT: // 定向类
-		this.toMod(msg)
-	}
-}
-
 // 接收到网络数据
 func (this *Application) onPacket(pkt *network.Packet) {
 
-}
-
-// 发布一个消息
-func (this *Application) publish(msg module.Messge) {
-	pm, ok := this.postmans[msg.Id]
-	if ok {
-		pm.Dispath(msg)
-	}
-}
-
-// 发送给某个 mod
-func (this *Application) toMod(msg module.Messge) {
-	for i, _ := range this.mods {
-		if this.mods[i].GetId() == msg.Recver {
-			ch := this.mods[i].GetMsgChan()
-			if ch != nil {
-				ch <- msg
-			}
-			return
-		}
-	}
 }
