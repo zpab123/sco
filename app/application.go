@@ -29,6 +29,7 @@ type Application struct {
 	acceptors    []network.IAcceptor  // 接收器切片
 	packetChan   chan *network.Packet // 网络数据包
 	serverPacket chan *network.Packet // 服务器数据包
+	dispatcher   *dispatch.Dispatcher // 分发器
 	svcs         []svc.IService       // 服务列表
 	stopGroup    sync.WaitGroup       // 停止等待组
 	signalChan   chan os.Signal       // 操作系统信号
@@ -142,6 +143,7 @@ func (this *Application) AddWsAcceptor(laddr string) error {
 func (this *Application) SetDelegate(d IDelegate) {
 	if d != nil {
 		this.delegate = d
+		this.delegate.Init(this)
 	}
 }
 
@@ -150,6 +152,13 @@ func (this *Application) RegService(s svc.IService) {
 	if s != nil {
 		s.Init()
 		this.svcs = append(this.svcs, s)
+	}
+}
+
+// 分发消息
+func (this *Application) Dispatch(pkt *network.Packet) {
+	if this.dispatcher != nil {
+		this.dispatcher.Send(pkt)
 	}
 }
 
@@ -184,17 +193,24 @@ func (this *Application) runAcceptor() {
 
 // 启动集群
 func (this *Application) runCluster() {
-	this.newPktChan()
-
-	// 连接分发器
-	for _, addr := range this.Options.Dispatchers {
-		dispatch.Connect(addr)
+	if len(this.Options.Dispatchers) <= 0 {
+		return
 	}
+
+	this.newPktChan()
+	this.newDispatcher()
+
+	this.dispatcher.Run()
 }
 
 // 服务器消息通道
 func (this *Application) newPktChan() {
 	this.serverPacket = make(chan *network.Packet, 1000)
+}
+
+func (this *Application) newDispatcher() {
+	this.dispatcher = dispatch.NewDispatcher(this.Options.Dispatchers)
+	this.dispatcher.SetPacketChan(this.serverPacket)
 }
 
 // 侦听信号

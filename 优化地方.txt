@@ -1,1 +1,3 @@
 1、 network 包中的 socket 中得 byte 如何重复利用
+
+2、TcpConn 在 stop 的时候，需要停止多个线程，此时要增加一个停止状态，防止多次调用 stop 到时 chan 重复关闭

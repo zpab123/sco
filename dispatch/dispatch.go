@@ -11,8 +11,9 @@ import (
 // public
 
 type Dispatcher struct {
-	addrs []string
-	conns []*network.TcpConn
+	addrs      []string
+	conns      []*network.TcpConn
+	packetChan chan *network.Packet // 数据包
 }
 
 func NewDispatcher(a []string) *Dispatcher {
@@ -31,7 +32,7 @@ func (this *Dispatcher) Run() {
 
 	for _, addr := range this.addrs {
 		conn := network.NewTcpConn(addr)
-		conn.SetPacketChan(packetChan)
+		conn.SetPacketChan(this.packetChan)
 
 		err := conn.Run()
 		if err != nil {
@@ -44,5 +45,16 @@ func (this *Dispatcher) Run() {
 
 func (this *Dispatcher) Send(pkt *network.Packet) {
 	// 选择一个分发器
+	conn := this.conns[0]
+
 	// 发送出去
+	if conn != nil {
+		conn.SendPacket(pkt)
+	}
+}
+
+func (this *Dispatcher) SetPacketChan(ch chan *network.Packet) {
+	if ch != nil {
+		this.packetChan = ch
+	}
 }

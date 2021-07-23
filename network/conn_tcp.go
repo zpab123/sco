@@ -149,7 +149,7 @@ func (this *TcpConn) recvLoop() {
 
 // 发送线程
 func (this *TcpConn) sendLoop() {
-	defer this.Stop()
+	// defer this.Stop()
 
 	// 请求握手
 	this.reqHandShake()
@@ -181,7 +181,7 @@ func (this *TcpConn) heartbeatLoop() {
 			"[TcpConn] heartbeatLoop 结束",
 		)
 
-		ticker.Stop()
+		// ticker.Stop()
 	}()
 
 	for {

@@ -222,7 +222,7 @@ func (this *Agent) sendLoop() {
 			"[Agent] sendLoop 结束",
 		)
 
-		this.Stop()
+		// this.Stop()
 	}()
 
 	for {
@@ -246,7 +246,7 @@ func (this *Agent) heartbeatLoop() {
 			"[Agent] heartbeatLoop 结束",
 		)
 
-		ticker.Stop()
+		// ticker.Stop()
 	}()
 
 	for {
