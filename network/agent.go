@@ -27,18 +27,19 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	id             int32             // id 标识
-	socket         *Socket           // socket
-	key            string            // 握手key
-	heartbeat      time.Duration     // 心跳周期
-	heartbeatInt64 int64             // 心跳周期(毫秒)
-	handler        IHandler          // 消息处理
-	state          *state.State      // 状态管理
-	mgr            IAgentManager     // 连接管理
-	lastRecv       syncs.AtomicInt64 // 上次收到数据的时间
-	lastSend       syncs.AtomicInt64 // 上次发送数据时间
-	chDie          chan struct{}     // 关闭通道
-	packetChan     chan *Packet      // 消息通道
+	id         int32             // id 标识
+	socket     *Socket           // socket
+	key        string            // 握手key
+	heartbeat  time.Duration     // 心跳周期
+	heartSend  int64             // 心跳-发送(纳秒)
+	heartRecv  int64             // 心跳-接受(纳秒)
+	handler    IHandler          // 消息处理
+	state      *state.State      // 状态管理
+	mgr        IAgentManager     // 连接管理
+	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
+	lastSend   syncs.AtomicInt64 // 上次发送数据时间
+	chDie      chan struct{}     // 关闭通道
+	packetChan chan *Packet      // 消息通道
 }
 
 // 新建1个 *Agent 对象
@@ -56,12 +57,13 @@ func NewAgent(socket *Socket) (*Agent, error) {
 
 	// 创建对象
 	a := Agent{
-		key:            C_F_KEY,
-		heartbeat:      C_F_HEARTBEAT,
-		heartbeatInt64: int64(C_F_HEARTBEAT),
-		socket:         socket,
-		state:          st,
-		chDie:          make(chan struct{}),
+		key:       C_F_KEY,
+		heartbeat: C_F_HEARTBEAT,
+		heartSend: int64(C_F_HEARTBEAT) / 2,
+		heartRecv: int64(C_F_HEARTBEAT),
+		socket:    socket,
+		state:     st,
+		chDie:     make(chan struct{}),
 	}
 	a.lastRecv.Store(time.Now().UnixNano())
 	a.lastSend.Store(time.Now().UnixNano())
@@ -129,6 +131,8 @@ func (this *Agent) SetKey(k string) {
 // 设置心跳 key
 func (this *Agent) SetHeartbeat(h time.Duration) {
 	this.heartbeat = h
+	this.heartSend = int64(h) / 2
+	this.heartRecv = int64(h)
 }
 
 // 设置连接管理
@@ -272,6 +276,7 @@ func (this *Agent) onPacket(pkt *Packet) {
 	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.onAck()
 	case protocol.C_MID_HEARTBEAT: // 心跳
+		log.Sugar.Debug("心跳")
 	default:
 		this.handle(pkt)
 	}
@@ -390,7 +395,7 @@ func (this *Agent) handle(pkt *Packet) {
 // 检查发送是否超时
 func (this *Agent) checkSendTime(t time.Time) {
 	pass := t.UnixNano() - this.lastSend.Load()
-	if pass >= this.heartbeatInt64/2 {
+	if pass >= this.heartSend {
 		this.sendHeartbeat()
 	}
 }
@@ -398,7 +403,7 @@ func (this *Agent) checkSendTime(t time.Time) {
 // 检查接收是否超时
 func (this *Agent) checkRecvTime(t time.Time) {
 	pass := t.UnixNano() - this.lastRecv.Load()
-	if pass >= this.heartbeatInt64 {
+	if pass >= this.heartRecv {
 		log.Logger.Debug(
 			"[Agent] 心跳超时，关闭连接",
 		)

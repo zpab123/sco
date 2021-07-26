@@ -44,6 +44,10 @@ func (this *Dispatcher) Run() {
 }
 
 func (this *Dispatcher) Send(pkt *network.Packet) {
+	if len(this.conns) <= 0 {
+		return
+	}
+
 	// 选择一个分发器
 	conn := this.conns[0]
 
