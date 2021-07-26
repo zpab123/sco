@@ -73,6 +73,7 @@ type IConnManager interface {
 	ITcpConnManager               // 接口继承： tcp 连接管理
 	IWsConnManager                // 接口继承： websocket 连接管理
 	IAgentManager                 // 接口继承: agent 管理
+	Run()                         // 启动
 	Stop()                        // 停止
 	SetKey(k string)              // 设置握手key
 	SetHeartbeat(h time.Duration) // 设置心跳

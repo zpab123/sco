@@ -249,7 +249,7 @@ func (this *Packet) AppendBytes(v []byte) {
 //
 // size=读取字节数量
 func (this *Packet) ReadBytes(size uint32) []byte {
-	defer log.Logger.Sync()
+	// defer log.Logger.Sync()
 
 	s := int(size)
 
@@ -318,7 +318,7 @@ func (this *Packet) Data() []byte {
 
 // 根据 need 数量， 为 packet 的 bytes 扩大容量，并完成旧数据复制
 func (this *Packet) allocCap(need int) {
-	defer log.Logger.Sync()
+	// defer log.Logger.Sync()
 
 	// 超长
 	pcap := this.getPayloadCap() // 有效容量

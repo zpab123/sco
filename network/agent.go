@@ -5,6 +5,7 @@ package network
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,15 +32,12 @@ type Agent struct {
 	socket     *Socket           // socket
 	key        string            // 握手key
 	heartbeat  time.Duration     // 心跳周期
-	heartSend  int64             // 心跳-发送(纳秒)
-	heartRecv  int64             // 心跳-接受(纳秒)
-	handler    IHandler          // 消息处理
 	state      *state.State      // 状态管理
 	mgr        IAgentManager     // 连接管理
 	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
-	chDie      chan struct{}     // 关闭通道
 	packetChan chan *Packet      // 消息通道
+	stopGroup  sync.WaitGroup    // 停止等待组
 }
 
 // 新建1个 *Agent 对象
@@ -59,11 +57,8 @@ func NewAgent(socket *Socket) (*Agent, error) {
 	a := Agent{
 		key:       C_F_KEY,
 		heartbeat: C_F_HEARTBEAT,
-		heartSend: int64(C_F_HEARTBEAT) / 2,
-		heartRecv: int64(C_F_HEARTBEAT),
 		socket:    socket,
 		state:     st,
-		chDie:     make(chan struct{}),
 	}
 	a.lastRecv.Store(time.Now().UnixNano())
 	a.lastSend.Store(time.Now().UnixNano())
@@ -87,13 +82,9 @@ func (this *Agent) String() string {
 
 // 启动
 func (this *Agent) Run() {
+	this.stopGroup.Add(2)
 	// 发送线程
 	go this.sendLoop()
-
-	// 心跳
-	if this.heartbeat > 0 {
-		go this.heartbeatLoop()
-	}
 
 	// 接收循环，这里不能 go this.recvLoop()，会导致 websocket 连接直接断开
 	this.recvLoop()
@@ -111,9 +102,14 @@ func (this *Agent) Stop() {
 
 	this.state.Set(C_AGENT_ST_CLOSING)
 
-	close(this.chDie)
-
 	this.socket.Close()
+
+	this.stopGroup.Wait()
+
+	log.Logger.Debug("[Agent] 停止",
+		log.String("ip", this.String()),
+	)
+
 	if nil != this.mgr {
 		this.mgr.OnAgentStop(this)
 	}
@@ -131,8 +127,6 @@ func (this *Agent) SetKey(k string) {
 // 设置心跳 key
 func (this *Agent) SetHeartbeat(h time.Duration) {
 	this.heartbeat = h
-	this.heartSend = int64(h) / 2
-	this.heartRecv = int64(h)
 }
 
 // 设置连接管理
@@ -185,19 +179,14 @@ func (this *Agent) SendBytes(bytes []byte) error {
 	return nil
 }
 
-// 设置 Handler 处理器
-func (this *Agent) SetHandler(h IHandler) {
-	if nil != h {
-		this.handler = h
-	}
-}
-
 // -----------------------------------------------------------------------------
 // private
 
 // 接收线程
 func (this *Agent) recvLoop() {
 	defer func() {
+		this.stopGroup.Done()
+
 		log.Logger.Debug(
 			"[Agent] recvLoop 结束",
 		)
@@ -222,11 +211,11 @@ func (this *Agent) recvLoop() {
 // 发送线程
 func (this *Agent) sendLoop() {
 	defer func() {
+		this.stopGroup.Done()
+
 		log.Logger.Debug(
 			"[Agent] sendLoop 结束",
 		)
-
-		// this.Stop()
 	}()
 
 	for {
@@ -236,32 +225,6 @@ func (this *Agent) sendLoop() {
 		}
 
 		this.lastSend.Store(time.Now().UnixNano())
-	}
-}
-
-// 心跳线程
-func (this *Agent) heartbeatLoop() {
-	// 半程检测
-	hb := this.heartbeat / 2
-	ticker := time.NewTicker(hb)
-
-	defer func() {
-		log.Logger.Debug(
-			"[Agent] heartbeatLoop 结束",
-		)
-
-		// ticker.Stop()
-	}()
-
-	for {
-		select {
-		case <-ticker.C:
-			t := time.Now()
-			this.checkRecvTime(t)
-			this.checkSendTime(t)
-		case <-this.chDie:
-			return
-		}
 	}
 }
 
@@ -312,7 +275,7 @@ func (this *Agent) onHandshake(body []byte) {
 
 //  握手成功
 func (this *Agent) handshakeOk() {
-	defer log.Logger.Sync()
+	// defer log.Logger.Sync()
 
 	hUint16 := uint16(this.heartbeat / time.Second)
 
@@ -389,26 +352,6 @@ func (this *Agent) handle(pkt *Packet) {
 
 	if this.packetChan != nil {
 		this.packetChan <- pkt
-	}
-}
-
-// 检查发送是否超时
-func (this *Agent) checkSendTime(t time.Time) {
-	pass := t.UnixNano() - this.lastSend.Load()
-	if pass >= this.heartSend {
-		this.sendHeartbeat()
-	}
-}
-
-// 检查接收是否超时
-func (this *Agent) checkRecvTime(t time.Time) {
-	pass := t.UnixNano() - this.lastRecv.Load()
-	if pass >= this.heartRecv {
-		log.Logger.Debug(
-			"[Agent] 心跳超时，关闭连接",
-		)
-
-		this.Stop()
 	}
 }
 

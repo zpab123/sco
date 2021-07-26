@@ -21,11 +21,14 @@ type ConnMgr struct {
 	maxConn    int32             // 最大连接数量，超过此数值后，不再接收新连接
 	key        string            // 握手key
 	heartbeat  time.Duration     // 心跳周期
+	heartSend  int64             // 心跳-发送(纳秒)
+	heartRecv  int64             // 心跳-接受(纳秒)
 	handler    IHandler          // 消息处理器
 	connNum    syncs.AtomicInt32 // 当前连接数
 	agentMap   sync.Map          // agent 集合
 	agentId    syncs.AtomicInt32 // agent id
 	packetChan chan *Packet      // 消息通道
+	chDie      chan struct{}     // 关闭通道
 }
 
 // 新建1个 ConnMgr
@@ -38,6 +41,9 @@ func NewConnMgr(max int32) IConnManager {
 		maxConn:   max,
 		key:       C_F_KEY,
 		heartbeat: C_F_HEARTBEAT,
+		heartSend: int64(C_F_HEARTBEAT) / 2,
+		heartRecv: int64(C_F_HEARTBEAT),
+		chDie:     make(chan struct{}),
 	}
 
 	return &mgr
@@ -48,7 +54,7 @@ func NewConnMgr(max int32) IConnManager {
 
 // 收到1个新的 tcp 连接对象
 func (this *ConnMgr) OnTcpConn(conn net.Conn) {
-	defer log.Logger.Sync()
+	//defer log.Logger.Sync()
 
 	// 参数效验
 	if nil == conn {
@@ -79,7 +85,7 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 
 // 收到1个新的 websocket 连接对象
 func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
-	defer log.Logger.Sync()
+	// defer log.Logger.Sync()
 
 	// 参数效验
 	if nil == wsconn {
@@ -132,8 +138,17 @@ func (this *ConnMgr) OnAgentStop(a *Agent) {
 // -----------------------------------------------------------------------------
 // public
 
+func (this *ConnMgr) Run() {
+	// 启动心跳管理
+	if this.heartbeat > 0 {
+		go this.checkHeart()
+	}
+}
+
 // 停止连接管理
 func (this *ConnMgr) Stop() {
+	close(this.chDie)
+
 	this.agentMap.Range(func(key, v interface{}) bool {
 		if a, ok := v.(*Agent); ok {
 			a.Stop()
@@ -154,6 +169,8 @@ func (this *ConnMgr) SetKey(k string) {
 // 设置心跳 key
 func (this *ConnMgr) SetHeartbeat(h time.Duration) {
 	this.heartbeat = h
+	this.heartSend = int64(h) / 2
+	this.heartRecv = int64(h)
 }
 
 // 设置 handler
@@ -200,4 +217,63 @@ func (this *ConnMgr) newAgent(conn net.Conn) {
 	this.agentMap.Store(id, a)
 	this.connNum.Add(1)
 	a.Run()
+}
+
+// 检测心跳
+func (this *ConnMgr) checkHeart() {
+	// 半程检测
+	hb := this.heartbeat / 2
+	ticker := time.NewTicker(hb)
+
+	defer func() {
+		log.Logger.Debug(
+			"[ConnMgr] checkHeart 结束",
+		)
+
+		ticker.Stop()
+	}()
+
+	for {
+		select {
+		case <-ticker.C:
+			this.check()
+		case <-this.chDie:
+			return
+		}
+	}
+}
+
+// 检查发送是否超时
+func (this *ConnMgr) check() {
+	t := time.Now()
+
+	this.agentMap.Range(func(key, v interface{}) bool {
+		if a, ok := v.(*Agent); ok {
+			this.checkSendTime(a, t)
+			this.checkRecvTime(a, t)
+		}
+
+		return true
+	})
+}
+
+// 检查发送是否超时
+func (this *ConnMgr) checkSendTime(a *Agent, t time.Time) {
+	pass := t.UnixNano() - a.lastSend.Load()
+	if pass >= this.heartSend {
+		a.sendHeartbeat()
+	}
+}
+
+// 检查接收是否超时
+func (this *ConnMgr) checkRecvTime(a *Agent, t time.Time) {
+	pass := t.UnixNano() - a.lastRecv.Load()
+	if pass >= this.heartRecv {
+		log.Logger.Debug(
+			"[ConnMgr] agent 心跳超时，关闭该连接",
+			log.String("agent", a.String()),
+		)
+
+		a.Stop()
+	}
 }

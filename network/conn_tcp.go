@@ -296,9 +296,10 @@ func (this *TcpConn) checkSendTime(t time.Time) {
 // 检查接收是否超时
 func (this *TcpConn) checkRecvTime(t time.Time) {
 	pass := t.UnixNano() - this.lastRecv.Load()
+	log.Sugar.Debug(pass)
 	if pass >= this.heartbeatInt64 {
 		log.Logger.Debug(
-			"[TcpConn] 心跳超时，关闭连接",
+			"[TcpConn] 远端心跳超时，关闭连接",
 		)
 
 		this.Stop()

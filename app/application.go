@@ -103,6 +103,17 @@ func (this *Application) Stop() {
 	//this.cancel()
 	// go this.onStop()
 	// this.stopGroup.Wait()
+	for _, acc := range this.acceptors {
+		acc.Stop()
+	}
+
+	if this.connMgr != nil {
+		this.connMgr.Stop()
+	}
+
+	if this.dispatcher != nil {
+		// this.dispatcher.
+	}
 
 	log.Logger.Info(
 		"[Application] 优雅退出",
@@ -236,7 +247,7 @@ func (this *Application) mainLoop() {
 
 // 操作系统信号
 func (this *Application) onSignal(sig os.Signal) {
-	defer log.Logger.Sync()
+	// defer log.Logger.Sync()
 
 	if syscall.SIGINT == sig || syscall.SIGTERM == sig {
 		this.Stop()
