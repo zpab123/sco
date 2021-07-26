@@ -276,7 +276,7 @@ func (this *Agent) onPacket(pkt *Packet) {
 	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
 		this.onAck()
 	case protocol.C_MID_HEARTBEAT: // 心跳
-		log.Sugar.Debug("心跳")
+		//log.Sugar.Debug("心跳")
 	default:
 		this.handle(pkt)
 	}

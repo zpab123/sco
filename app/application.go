@@ -101,7 +101,7 @@ func (this *Application) Stop() {
 
 	// 发出关闭信号
 	//this.cancel()
-	go this.onStop()
+	// go this.onStop()
 	// this.stopGroup.Wait()
 
 	log.Logger.Info(

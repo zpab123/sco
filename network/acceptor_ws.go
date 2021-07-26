@@ -20,7 +20,7 @@ import (
 type WsAcceptor struct {
 	laddr      string         // 监听地址
 	listener   net.Listener   // 侦听器： 用于http服务器
-	httpServer http.Server    // http 服务器
+	httpServer *http.Server   // http 服务器
 	certFile   string         // TLS 加密文件
 	keyFile    string         // TLS 解密key
 	connMgr    IWsConnManager // websocket 连接管理
@@ -82,17 +82,19 @@ func (this *WsAcceptor) Stop() error {
 
 	log.Logger.Debug(
 		"[WsAcceptor] 停止中...",
-		log.String("ip=", this.laddr),
+		log.String("ip", this.laddr),
 	)
 
-	err := this.httpServer.Close()
-	if nil != err {
-		this.listener.Close()
+	if this.httpServer == nil {
+		return nil
+	}
 
+	err := this.httpServer.Close()
+	if err != nil {
 		log.Logger.Warn(
-			"[WsAcceptor] 停止 httpServer 失败",
-			log.String("ip=", this.laddr),
-			log.String("err=", err.Error()),
+			"[WsAcceptor] 停止失败",
+			log.String("ip", this.laddr),
+			log.String("err", err.Error()),
 		)
 
 		return err
@@ -102,7 +104,7 @@ func (this *WsAcceptor) Stop() error {
 
 	log.Logger.Debug(
 		"[WsAcceptor] 停止",
-		log.String("ip=", this.laddr),
+		log.String("ip", this.laddr),
 	)
 
 	return nil
@@ -140,7 +142,7 @@ func (this *WsAcceptor) accept() {
 	//mux.Handle("/ws", handler)                        // ws 路由
 
 	// 创建 httpServer
-	this.httpServer = http.Server{
+	this.httpServer = &http.Server{
 		Addr:    this.laddr,
 		Handler: mux,
 	}
@@ -150,7 +152,7 @@ func (this *WsAcceptor) accept() {
 
 	log.Logger.Debug(
 		"[WsAcceptor] 启动成功",
-		log.String("ip=", this.laddr),
+		log.String("ip", this.laddr),
 	)
 
 	if this.certFile != "" && this.keyFile != "" {
@@ -160,11 +162,11 @@ func (this *WsAcceptor) accept() {
 	}
 
 	// 错误信息
-	if nil != err {
+	if err != nil {
 		log.Logger.Debug(
 			"[WsAcceptor] 停止侦听新连接",
-			log.String("ip=", this.laddr),
-			log.String("err=", err.Error()),
+			log.String("ip", this.laddr),
+			log.String("err", err.Error()),
 		)
 	}
 }

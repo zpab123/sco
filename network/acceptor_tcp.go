@@ -6,6 +6,7 @@ package network
 import (
 	"crypto/tls"
 	"net"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/zpab123/sco/log"
@@ -16,11 +17,12 @@ import (
 
 // tcp 接收器
 type TcpAcceptor struct {
-	laddr    string          // 侦听地址
-	listener net.Listener    // 侦听器
-	connMgr  ITcpConnManager // websocket 连接管理
-	certFile string          // TLS加密文件
-	keyFile  string          // TLS解密key
+	laddr     string          // 侦听地址
+	listener  net.Listener    // 侦听器
+	connMgr   ITcpConnManager // websocket 连接管理
+	certFile  string          // TLS加密文件
+	keyFile   string          // TLS解密key
+	stopGroup sync.WaitGroup  // 停止等待组
 }
 
 // 新建1个 tcp 接收器
@@ -59,6 +61,7 @@ func (this *TcpAcceptor) Run() error {
 	}
 
 	this.listener = lis
+	this.stopGroup.Add(1)
 	go this.accept()
 
 	return nil
@@ -69,7 +72,34 @@ func (this *TcpAcceptor) Run() error {
 // 成功，返回 nil
 // 失败，返回 error
 func (this *TcpAcceptor) Stop() error {
-	return this.listener.Close()
+	log.Logger.Debug(
+		"[TcpAcceptor] 停止中...",
+		log.String("ip", this.laddr),
+	)
+
+	if this.listener == nil {
+		return nil
+	}
+
+	err := this.listener.Close()
+	if err != nil {
+		log.Logger.Warn(
+			"[TcpAcceptor] 停止失败",
+			log.String("ip", this.laddr),
+			log.String("err", err.Error()),
+		)
+
+		return err
+	}
+
+	this.stopGroup.Wait()
+
+	log.Logger.Debug(
+		"[TcpAcceptor] 停止",
+		log.String("ip", this.laddr),
+	)
+
+	return nil
 }
 
 // -----------------------------------------------------------------------------
@@ -115,6 +145,10 @@ func (this *TcpAcceptor) runTLS() error {
 
 // 侦听连接
 func (this *TcpAcceptor) accept() {
+	defer func() {
+		this.stopGroup.Done()
+	}()
+
 	log.Logger.Debug(
 		"[TcpAcceptor] 启动成功",
 		log.String("ip=", this.laddr),
@@ -124,14 +158,14 @@ func (this *TcpAcceptor) accept() {
 		conn, err := this.listener.Accept()
 		if nil != err {
 			log.Logger.Debug(
-				"TcpAcceptor] 停止侦听新连接",
-				log.String("err=", err.Error()),
+				"[TcpAcceptor] 停止侦听新连接",
+				log.String("err", err.Error()),
 			)
 
 			return
 		}
 
-		if nil != this.connMgr {
+		if this.connMgr != nil {
 			go this.connMgr.OnTcpConn(conn)
 		}
 	}
