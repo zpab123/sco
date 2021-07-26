@@ -88,6 +88,18 @@ func (this *Agent) Run() {
 
 	// 接收循环，这里不能 go this.recvLoop()，会导致 websocket 连接直接断开
 	this.recvLoop()
+
+	this.stopGroup.Wait()
+
+	log.Logger.Debug("[Agent] 停止",
+		log.String("ip", this.String()),
+	)
+
+	if nil != this.mgr {
+		this.mgr.OnAgentStop(this)
+	}
+
+	this.state.Set(C_AGENT_ST_CLOSED)
 }
 
 // 停止
@@ -103,18 +115,6 @@ func (this *Agent) Stop() {
 	this.state.Set(C_AGENT_ST_CLOSING)
 
 	this.socket.Close()
-
-	this.stopGroup.Wait()
-
-	log.Logger.Debug("[Agent] 停止",
-		log.String("ip", this.String()),
-	)
-
-	if nil != this.mgr {
-		this.mgr.OnAgentStop(this)
-	}
-
-	this.state.Set(C_AGENT_ST_CLOSED)
 }
 
 // 设置握手 key

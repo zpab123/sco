@@ -78,7 +78,7 @@ func (this *WsAcceptor) Run() error {
 // 成功，返回 nil
 // 失败，返回 error
 func (this *WsAcceptor) Stop() error {
-	// defer log.Logger.Sync()
+	defer log.Logger.Sync()
 
 	log.Logger.Debug(
 		"[WsAcceptor] 停止中...",

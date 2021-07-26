@@ -181,6 +181,7 @@ func (this *Application) runNet() {
 	// 连接管理
 	if nil == this.connMgr {
 		this.newConnMgr()
+		this.connMgr.Run()
 	}
 
 	// 接收器
@@ -247,7 +248,7 @@ func (this *Application) mainLoop() {
 
 // 操作系统信号
 func (this *Application) onSignal(sig os.Signal) {
-	// defer log.Logger.Sync()
+	defer log.Logger.Sync()
 
 	if syscall.SIGINT == sig || syscall.SIGTERM == sig {
 		this.Stop()

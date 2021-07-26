@@ -54,7 +54,7 @@ func NewConnMgr(max int32) IConnManager {
 
 // 收到1个新的 tcp 连接对象
 func (this *ConnMgr) OnTcpConn(conn net.Conn) {
-	//defer log.Logger.Sync()
+	defer log.Logger.Sync()
 
 	// 参数效验
 	if nil == conn {
@@ -85,7 +85,7 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 
 // 收到1个新的 websocket 连接对象
 func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
-	// defer log.Logger.Sync()
+	defer log.Logger.Sync()
 
 	// 参数效验
 	if nil == wsconn {
