@@ -38,6 +38,7 @@ type Agent struct {
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	packetChan chan *Packet      // 消息通道
 	stopGroup  sync.WaitGroup    // 停止等待组
+	connector  bool              // 是否是连接器
 }
 
 // 新建1个 *Agent 对象
@@ -218,6 +219,10 @@ func (this *Agent) sendLoop() {
 		)
 	}()
 
+	if this.connector {
+		this.reqHandShake()
+	}
+
 	for {
 		err := this.socket.Flush()
 		if nil != err {
@@ -353,6 +358,29 @@ func (this *Agent) handle(pkt *Packet) {
 	if this.packetChan != nil {
 		this.packetChan <- pkt
 	}
+}
+
+// 发送握手请求
+func (this *Agent) reqHandShake() {
+	req := protocol.HandshakeReq{
+		Key:      C_F_KEY,
+		Acceptor: 1,
+	}
+
+	data, err := json.Marshal(&req)
+	if nil != err {
+		log.Logger.Debug(
+			"[TcpConn] 编码握手消息失败",
+		)
+
+		this.Stop()
+		return
+	}
+
+	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
+	pkt.AppendBytes(data)
+
+	this.socket.SendBytes(pkt.Data())
 }
 
 // 停止成功

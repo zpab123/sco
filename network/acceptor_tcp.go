@@ -19,7 +19,7 @@ import (
 type TcpAcceptor struct {
 	laddr     string          // 侦听地址
 	listener  net.Listener    // 侦听器
-	connMgr   ITcpConnManager // websocket 连接管理
+	connMgr   ITcpConnManager // tcp 连接管理
 	certFile  string          // TLS加密文件
 	keyFile   string          // TLS解密key
 	stopGroup sync.WaitGroup  // 停止等待组

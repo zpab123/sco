@@ -84,7 +84,7 @@ type IConnManager interface {
 
 // tcp 连接管理
 type ITcpConnManager interface {
-	OnTcpConn(conn net.Conn) // 收到1个新的 tcp 连接对象
+	OnTcpConn(conn net.Conn, connector bool) // 收到1个新的 tcp 连接对象
 }
 
 // websocket 连接管理

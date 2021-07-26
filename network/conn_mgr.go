@@ -53,7 +53,7 @@ func NewConnMgr(max int32) IConnManager {
 // ITcpConnManager 接口
 
 // 收到1个新的 tcp 连接对象
-func (this *ConnMgr) OnTcpConn(conn net.Conn) {
+func (this *ConnMgr) OnTcpConn(conn net.Conn, connector bool) {
 	defer log.Logger.Sync()
 
 	// 参数效验
@@ -77,7 +77,7 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn) {
 		log.String("ip=", conn.RemoteAddr().String()),
 	)
 
-	this.newAgent(conn)
+	this.newAgent(conn, connector)
 }
 
 // -----------------------------------------------------------------------------
@@ -196,7 +196,7 @@ func (this *ConnMgr) GetConnNum() int32 {
 // private
 
 // 创建代理
-func (this *ConnMgr) newAgent(conn net.Conn) {
+func (this *ConnMgr) newAgent(conn net.Conn, connector bool) {
 	s, err := NewSocket(conn)
 	if nil != err {
 		return
@@ -213,6 +213,7 @@ func (this *ConnMgr) newAgent(conn net.Conn) {
 	id := this.agentId.Add(1)
 	a.SetId(id)
 	a.SetConnMgr(this)
+	a.connector = connector
 
 	this.agentMap.Store(id, a)
 	this.connNum.Add(1)

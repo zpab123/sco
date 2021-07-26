@@ -28,6 +28,7 @@ type TcpConn struct {
 	lastSend       syncs.AtomicInt64 // 上次发送数据时间
 	chDie          chan struct{}     // 关闭通道
 	packetChan     chan *Packet      // 消息通道
+	connMgr        ITcpConnManager   // tcp 连接管理
 }
 
 // 新建1个 tcp 连接
@@ -61,20 +62,8 @@ func (this *TcpConn) Run() error {
 		return err
 	}
 
-	s, err := NewSocket(conn)
-	if nil != err {
-		return err
-	}
-
-	this.socket = s
-
-	// 发送线程
-	go this.sendLoop()
-	// 接收线程
-	go this.recvLoop()
-	// 心跳
-	if this.heartbeatInt64 > 0 {
-		go this.heartbeatLoop()
+	if this.connMgr != nil {
+		this.connMgr.OnTcpConn(conn)
 	}
 
 	return nil
@@ -84,6 +73,13 @@ func (this *TcpConn) Run() error {
 func (this *TcpConn) Stop() {
 	close(this.chDie)
 	this.socket.Close()
+}
+
+// 设置连接管理
+func (this *TcpConn) SetConnMgr(mgr ITcpConnManager) {
+	if nil != mgr {
+		this.connMgr = mgr
+	}
 }
 
 // 发送1个 packet 消息

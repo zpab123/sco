@@ -27,7 +27,7 @@ type Application struct {
 	Options      *Options             // 配置选项
 	connMgr      network.IConnManager // 连接管理
 	acceptors    []network.IAcceptor  // 接收器切片
-	packetChan   chan *network.Packet // 网络数据包
+	clientPacket chan *network.Packet // 网络数据包
 	serverPacket chan *network.Packet // 服务器数据包
 	dispatcher   *dispatch.Dispatcher // 分发器
 	svcs         []svc.IService       // 服务列表
@@ -51,13 +51,13 @@ func NewApplication() *Application {
 
 	// 创建 app
 	a := Application{
-		Options:    NewOptions(),
-		acceptors:  acc,
-		svcs:       ss,
-		signalChan: sch,
-		ctx:        cx,
-		cancel:     cc,
-		packetChan: pc,
+		Options:      NewOptions(),
+		acceptors:    acc,
+		svcs:         ss,
+		signalChan:   sch,
+		ctx:          cx,
+		cancel:       cc,
+		clientPacket: pc,
 	}
 
 	return &a
@@ -83,6 +83,8 @@ func (this *Application) Run() {
 
 	// 侦听信号
 	this.listenSignal()
+
+	//
 
 	// 主循环
 	this.mainLoop()
@@ -220,6 +222,7 @@ func (this *Application) newPktChan() {
 	this.serverPacket = make(chan *network.Packet, 1000)
 }
 
+// 转发
 func (this *Application) newDispatcher() {
 	this.dispatcher = dispatch.NewDispatcher(this.Options.Dispatchers)
 	this.dispatcher.SetPacketChan(this.serverPacket)
@@ -236,8 +239,8 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
-		case pkt := <-this.packetChan: // 网络消息
-			this.onPacket(pkt)
+		case pkt := <-this.clientPacket: // 网络消息
+			this.onClientPacket(pkt)
 		case pkt := <-this.serverPacket: // 服务器数据包
 			this.onServerPacket(pkt)
 		case sig := <-this.signalChan: // os 信号
@@ -272,7 +275,7 @@ func (this *Application) onStop() {
 }
 
 // 接收到网络数据
-func (this *Application) onPacket(pkt *network.Packet) {
+func (this *Application) onClientPacket(pkt *network.Packet) {
 	if this.delegate != nil {
 		this.delegate.OnPacket(pkt)
 	}
@@ -282,6 +285,8 @@ func (this *Application) onPacket(pkt *network.Packet) {
 func (this *Application) onServerPacket(pkt *network.Packet) {
 	switch pkt.GetMid() {
 	case 4: // 进入工作
+		// 注册服务
+		// 注册结果
 	case 5: // io 错误
 	case 6: // 掉线
 	default: // 数据包
