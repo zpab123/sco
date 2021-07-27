@@ -8,12 +8,17 @@ package protocol
 
 // sco 框架消息 (1-100)
 const (
-	C_MID_INVALID       uint16 = 0 // 无效消息
-	C_MID_HANDSHAKE     uint16 = 1 // 握手消息ID
-	C_MID_HANDSHAKE_ACK uint16 = 2 // 握手 ACK
-	C_MID_HEARTBEAT     uint16 = 3 // 心跳
-	C_MID_WORKING       uint16 = 4 // 连接为工作状态
-	C_MID_SCO           uint16 = 5 // 分界线： 以上由 SocConn 处理的消息
+	C_MID_INVALID       uint16 = 0   // 无效消息
+	C_MID_HANDSHAKE     uint16 = 1   // 握手消息ID
+	C_MID_HANDSHAKE_ACK uint16 = 2   // 握手 ACK
+	C_MID_HEARTBEAT     uint16 = 3   // 心跳
+	C_MID_WORKING       uint16 = 4   // 连接为工作状态
+	C_MID_SCO           uint16 = 1   // sco 内部消息
+	C_SID_AGENT_WORKING uint16 = 4   // agent 进入工作状态
+	C_SID_HANDSHAKE_REQ uint16 = 100 // 握手请求
+	C_SID_HANDSHAKE_RES uint16 = 101 // 握手回复
+	C_SID_ACK           uint16 = 102 // 握手 ack
+	C_SID_HEARTBEAT     uint16 = 103 // 心跳
 )
 
 // 消息码

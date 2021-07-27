@@ -31,7 +31,7 @@ type WsAcceptor struct {
 //
 // 成功，返回 *WsAcceptor nil
 // 失败，返回 nil error
-func NewWsAcceptor(laddr string) (IAcceptor, error) {
+func NewWsAcceptor(laddr string) (*WsAcceptor, error) {
 	var err error
 
 	// 参数效验
@@ -114,7 +114,7 @@ func (this *WsAcceptor) Stop() error {
 // public
 
 // 设置连接管理
-func (this *WsAcceptor) SetConnMgr(mgr IConnManager) {
+func (this *WsAcceptor) SetConnMgr(mgr IWsConnManager) {
 	if nil != mgr {
 		this.connMgr = mgr
 	}

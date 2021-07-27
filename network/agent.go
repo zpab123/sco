@@ -38,7 +38,6 @@ type Agent struct {
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	packetChan chan *Packet      // 消息通道
 	stopGroup  sync.WaitGroup    // 停止等待组
-	connector  bool              // 是否是连接器
 }
 
 // 新建1个 *Agent 对象
@@ -131,7 +130,7 @@ func (this *Agent) SetHeartbeat(h time.Duration) {
 }
 
 // 设置连接管理
-func (this *Agent) SetConnMgr(mgr IAgentManager) {
+func (this *Agent) SetMgr(mgr IAgentManager) {
 	if nil != mgr {
 		this.mgr = mgr
 	}
@@ -219,10 +218,6 @@ func (this *Agent) sendLoop() {
 		)
 	}()
 
-	if this.connector {
-		this.reqHandShake()
-	}
-
 	for {
 		err := this.socket.Flush()
 		if nil != err {
@@ -238,19 +233,37 @@ func (this *Agent) onPacket(pkt *Packet) {
 	this.lastRecv.Store(time.Now().UnixNano())
 	switch pkt.mid {
 	case protocol.C_MID_INVALID: // 无效
+		log.Logger.Debug("[Agent] 无效 packet",
+			log.Uint16("mid", pkt.GetMid()),
+		)
+
 		this.Stop()
-	case protocol.C_MID_HANDSHAKE: // 客户端握手请求
-		this.onHandshake(pkt.GetBody())
-	case protocol.C_MID_HANDSHAKE_ACK: // 客户端握手 ACK
-		this.onAck()
-	case protocol.C_MID_HEARTBEAT: // 心跳
-		//log.Sugar.Debug("心跳")
+	case protocol.C_MID_SCO: // 框架内部消息
+		this.onScoPacket(pkt)
 	default:
 		this.handle(pkt)
 	}
 }
 
-// 握手消息
+// 框架内部消息
+func (this *Agent) onScoPacket(pkt *Packet) {
+	switch pkt.GetSid() {
+	case protocol.C_SID_HANDSHAKE_REQ: // 握手请求
+		this.onHandshake(pkt.GetBody())
+	case protocol.C_SID_ACK: // 握手 ACK
+		this.onAck()
+	case protocol.C_SID_HEARTBEAT: // 心跳
+	//log.Sugar.Debug("心跳")
+	default:
+		log.Logger.Debug("[Agent] 无效 packet",
+			log.Uint16("sid", pkt.GetSid()),
+		)
+
+		this.Stop()
+	}
+}
+
+// 握手请求
 func (this *Agent) onHandshake(body []byte) {
 	// 状态效验
 	if this.state.Get() != C_AGENT_ST_INIT {
@@ -278,6 +291,27 @@ func (this *Agent) onHandshake(body []byte) {
 	this.handshakeOk()
 }
 
+//  握手失败
+func (this *Agent) handshakeFail(code uint32) {
+	defer this.Stop()
+	// 返回数据
+	res := &protocol.HandshakeRes{
+		Code: code,
+	}
+	data, err := json.Marshal(res)
+	if nil != err {
+		log.Logger.Error(
+			"[Agent] 握手失败，但服务器未返回消息：编码握手消息出错",
+		)
+
+		return
+	}
+
+	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
+	pkt.AppendBytes(data)
+	this.socket.SendPacket(pkt) // 越过工作状态发送消息
+}
+
 //  握手成功
 func (this *Agent) handshakeOk() {
 	// defer log.Logger.Sync()
@@ -298,7 +332,7 @@ func (this *Agent) handshakeOk() {
 		return
 	}
 
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
+	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
 	pkt.AppendBytes(data)
 	this.socket.SendPacket(pkt) // 越过工作状态发送消息
 
@@ -306,28 +340,7 @@ func (this *Agent) handshakeOk() {
 	this.state.Set(C_AGENT_ST_WAIT_ACK)
 }
 
-//  握手失败
-func (this *Agent) handshakeFail(code uint32) {
-	defer this.Stop()
-	// 返回数据
-	res := &protocol.HandshakeRes{
-		Code: code,
-	}
-	data, err := json.Marshal(res)
-	if nil != err {
-		log.Logger.Error(
-			"[Agent] 握手失败，但服务器未返回消息：编码握手消息出错",
-		)
-
-		return
-	}
-
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
-	pkt.AppendBytes(data)
-	this.socket.SendPacket(pkt) // 越过工作状态发送消息
-}
-
-//  握手ACK
+//  收到握手 ACK
 func (this *Agent) onAck() {
 	// 状态：工作中
 	if !this.state.CompareAndSwap(C_AGENT_ST_WAIT_ACK, C_AGENT_ST_WORKING) {
@@ -350,7 +363,9 @@ func (this *Agent) sendHeartbeat() error {
 
 // 处理 pkcket
 func (this *Agent) handle(pkt *Packet) {
-	if pkt.mid <= protocol.C_MID_SCO {
+	if this.state.Get() != state.C_WORKING {
+		log.Logger.Debug("[Agent] 非工作状态，关闭改连接")
+
 		this.Stop()
 		return
 	}
@@ -358,29 +373,6 @@ func (this *Agent) handle(pkt *Packet) {
 	if this.packetChan != nil {
 		this.packetChan <- pkt
 	}
-}
-
-// 发送握手请求
-func (this *Agent) reqHandShake() {
-	req := protocol.HandshakeReq{
-		Key:      C_F_KEY,
-		Acceptor: 1,
-	}
-
-	data, err := json.Marshal(&req)
-	if nil != err {
-		log.Logger.Debug(
-			"[TcpConn] 编码握手消息失败",
-		)
-
-		this.Stop()
-		return
-	}
-
-	pkt := NewPacket(protocol.C_MID_HANDSHAKE, 0)
-	pkt.AppendBytes(data)
-
-	this.socket.SendBytes(pkt.Data())
 }
 
 // 停止成功

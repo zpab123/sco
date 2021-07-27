@@ -28,7 +28,7 @@ type TcpAcceptor struct {
 // 新建1个 tcp 接收器
 // 成功： 返回 *TcpAcceptor, nil
 // 失败： 返回 nil, error
-func NewTcpAcceptor(laddr string) (IAcceptor, error) {
+func NewTcpAcceptor(laddr string) (*TcpAcceptor, error) {
 	var err error
 	// 参数效验
 	if "" == laddr {
@@ -106,7 +106,7 @@ func (this *TcpAcceptor) Stop() error {
 // public
 
 // 设置连接管理
-func (this *TcpAcceptor) SetConnMgr(mgr IConnManager) {
+func (this *TcpAcceptor) SetConnMgr(mgr ITcpConnManager) {
 	if nil != mgr {
 		this.connMgr = mgr
 	}

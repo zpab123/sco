@@ -1,5 +1,5 @@
 // /////////////////////////////////////////////////////////////////////////////
-// 连接管理
+// agent 管理
 
 package network
 
@@ -17,7 +17,7 @@ import (
 // ConnMgr
 
 // 连接管理
-type ConnMgr struct {
+type AgentMgr struct {
 	maxConn    int32             // 最大连接数量，超过此数值后，不再接收新连接
 	key        string            // 握手key
 	heartbeat  time.Duration     // 心跳周期
@@ -32,12 +32,12 @@ type ConnMgr struct {
 }
 
 // 新建1个 ConnMgr
-func NewConnMgr(max int32) IConnManager {
+func NewAgentMgr(max int32) IAgentManager {
 	if max <= 0 {
 		max = C_F_MAX_CONN
 	}
 
-	mgr := ConnMgr{
+	mgr := AgentMgr{
 		maxConn:   max,
 		key:       C_F_KEY,
 		heartbeat: C_F_HEARTBEAT,
@@ -53,7 +53,7 @@ func NewConnMgr(max int32) IConnManager {
 // ITcpConnManager 接口
 
 // 收到1个新的 tcp 连接对象
-func (this *ConnMgr) OnTcpConn(conn net.Conn, connector bool) {
+func (this *AgentMgr) OnTcpConn(conn net.Conn) {
 	defer log.Logger.Sync()
 
 	// 参数效验
@@ -77,14 +77,14 @@ func (this *ConnMgr) OnTcpConn(conn net.Conn, connector bool) {
 		log.String("ip=", conn.RemoteAddr().String()),
 	)
 
-	this.newAgent(conn, connector)
+	this.newAgent(conn)
 }
 
 // -----------------------------------------------------------------------------
 // IWsConnManager 接口
 
 // 收到1个新的 websocket 连接对象
-func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
+func (this *AgentMgr) OnWsConn(wsconn *websocket.Conn) {
 	defer log.Logger.Sync()
 
 	// 参数效验
@@ -117,7 +117,7 @@ func (this *ConnMgr) OnWsConn(wsconn *websocket.Conn) {
 // IAgentManager 接口
 
 // 某个 Agent 停止
-func (this *ConnMgr) OnAgentStop(a *Agent) {
+func (this *AgentMgr) OnAgentStop(a *Agent) {
 	if nil == a {
 		return
 	}
@@ -138,7 +138,7 @@ func (this *ConnMgr) OnAgentStop(a *Agent) {
 // -----------------------------------------------------------------------------
 // public
 
-func (this *ConnMgr) Run() {
+func (this *AgentMgr) Run() {
 	// 启动心跳管理
 	if this.heartbeat > 0 {
 		go this.checkHeart()
@@ -146,7 +146,7 @@ func (this *ConnMgr) Run() {
 }
 
 // 停止连接管理
-func (this *ConnMgr) Stop() {
+func (this *AgentMgr) Stop() {
 	close(this.chDie)
 
 	this.agentMap.Range(func(key, v interface{}) bool {
@@ -160,35 +160,35 @@ func (this *ConnMgr) Stop() {
 }
 
 // 设置握手 key
-func (this *ConnMgr) SetKey(k string) {
+func (this *AgentMgr) SetKey(k string) {
 	if "" != k {
 		this.key = k
 	}
 }
 
 // 设置心跳 key
-func (this *ConnMgr) SetHeartbeat(h time.Duration) {
+func (this *AgentMgr) SetHeartbeat(h time.Duration) {
 	this.heartbeat = h
 	this.heartSend = int64(h) / 2
 	this.heartRecv = int64(h)
 }
 
 // 设置 handler
-func (this *ConnMgr) SetHandler(h IHandler) {
+func (this *AgentMgr) SetHandler(h IHandler) {
 	if nil != h {
 		this.handler = h
 	}
 }
 
 // 设置消息通道
-func (this *ConnMgr) SetPacketChan(ch chan *Packet) {
+func (this *AgentMgr) SetPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.packetChan = ch
 	}
 }
 
 // 获取当前连接数
-func (this *ConnMgr) GetConnNum() int32 {
+func (this *AgentMgr) GetConnNum() int32 {
 	return this.connNum.Load()
 }
 
@@ -196,7 +196,7 @@ func (this *ConnMgr) GetConnNum() int32 {
 // private
 
 // 创建代理
-func (this *ConnMgr) newAgent(conn net.Conn, connector bool) {
+func (this *AgentMgr) newAgent(conn net.Conn) {
 	s, err := NewSocket(conn)
 	if nil != err {
 		return
@@ -212,8 +212,7 @@ func (this *ConnMgr) newAgent(conn net.Conn, connector bool) {
 	a.SetPacketChan(this.packetChan)
 	id := this.agentId.Add(1)
 	a.SetId(id)
-	a.SetConnMgr(this)
-	a.connector = connector
+	a.SetMgr(this)
 
 	this.agentMap.Store(id, a)
 	this.connNum.Add(1)
@@ -221,7 +220,7 @@ func (this *ConnMgr) newAgent(conn net.Conn, connector bool) {
 }
 
 // 检测心跳
-func (this *ConnMgr) checkHeart() {
+func (this *AgentMgr) checkHeart() {
 	// 半程检测
 	hb := this.heartbeat / 2
 	ticker := time.NewTicker(hb)
@@ -245,7 +244,7 @@ func (this *ConnMgr) checkHeart() {
 }
 
 // 检查发送是否超时
-func (this *ConnMgr) check() {
+func (this *AgentMgr) check() {
 	t := time.Now()
 
 	this.agentMap.Range(func(key, v interface{}) bool {
@@ -259,7 +258,7 @@ func (this *ConnMgr) check() {
 }
 
 // 检查发送是否超时
-func (this *ConnMgr) checkSendTime(a *Agent, t time.Time) {
+func (this *AgentMgr) checkSendTime(a *Agent, t time.Time) {
 	pass := t.UnixNano() - a.lastSend.Load()
 	if pass >= this.heartSend {
 		a.sendHeartbeat()
@@ -267,7 +266,7 @@ func (this *ConnMgr) checkSendTime(a *Agent, t time.Time) {
 }
 
 // 检查接收是否超时
-func (this *ConnMgr) checkRecvTime(a *Agent, t time.Time) {
+func (this *AgentMgr) checkRecvTime(a *Agent, t time.Time) {
 	pass := t.UnixNano() - a.lastRecv.Load()
 	if pass >= this.heartRecv {
 		log.Logger.Debug(

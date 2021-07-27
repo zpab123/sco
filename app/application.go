@@ -24,19 +24,19 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options      *Options             // 配置选项
-	connMgr      network.IConnManager // 连接管理
-	acceptors    []network.IAcceptor  // 接收器切片
-	clientPacket chan *network.Packet // 网络数据包
-	serverPacket chan *network.Packet // 服务器数据包
-	dispatcher   *dispatch.Dispatcher // 分发器
-	svcs         []svc.IService       // 服务列表
-	stopGroup    sync.WaitGroup       // 停止等待组
-	signalChan   chan os.Signal       // 操作系统信号
-	state        state.State          // 状态
-	ctx          context.Context      // 退出 ctx
-	cancel       context.CancelFunc   // 退出 ctx
-	delegate     IDelegate            // 代理对象
+	Options      *Options              // 配置选项
+	agentMgr     network.IAgentManager // agent 管理
+	acceptors    []network.IAcceptor   // 接收器切片
+	clientPacket chan *network.Packet  // 网络数据包
+	serverPacket chan *network.Packet  // 服务器数据包
+	dispatcher   *dispatch.Dispatcher  // 分发器
+	svcs         []svc.IService        // 服务列表
+	stopGroup    sync.WaitGroup        // 停止等待组
+	signalChan   chan os.Signal        // 操作系统信号
+	state        state.State           // 状态
+	ctx          context.Context       // 退出 ctx
+	cancel       context.CancelFunc    // 退出 ctx
+	delegate     IDelegate             // 代理对象
 }
 
 // 创建1个新的 Application 对象
@@ -109,8 +109,8 @@ func (this *Application) Stop() {
 		acc.Stop()
 	}
 
-	if this.connMgr != nil {
-		this.connMgr.Stop()
+	if this.agentMgr != nil {
+		this.agentMgr.Stop()
 	}
 
 	if this.dispatcher != nil {
@@ -133,6 +133,11 @@ func (this *Application) AddTcpAcceptor(laddr string) error {
 		return err
 	}
 
+	if this.agentMgr == nil {
+		this.newAgentMgr()
+	}
+	acc.SetConnMgr(this.agentMgr)
+
 	this.acceptors = append(this.acceptors, acc)
 
 	return nil
@@ -146,6 +151,11 @@ func (this *Application) AddWsAcceptor(laddr string) error {
 	if err != nil {
 		return err
 	}
+
+	if this.agentMgr == nil {
+		this.newAgentMgr()
+	}
+	acc.SetConnMgr(this.agentMgr)
 
 	this.acceptors = append(this.acceptors, acc)
 
@@ -181,25 +191,23 @@ func (this *Application) Dispatch(pkt *network.Packet) {
 // 启动网络
 func (this *Application) runNet() {
 	// 连接管理
-	if nil == this.connMgr {
-		this.newConnMgr()
-		this.connMgr.Run()
+	if this.agentMgr != nil {
+		this.agentMgr.Run()
 	}
 
 	// 接收器
 	this.runAcceptor()
 }
 
-// 创建默认连接管理
-func (this *Application) newConnMgr() {
-	this.connMgr = network.NewConnMgr(10000)
-	this.connMgr.SetPacketChan(this.packetChan)
+// 创建 agent 管理
+func (this *Application) newAgentMgr() {
+	this.agentMgr = network.NewAgentMgr(10000)
+	this.agentMgr.SetPacketChan(this.clientPacket)
 }
 
 // 启动接收器
 func (this *Application) runAcceptor() {
 	for _, acc := range this.acceptors {
-		acc.SetConnMgr(this.connMgr)
 		// go acc.Run()
 		acc.Run()
 	}

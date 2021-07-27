@@ -6,3 +6,6 @@ connMgr
 	1、需要增加状态管理
 	2、connMgr 中的 map 需要频繁读写，性能不是很好
 
+packet
+	1、内部消息用一个主id即可，其他用子id来表示，节约id
+
