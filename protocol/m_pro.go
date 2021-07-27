@@ -10,11 +10,14 @@ package protocol
 const (
 	C_MID_INVALID       uint16 = 0   // 无效消息
 	C_MID_SCO           uint16 = 1   // sco 内部消息
+	C_MID_DISPATCH      uint16 = 2   // 分发服务
 	C_SID_AGENT_WORKING uint16 = 4   // agent 进入工作状态
 	C_SID_HANDSHAKE_REQ uint16 = 100 // 握手请求
 	C_SID_HANDSHAKE_RES uint16 = 101 // 握手回复
 	C_SID_ACK           uint16 = 102 // 握手 ack
 	C_SID_HEARTBEAT     uint16 = 103 // 心跳
+	C_SID_SVCREG_REQ    uint16 = 201 // 服务注册请求
+	C_SID_SVCREG_RES    uint16 = 201 // 服务注册回复
 )
 
 // 消息码

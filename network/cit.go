@@ -114,6 +114,12 @@ type IClientHandler interface {
 	OnPacket(c *TcpConn, pkt *Packet) // 收到1个 packet 消息
 }
 
+// 连接对象接口
+type IConn interface {
+	Stop()                        // 停止
+	SendPacket(pkt *Packet) error // 发送 packet
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 // Frontend 对象
 

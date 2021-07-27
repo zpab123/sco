@@ -232,7 +232,7 @@ func (this *Application) newPktChan() {
 
 // 转发
 func (this *Application) newDispatcher() {
-	this.dispatcher = dispatch.NewDispatcher(this.Options.Dispatchers)
+	this.dispatcher = dispatch.NewDispatcher(this.Options.Mid, this.Options.Dispatchers)
 	this.dispatcher.SetPacketChan(this.serverPacket)
 }
 
@@ -291,12 +291,7 @@ func (this *Application) onClientPacket(pkt *network.Packet) {
 
 // 服务器数据包
 func (this *Application) onServerPacket(pkt *network.Packet) {
-	switch pkt.GetMid() {
-	case 4: // 进入工作
-		// 注册服务
-		// 注册结果
-	case 5: // io 错误
-	case 6: // 掉线
-	default: // 数据包
+	if this.delegate != nil {
+		this.delegate.OnPacket(pkt)
 	}
 }

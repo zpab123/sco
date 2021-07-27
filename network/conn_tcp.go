@@ -28,6 +28,7 @@ type TcpConn struct {
 	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	chDie      chan struct{}     // 关闭通道
+	scoPacket  chan *Packet      // 引擎消息通道
 	packetChan chan *Packet      // 消息通道
 }
 
@@ -124,6 +125,13 @@ func (this *TcpConn) String() string {
 	return this.socket.String()
 }
 
+// 设置引擎消息通道
+func (this *TcpConn) SetScoPacket(ch chan *Packet) {
+	if ch != nil {
+		this.scoPacket = ch
+	}
+}
+
 // 设置消息通道
 func (this *TcpConn) SetPacketChan(ch chan *Packet) {
 	if ch != nil {
@@ -215,10 +223,10 @@ func (this *TcpConn) sendAck() {
 	this.state.Set(C_CLI_ST_WORKING)
 
 	// 通知可以发送数据了
-	if this.packetChan != nil {
+	if this.scoPacket != nil {
 		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_AGENT_WORKING)
-		// 保存网络
-		this.packetChan <- pkt
+		pkt.conn = this
+		this.scoPacket <- pkt
 	}
 }
 

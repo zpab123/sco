@@ -38,6 +38,7 @@ type Agent struct {
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	packetChan chan *Packet      // 消息通道
 	stopGroup  sync.WaitGroup    // 停止等待组
+	scoPacket  chan *Packet      // 引擎消息通道
 }
 
 // 新建1个 *Agent 对象
@@ -201,7 +202,7 @@ func (this *Agent) recvLoop() {
 		}
 
 		if nil != pkt {
-			pkt.agent = this
+			pkt.conn = this
 			this.onPacket(pkt)
 			continue
 		}
@@ -255,6 +256,7 @@ func (this *Agent) onScoPacket(pkt *Packet) {
 	case protocol.C_SID_HEARTBEAT: // 心跳
 	//log.Sugar.Debug("心跳")
 	default:
+		// 其他消息
 		log.Logger.Debug("[Agent] 无效 packet",
 			log.Uint16("sid", pkt.GetSid()),
 		)

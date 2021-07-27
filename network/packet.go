@@ -32,6 +32,7 @@ type Packet struct {
 	readPos  int    // 读取位置
 	wirtePos int    // 写入位置
 	agent    *Agent // 代理
+	conn     IConn  // 网络连接
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
@@ -72,6 +73,11 @@ func (this *Packet) GetMid() uint16 {
 // 获取 Packet 的子id
 func (this *Packet) GetSid() uint16 {
 	return this.sid
+}
+
+// 获取 Conn
+func (this *Packet) GetConn() IConn {
+	return this.conn
 }
 
 // 获取 Agent

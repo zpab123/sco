@@ -31,7 +31,7 @@ type AgentMgr struct {
 	chDie      chan struct{}     // 关闭通道
 }
 
-// 新建1个 ConnMgr
+// 新建1个 AgentMgr
 func NewAgentMgr(max int32) IAgentManager {
 	if max <= 0 {
 		max = C_F_MAX_CONN
@@ -66,14 +66,14 @@ func (this *AgentMgr) OnTcpConn(conn net.Conn) {
 		conn.Close()
 
 		log.Logger.Warn(
-			"[ConnMgr] 达到最大连接数，关闭新连接",
+			"[AgentMgr] 达到最大连接数，关闭新连接",
 			log.Int32("当前连接数=", this.connNum.Load()),
 		)
 	}
 
 	// 创建代理
 	log.Logger.Debug(
-		"[ConnMgr] 新 tcp 连接",
+		"[AgentMgr] 新 tcp 连接",
 		log.String("ip=", conn.RemoteAddr().String()),
 	)
 
@@ -96,7 +96,7 @@ func (this *AgentMgr) OnWsConn(wsconn *websocket.Conn) {
 	if this.connNum.Load() >= this.maxConn {
 		wsconn.Close()
 		log.Logger.Warn(
-			"[ConnMgr] 达到最大连接数，关闭新连接",
+			"[AgentMgr] 达到最大连接数，关闭新连接",
 			log.Int32("当前连接数=", this.connNum.Load()),
 		)
 	}
@@ -106,7 +106,7 @@ func (this *AgentMgr) OnWsConn(wsconn *websocket.Conn) {
 
 	// 创建代理
 	log.Logger.Debug(
-		"[ConnMgr] 新 ws 连接",
+		"[AgentMgr] 新 ws 连接",
 		log.String("ip=", wsconn.RemoteAddr().String()),
 	)
 
@@ -128,7 +128,7 @@ func (this *AgentMgr) OnAgentStop(a *Agent) {
 		this.connNum.Add(-1)
 
 		log.Logger.Debug(
-			"[ConnMgr] Agent 断开",
+			"[AgentMgr] Agent 断开",
 			log.Int32("当前连接数=", this.connNum.Load()),
 		)
 
@@ -227,7 +227,7 @@ func (this *AgentMgr) checkHeart() {
 
 	defer func() {
 		log.Logger.Debug(
-			"[ConnMgr] checkHeart 结束",
+			"[AgentMgr] checkHeart 结束",
 		)
 
 		ticker.Stop()
@@ -270,7 +270,7 @@ func (this *AgentMgr) checkRecvTime(a *Agent, t time.Time) {
 	pass := t.UnixNano() - a.lastRecv.Load()
 	if pass >= this.heartRecv {
 		log.Logger.Debug(
-			"[ConnMgr] agent 心跳超时，关闭该连接",
+			"[AgentMgr] agent 心跳超时，关闭该连接",
 			log.String("agent", a.String()),
 		)
 
