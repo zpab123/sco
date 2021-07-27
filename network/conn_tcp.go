@@ -6,7 +6,6 @@ package network
 import (
 	"encoding/json"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/zpab123/sco/log"
@@ -30,7 +29,6 @@ type TcpConn struct {
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	chDie      chan struct{}     // 关闭通道
 	packetChan chan *Packet      // 消息通道
-	stopGroup  sync.WaitGroup    // 停止等待组
 }
 
 // 新建1个 tcp 连接
@@ -66,8 +64,6 @@ func (this *TcpConn) Run() error {
 
 	this.socket = s
 
-	this.stopGroup.Add(2)
-
 	// 接收线程
 	go this.recvLoop()
 
@@ -96,13 +92,7 @@ func (this *TcpConn) Stop() {
 
 	close(this.chDie)
 
-	this.stopGroup.Wait()
-
 	this.state.Set(C_AGENT_ST_CLOSED)
-
-	log.Logger.Debug("[TcpConn] 停止",
-		log.String("ip", this.String()),
-	)
 }
 
 // 发送1个 packet 消息
@@ -147,13 +137,8 @@ func (this *TcpConn) SetPacketChan(ch chan *Packet) {
 // 接收线程
 func (this *TcpConn) recvLoop() {
 	defer func() {
-		this.stopGroup.Done()
-
-		log.Logger.Debug(
-			"[TcpConn] recvLoop 结束",
-		)
-
-		this.socket.SendPacket(nil) // 用于结束 sendLoop
+		// 用于结束 sendLoop
+		this.socket.SendPacket(nil)
 	}()
 
 	for {
@@ -178,11 +163,6 @@ func (this *TcpConn) recvLoop() {
 func (this *TcpConn) sendLoop() {
 	defer func() {
 		this.Stop()
-		this.stopGroup.Done()
-
-		log.Logger.Debug(
-			"[TcpConn] sendLoop 结束",
-		)
 	}()
 
 	// 请求握手
@@ -297,8 +277,6 @@ func (this *TcpConn) onHandshake(data []byte) {
 		this.sendAck()
 
 		if this.heartbeat > 0 {
-			this.stopGroup.Add(2)
-
 			go this.checkHeart()
 		}
 	} else {
