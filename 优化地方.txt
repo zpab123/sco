@@ -2,10 +2,14 @@
 2、TcpConn 在 stop 的时候，需要停止多个线程，此时要增加一个停止状态，防止多次调用 stop 到时 chan 重复关闭
 3、接收器停止的时候，可能需要增加状态
 
-connMgr 
+agentMgr 
 	1、需要增加状态管理
-	2、connMgr 中的 map 需要频繁读写，性能不是很好
+	2、agent 中的 map 需要频繁读写，性能不是很好
+
+TcpConn
+	1、Stop 函数很多阻塞的地方
 
 packet
 	1、内部消息用一个主id即可，其他用子id来表示，节约id
+	
 

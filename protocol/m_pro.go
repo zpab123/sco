@@ -6,13 +6,9 @@ package protocol
 // /////////////////////////////////////////////////////////////////////////////
 // 常量
 
-// sco 框架消息 (1-100)
+// sco 框架消息
 const (
 	C_MID_INVALID       uint16 = 0   // 无效消息
-	C_MID_HANDSHAKE     uint16 = 1   // 握手消息ID
-	C_MID_HANDSHAKE_ACK uint16 = 2   // 握手 ACK
-	C_MID_HEARTBEAT     uint16 = 3   // 心跳
-	C_MID_WORKING       uint16 = 4   // 连接为工作状态
 	C_MID_SCO           uint16 = 1   // sco 内部消息
 	C_SID_AGENT_WORKING uint16 = 4   // agent 进入工作状态
 	C_SID_HANDSHAKE_REQ uint16 = 100 // 握手请求

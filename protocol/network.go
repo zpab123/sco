@@ -15,5 +15,5 @@ type HandshakeReq struct {
 // 服务器->客户端握手结果(握手成功)
 type HandshakeRes struct {
 	Code      uint32 `json:"code"`      // 握手结果
-	Heartbeat uint16 `json:"heartbeat"` // 心跳时间
+	Heartbeat uint16 `json:"heartbeat"` // 心跳时间(秒)
 }

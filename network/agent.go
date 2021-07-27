@@ -234,7 +234,7 @@ func (this *Agent) onPacket(pkt *Packet) {
 	switch pkt.mid {
 	case protocol.C_MID_INVALID: // 无效
 		log.Logger.Debug("[Agent] 无效 packet",
-			log.Uint16("mid", pkt.GetMid()),
+			log.Uint16("mid", pkt.mid),
 		)
 
 		this.Stop()
@@ -355,7 +355,7 @@ func (this *Agent) onAck() {
 //  发送心跳数据
 func (this *Agent) sendHeartbeat() error {
 	// 发送心跳数据
-	pkt := NewPacket(protocol.C_MID_HEARTBEAT, 0)
+	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
 	err := this.SendPacket(pkt)
 
 	return err
