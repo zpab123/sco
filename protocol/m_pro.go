@@ -17,7 +17,7 @@ const (
 	C_SID_ACK           uint16 = 102 // 握手 ack
 	C_SID_HEARTBEAT     uint16 = 103 // 心跳
 	C_SID_SVCREG_REQ    uint16 = 201 // 服务注册请求
-	C_SID_SVCREG_RES    uint16 = 201 // 服务注册回复
+	C_SID_SVCREG_RES    uint16 = 202 // 服务注册回复
 )
 
 // 消息码

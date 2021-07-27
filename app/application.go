@@ -84,7 +84,10 @@ func (this *Application) Run() {
 	// 侦听信号
 	this.listenSignal()
 
-	//
+	// 代理
+	if this.delegate != nil {
+		this.delegate.Working()
+	}
 
 	// 主循环
 	this.mainLoop()

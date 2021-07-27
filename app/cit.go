@@ -22,6 +22,7 @@ const (
 // App 代理
 type IDelegate interface {
 	Init(app *Application)        // app 初始化
+	Working()                     // 启动
 	OnPacket(pkt *network.Packet) // 收到1个客户端消息
 }
 

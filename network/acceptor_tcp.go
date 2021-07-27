@@ -151,7 +151,7 @@ func (this *TcpAcceptor) accept() {
 
 	log.Logger.Debug(
 		"[TcpAcceptor] 启动成功",
-		log.String("ip=", this.laddr),
+		log.String("ip", this.laddr),
 	)
 
 	for {
