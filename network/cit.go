@@ -116,8 +116,8 @@ type IClientHandler interface {
 
 // 连接对象接口
 type IConn interface {
-	Stop()                        // 停止
-	SendPacket(pkt *Packet) error // 发送 packet
+	Stop()                  // 停止
+	Send(pkt *Packet) error // 发送 packet
 }
 
 // /////////////////////////////////////////////////////////////////////////////

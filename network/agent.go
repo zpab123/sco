@@ -157,7 +157,7 @@ func (this *Agent) SetPacketChan(ch chan *Packet) {
 }
 
 // 发送1个 packet 消息
-func (this *Agent) SendPacket(pkt *Packet) error {
+func (this *Agent) Send(pkt *Packet) error {
 	// 状态效验
 	if this.state.Get() != C_AGENT_ST_WORKING {
 		return errState
@@ -358,7 +358,7 @@ func (this *Agent) onAck() {
 func (this *Agent) sendHeartbeat() error {
 	// 发送心跳数据
 	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
-	err := this.SendPacket(pkt)
+	err := this.Send(pkt)
 
 	return err
 }

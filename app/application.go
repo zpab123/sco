@@ -240,7 +240,7 @@ func (this *Application) newPktChan() {
 // 转发
 func (this *Application) newPostman() {
 	this.postman = cluster.NewPostman(this.Options.Mid, this.Options.Gates)
-	this.postman.SetPacketChan(this.serverPacket)
+	this.postman.SetPktChan(this.serverPacket)
 }
 
 // 侦听信号

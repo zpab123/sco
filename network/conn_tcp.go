@@ -19,17 +19,17 @@ import (
 
 // tcp 客户端
 type TcpConn struct {
-	addr       string            // 远端地址
-	socket     *Socket           // socket
-	state      *state.State      // 状态管理
-	heartbeat  time.Duration     // 心跳周期
-	heartSend  int64             // 心跳-发送(纳秒)
-	heartRecv  int64             // 心跳-接受(纳秒)
-	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
-	lastSend   syncs.AtomicInt64 // 上次发送数据时间
-	chDie      chan struct{}     // 关闭通道
-	scoPacket  chan *Packet      // 引擎消息通道
-	packetChan chan *Packet      // 消息通道
+	addr      string            // 远端地址
+	socket    *Socket           // socket
+	state     *state.State      // 状态管理
+	heartbeat time.Duration     // 心跳周期
+	heartSend int64             // 心跳-发送(纳秒)
+	heartRecv int64             // 心跳-接受(纳秒)
+	lastRecv  syncs.AtomicInt64 // 上次收到数据的时间
+	lastSend  syncs.AtomicInt64 // 上次发送数据时间
+	chDie     chan struct{}     // 关闭通道
+	scoPkt    chan *Packet      // 引擎消息
+	netPkt    chan *Packet      // 网络消息
 }
 
 // 新建1个 tcp 连接
@@ -50,6 +50,17 @@ func NewTcpConn(addr string) *TcpConn {
 
 	return &c
 }
+
+// /////////////////////////////////////////////////////////////////////////////
+// 打印接口
+
+// 打印信息
+func (this *TcpConn) String() string {
+	return this.socket.String()
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// public
 
 // 启动
 func (this *TcpConn) Run() error {
@@ -97,7 +108,7 @@ func (this *TcpConn) Stop() {
 }
 
 // 发送1个 packet 消息
-func (this *TcpConn) SendPacket(pkt *Packet) error {
+func (this *TcpConn) Send(pkt *Packet) error {
 	// 状态效验
 	if this.state.Get() != C_CLI_ST_WORKING {
 		return errState
@@ -120,22 +131,17 @@ func (this *TcpConn) SendBytes(bytes []byte) error {
 	return nil
 }
 
-// 打印信息
-func (this *TcpConn) String() string {
-	return this.socket.String()
-}
-
 // 设置引擎消息通道
-func (this *TcpConn) SetScoPacket(ch chan *Packet) {
+func (this *TcpConn) SetScoPktChan(ch chan *Packet) {
 	if ch != nil {
-		this.scoPacket = ch
+		this.scoPkt = ch
 	}
 }
 
-// 设置消息通道
-func (this *TcpConn) SetPacketChan(ch chan *Packet) {
+// 设置网络消息通道
+func (this *TcpConn) SetNetPktChan(ch chan *Packet) {
 	if ch != nil {
-		this.packetChan = ch
+		this.netPkt = ch
 	}
 }
 
@@ -223,10 +229,10 @@ func (this *TcpConn) sendAck() {
 	this.state.Set(C_CLI_ST_WORKING)
 
 	// 通知可以发送数据了
-	if this.scoPacket != nil {
-		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_AGENT_WORKING)
+	if this.scoPkt != nil {
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_CONN_WORKING)
 		pkt.conn = this
-		this.scoPacket <- pkt
+		this.scoPkt <- pkt
 	}
 }
 
@@ -302,7 +308,7 @@ func (this *TcpConn) onHandshake(data []byte) {
 func (this *TcpConn) sendHeartbeat() error {
 	// 发送心跳数据
 	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
-	err := this.SendPacket(pkt)
+	err := this.Send(pkt)
 
 	return err
 }
@@ -315,8 +321,8 @@ func (this *TcpConn) handle(pkt *Packet) {
 		return
 	}
 
-	if this.packetChan != nil {
-		this.packetChan <- pkt
+	if this.netPkt != nil {
+		this.netPkt <- pkt
 	}
 }
 

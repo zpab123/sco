@@ -14,23 +14,27 @@ import (
 // -----------------------------------------------------------------------------
 // Postman
 
+// 消息转发
 type Postman struct {
-	svcId      uint16               // 服务id
-	gates      []string             // 网关地址
-	conns      []*network.TcpConn   // 连接集合
-	scoPacket  chan *network.Packet // 引擎消息通道
-	packetChan chan *network.Packet // 数据包
+	svcId   uint16               // 服务id
+	addrs   []string             // 网关地址
+	gates   []*network.TcpConn   // 网关集合
+	scoPkt  chan *network.Packet // 引擎消息
+	gatePkt chan *network.Packet // 网关消息
 }
 
-func NewPostman(svc uint16, gs []string) *Postman {
-	d := Postman{
-		svcId:     svc,
-		gates:     gs,
-		scoPacket: make(chan *network.Packet, 100),
-		conns:     make([]*network.TcpConn, 0),
+// 创建1个 Postman
+
+// svc=服务id gs=网关服务器地址列表
+func NewPostman(svc uint16, as []string) *Postman {
+	p := Postman{
+		svcId:  svc,
+		addrs:  as,
+		scoPkt: make(chan *network.Packet, 100),
+		gates:  make([]*network.TcpConn, 0),
 	}
 
-	return &d
+	return &p
 }
 
 // -----------------------------------------------------------------------------
@@ -38,24 +42,20 @@ func NewPostman(svc uint16, gs []string) *Postman {
 
 // 启动
 func (this *Postman) Run() {
-	// 连接陈宫后，想分发器注册服务
-	// 分发器回复注册结果
-	// 注册成功后
-
-	for _, addr := range this.gates {
+	for _, addr := range this.addrs {
 		conn := network.NewTcpConn(addr)
-		conn.SetScoPacket(this.scoPacket)
-		conn.SetPacketChan(this.packetChan)
+		conn.SetScoPktChan(this.scoPkt)
+		conn.SetNetPktChan(this.gatePkt)
 
 		err := conn.Run()
 		if err != nil {
 			continue
 		}
 
-		this.conns = append(this.conns, conn)
+		this.gates = append(this.gates, conn)
 	}
 
-	go this.start()
+	go this.listen()
 }
 
 // 停止
@@ -63,35 +63,38 @@ func (this *Postman) Stop() {
 
 }
 
+// 推送消息
 func (this *Postman) Post(pkt *network.Packet) {
-	if len(this.conns) <= 0 {
+	if len(this.gates) <= 0 {
 		return
 	}
 
-	// 选择一个分发器
-	conn := this.conns[0]
+	// 选择一个网关
+	conn := this.gates[0]
 
 	// 发送出去
 	if conn != nil {
-		log.Sugar.Debug("Post mid", pkt.GetMid())
-		conn.SendPacket(pkt)
+		conn.Send(pkt)
 	}
 }
 
-func (this *Postman) SetPacketChan(ch chan *network.Packet) {
+// 设置网关消息通道
+func (this *Postman) SetPktChan(ch chan *network.Packet) {
 	if ch != nil {
-		this.packetChan = ch
+		this.gatePkt = ch
 	}
 }
 
 // -----------------------------------------------------------------------------
 // private
 
-// 处理内部消息
-func (this *Postman) start() {
-	select {
-	case pkt := <-this.scoPacket:
-		this.onScoPkt(pkt)
+// 处理消息
+func (this *Postman) listen() {
+	for {
+		select {
+		case pkt := <-this.scoPkt:
+			this.onScoPkt(pkt)
+		}
 	}
 }
 
@@ -102,13 +105,13 @@ func (this *Postman) onScoPkt(pkt *network.Packet) {
 	}
 
 	switch pkt.GetSid() {
-	case protocol.C_SID_AGENT_WORKING:
-		this.onConnWorking(pkt.GetConn())
+	case protocol.C_SID_CONN_WORKING:
+		this.onConnWork(pkt.GetConn())
 	}
 }
 
 // 开始工作
-func (this *Postman) onConnWorking(conn network.IConn) {
+func (this *Postman) onConnWork(conn network.IConn) {
 	// 创建协议
 	req := protocol.ServiceRegReq{
 		Id: this.svcId,
@@ -117,14 +120,14 @@ func (this *Postman) onConnWorking(conn network.IConn) {
 	data, err := json.Marshal(&req)
 	if nil != err {
 		log.Logger.Debug(
-			"[Dispatcher] 编码服务注册消息失败",
+			"[Postman] 编码服务注册消息失败",
 		)
 
 		return
 	}
 
 	// 发送请求
-	pkt := network.NewPacket(protocol.C_MID_DISPATCH, protocol.C_SID_SVCREG_REQ)
+	pkt := network.NewPacket(protocol.C_MID_GATE, protocol.C_SID_SVCREG_REQ)
 	pkt.AppendBytes(data)
-	conn.SendPacket(pkt)
+	conn.Send(pkt)
 }
