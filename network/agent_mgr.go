@@ -28,6 +28,7 @@ type AgentMgr struct {
 	agentMap   sync.Map          // agent 集合
 	agentId    syncs.AtomicInt32 // agent id
 	packetChan chan *Packet      // 消息通道
+	stoping    bool              // 正在停止中
 	chDie      chan struct{}     // 关闭通道
 }
 
@@ -122,6 +123,10 @@ func (this *AgentMgr) OnAgentStop(a *Agent) {
 		return
 	}
 
+	if this.stoping {
+		return
+	}
+
 	id := a.GetId()
 	if _, ok := this.agentMap.Load(id); ok {
 		this.agentMap.Delete(id)
@@ -147,6 +152,7 @@ func (this *AgentMgr) Run() {
 
 // 停止连接管理
 func (this *AgentMgr) Stop() {
+	this.stoping = true
 	close(this.chDie)
 
 	this.agentMap.Range(func(key, v interface{}) bool {

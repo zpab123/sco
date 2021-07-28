@@ -1,7 +1,7 @@
 // /////////////////////////////////////////////////////////////////////////////
 // 消息分发
 
-package dispatch
+package cluster
 
 import (
 	"encoding/json"
@@ -12,20 +12,20 @@ import (
 )
 
 // -----------------------------------------------------------------------------
-// public
+// Postman
 
-type Dispatcher struct {
+type Postman struct {
 	svcId      uint16               // 服务id
-	addrs      []string             // 连接地址
+	gates      []string             // 网关地址
 	conns      []*network.TcpConn   // 连接集合
 	scoPacket  chan *network.Packet // 引擎消息通道
 	packetChan chan *network.Packet // 数据包
 }
 
-func NewDispatcher(id uint16, a []string) *Dispatcher {
-	d := Dispatcher{
-		svcId:     id,
-		addrs:     a,
+func NewPostman(svc uint16, gs []string) *Postman {
+	d := Postman{
+		svcId:     svc,
+		gates:     gs,
 		scoPacket: make(chan *network.Packet, 100),
 		conns:     make([]*network.TcpConn, 0),
 	}
@@ -33,13 +33,16 @@ func NewDispatcher(id uint16, a []string) *Dispatcher {
 	return &d
 }
 
+// -----------------------------------------------------------------------------
+// public
+
 // 启动
-func (this *Dispatcher) Run() {
+func (this *Postman) Run() {
 	// 连接陈宫后，想分发器注册服务
 	// 分发器回复注册结果
 	// 注册成功后
 
-	for _, addr := range this.addrs {
+	for _, addr := range this.gates {
 		conn := network.NewTcpConn(addr)
 		conn.SetScoPacket(this.scoPacket)
 		conn.SetPacketChan(this.packetChan)
@@ -55,7 +58,12 @@ func (this *Dispatcher) Run() {
 	go this.start()
 }
 
-func (this *Dispatcher) Send(pkt *network.Packet) {
+// 停止
+func (this *Postman) Stop() {
+
+}
+
+func (this *Postman) Post(pkt *network.Packet) {
 	if len(this.conns) <= 0 {
 		return
 	}
@@ -65,11 +73,12 @@ func (this *Dispatcher) Send(pkt *network.Packet) {
 
 	// 发送出去
 	if conn != nil {
+		log.Sugar.Debug("Post mid", pkt.GetMid())
 		conn.SendPacket(pkt)
 	}
 }
 
-func (this *Dispatcher) SetPacketChan(ch chan *network.Packet) {
+func (this *Postman) SetPacketChan(ch chan *network.Packet) {
 	if ch != nil {
 		this.packetChan = ch
 	}
@@ -79,7 +88,7 @@ func (this *Dispatcher) SetPacketChan(ch chan *network.Packet) {
 // private
 
 // 处理内部消息
-func (this *Dispatcher) start() {
+func (this *Postman) start() {
 	select {
 	case pkt := <-this.scoPacket:
 		this.onScoPkt(pkt)
@@ -87,7 +96,7 @@ func (this *Dispatcher) start() {
 }
 
 // 引擎消息
-func (this *Dispatcher) onScoPkt(pkt *network.Packet) {
+func (this *Postman) onScoPkt(pkt *network.Packet) {
 	if pkt.GetMid() != protocol.C_MID_SCO {
 		return
 	}
@@ -99,7 +108,7 @@ func (this *Dispatcher) onScoPkt(pkt *network.Packet) {
 }
 
 // 开始工作
-func (this *Dispatcher) onConnWorking(conn network.IConn) {
+func (this *Postman) onConnWorking(conn network.IConn) {
 	// 创建协议
 	req := protocol.ServiceRegReq{
 		Id: this.svcId,
