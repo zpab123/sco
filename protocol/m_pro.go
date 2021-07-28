@@ -22,7 +22,7 @@ const (
 	C_SID_HEARTBEAT     uint16 = 103 // 心跳
 )
 
-// 网关消息
+// 集群消息
 const (
 	C_SID_SVCREG_REQ uint16 = 0 // 服务注册请求
 	C_SID_SVCREG_RES uint16 = 1 // 服务注册回复
