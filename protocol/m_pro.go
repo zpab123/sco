@@ -7,11 +7,10 @@ package protocol
 // 常量
 
 // mid
-
 const (
 	C_MID_INVALID uint16 = 0 // 无效消息
 	C_MID_SCO     uint16 = 1 // sco 内部消息
-	C_MID_GATE    uint16 = 2 // 网关服务
+	C_MID_CLUSTER uint16 = 2 // 集群服务
 )
 
 // sco 框架消息

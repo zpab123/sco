@@ -16,11 +16,11 @@ import (
 
 // 消息转发
 type Postman struct {
-	svcId   uint16               // 服务id
-	addrs   []string             // 网关地址
-	gates   []*network.TcpConn   // 网关集合
-	scoPkt  chan *network.Packet // 引擎消息
-	gatePkt chan *network.Packet // 网关消息
+	svcId      uint16               // 服务id
+	addrs      []string             // 集群地址
+	clusters   []*network.TcpConn   // 集群集合
+	scoPkt     chan *network.Packet // 引擎消息
+	clusterPkt chan *network.Packet // 集群消息
 }
 
 // 创建1个 Postman
@@ -28,10 +28,10 @@ type Postman struct {
 // svc=服务id gs=网关服务器地址列表
 func NewPostman(svc uint16, as []string) *Postman {
 	p := Postman{
-		svcId:  svc,
-		addrs:  as,
-		scoPkt: make(chan *network.Packet, 100),
-		gates:  make([]*network.TcpConn, 0),
+		svcId:    svc,
+		addrs:    as,
+		scoPkt:   make(chan *network.Packet, 100),
+		clusters: make([]*network.TcpConn, 0),
 	}
 
 	return &p
@@ -45,14 +45,14 @@ func (this *Postman) Run() {
 	for _, addr := range this.addrs {
 		conn := network.NewTcpConn(addr)
 		conn.SetScoPktChan(this.scoPkt)
-		conn.SetNetPktChan(this.gatePkt)
+		conn.SetNetPktChan(this.clusterPkt)
 
 		err := conn.Run()
 		if err != nil {
 			continue
 		}
 
-		this.gates = append(this.gates, conn)
+		this.clusters = append(this.clusters, conn)
 	}
 
 	go this.listen()
@@ -65,12 +65,12 @@ func (this *Postman) Stop() {
 
 // 推送消息
 func (this *Postman) Post(pkt *network.Packet) {
-	if len(this.gates) <= 0 {
+	if len(this.clusters) <= 0 {
 		return
 	}
 
 	// 选择一个网关
-	conn := this.gates[0]
+	conn := this.clusters[0]
 
 	// 发送出去
 	if conn != nil {
@@ -78,10 +78,10 @@ func (this *Postman) Post(pkt *network.Packet) {
 	}
 }
 
-// 设置网关消息通道
-func (this *Postman) SetPktChan(ch chan *network.Packet) {
+// 设置集群消息通道
+func (this *Postman) SetClusterChan(ch chan *network.Packet) {
 	if ch != nil {
-		this.gatePkt = ch
+		this.clusterPkt = ch
 	}
 }
 
@@ -127,7 +127,7 @@ func (this *Postman) onConnWork(conn network.IConn) {
 	}
 
 	// 发送请求
-	pkt := network.NewPacket(protocol.C_MID_GATE, protocol.C_SID_SVCREG_REQ)
+	pkt := network.NewPacket(protocol.C_MID_CLUSTER, protocol.C_SID_SVCREG_REQ)
 	pkt.AppendBytes(data)
 	conn.Send(pkt)
 }

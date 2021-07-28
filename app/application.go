@@ -222,7 +222,7 @@ func (this *Application) runAcceptor() {
 
 // 启动集群
 func (this *Application) runCluster() {
-	if len(this.Options.Gates) <= 0 {
+	if len(this.Options.Clusters) <= 0 {
 		return
 	}
 
@@ -239,8 +239,8 @@ func (this *Application) newPktChan() {
 
 // 转发
 func (this *Application) newPostman() {
-	this.postman = cluster.NewPostman(this.Options.Mid, this.Options.Gates)
-	this.postman.SetPktChan(this.serverPacket)
+	this.postman = cluster.NewPostman(this.Options.Mid, this.Options.Clusters)
+	this.postman.SetClusterChan(this.serverPacket)
 }
 
 // 侦听信号
