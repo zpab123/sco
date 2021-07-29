@@ -26,7 +26,7 @@ var (
 
 // 网络通信二进制数据
 type Packet struct {
-	kind     uint8  // 消息类型
+	kind     byte   // 消息类型
 	client   uint32 // 客户端id
 	sender   uint16 // 发送人
 	sid      uint16 // 服务id
@@ -39,7 +39,7 @@ type Packet struct {
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
-func NewPacket(kind uint8, client uint32, sender uint16, sid uint16, mid uint16) *Packet {
+func NewPacket(kind byte, client uint32, sender uint16, sid uint16, mid uint16) *Packet {
 	pkt := &Packet{
 		bytes:    make([]byte, headLenInt+mincap),
 		readPos:  headLenInt,
@@ -58,8 +58,8 @@ func NewPacket(kind uint8, client uint32, sender uint16, sid uint16, mid uint16)
 // public
 
 // 设置 Packet 的 kind
-func (this *Packet) SetKind(v uint8) {
-	this.bytes[0] = byte(v)
+func (this *Packet) SetKind(v byte) {
+	this.bytes[0] = v
 	this.kind = v
 }
 

@@ -181,7 +181,7 @@ func (this *TcpConn) sendLoop() {
 
 	// 请求握手
 	this.reqHandShake()
-	pkt := NewPacket(250, 12345678, 3, 4, 5)
+	pkt := NewPacket(100, 12345678, 3, 4, 5)
 	pkt.AppendString("TcpConnsdasdaedwe长老在内的你说呢")
 	this.socket.SendPacket(pkt)
 

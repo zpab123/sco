@@ -89,7 +89,7 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	kind := uint8(this.head[0])
+	kind := this.head[0]
 	cli := socketEndian.Uint32(this.head[C_PKT_KIND_END:C_PKT_CLIENT_END])
 	sen := socketEndian.Uint16(this.head[C_PKT_CLIENT_END:C_PKT_SENDER_END])
 	sid := socketEndian.Uint16(this.head[C_PKT_SENDER_END:C_PKT_SID_END])
