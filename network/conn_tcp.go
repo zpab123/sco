@@ -181,6 +181,9 @@ func (this *TcpConn) sendLoop() {
 
 	// 请求握手
 	this.reqHandShake()
+	pkt := NewPacket(250, 12345678, 3, 4, 5)
+	pkt.AppendString("TcpConnsdasdaedwe长老在内的你说呢")
+	this.socket.SendPacket(pkt)
 
 	for {
 		err := this.socket.Flush()
@@ -200,57 +203,57 @@ func (this *TcpConn) sendLoop() {
 
 // 发送握手请求
 func (this *TcpConn) reqHandShake() {
-	req := protocol.HandshakeReq{
-		Key:      C_F_KEY,
-		Acceptor: 1,
-	}
+	/*
+		req := protocol.HandshakeReq{
+			Key:      C_F_KEY,
+			Acceptor: 1,
+		}
 
-	data, err := json.Marshal(&req)
-	if nil != err {
-		log.Logger.Debug(
-			"[TcpConn] 编码握手消息失败",
-		)
+		data, err := json.Marshal(&req)
+		if nil != err {
+			log.Logger.Debug(
+				"[TcpConn] 编码握手消息失败",
+			)
 
-		this.Stop()
-		return
-	}
+			this.Stop()
+			return
+		}
 
-	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_REQ)
-	pkt.AppendBytes(data)
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_REQ)
+		pkt.AppendBytes(data)
 
-	this.socket.SendBytes(pkt.Data())
+		this.socket.SendBytes(pkt.Data())
+	*/
 }
 
 // 发送握手ack
 func (this *TcpConn) sendAck() {
-	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_ACK)
-	this.socket.SendBytes(pkt.Data())
+	/*
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_ACK)
+		this.socket.SendBytes(pkt.Data())
 
-	this.state.Set(C_CLI_ST_WORKING)
+		this.state.Set(C_CLI_ST_WORKING)
 
-	// 通知可以发送数据了
-	if this.scoPkt != nil {
-		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_CONN_WORKING)
-		pkt.conn = this
-		this.scoPkt <- pkt
-	}
+		// 通知可以发送数据了
+		if this.scoPkt != nil {
+			pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_CONN_WORKING)
+			pkt.conn = this
+			this.scoPkt <- pkt
+		}
+	*/
 }
 
 // 收到1个 pakcet
 func (this *TcpConn) onPacket(pkt *Packet) {
 	this.lastRecv.Store(time.Now().UnixNano())
-	switch pkt.mid {
-	case protocol.C_MID_INVALID: // 无效
-		log.Logger.Debug("[TcpConn] 无效 packet",
-			log.Uint16("mid", pkt.mid),
-		)
 
-		this.Stop()
-	case protocol.C_MID_SCO: // sco 内部消息
-		this.onScoPacket(pkt)
-	default:
-		this.handle(pkt) // 处理
-	}
+	log.Logger.Debug("onPacket",
+		log.Uint8("kind", pkt.kind),
+		log.Uint32("client", pkt.client),
+		log.Uint16("sender", pkt.sender),
+		log.Uint16("sid", pkt.sid),
+		log.Uint16("mid", pkt.mid),
+	)
 }
 
 // 框架内部消息
@@ -306,11 +309,15 @@ func (this *TcpConn) onHandshake(data []byte) {
 
 // 发送心跳数据
 func (this *TcpConn) sendHeartbeat() error {
-	// 发送心跳数据
-	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
-	err := this.Send(pkt)
+	/*
+		// 发送心跳数据
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
+		err := this.Send(pkt)
 
-	return err
+		return err
+	*/
+
+	return nil
 }
 
 // 需要处理的消息

@@ -232,18 +232,17 @@ func (this *Agent) sendLoop() {
 // 收到1个 pakcet
 func (this *Agent) onPacket(pkt *Packet) {
 	this.lastRecv.Store(time.Now().UnixNano())
-	switch pkt.mid {
-	case protocol.C_MID_INVALID: // 无效
-		log.Logger.Debug("[Agent] 无效 packet",
-			log.Uint16("mid", pkt.mid),
-		)
 
-		this.Stop()
-	case protocol.C_MID_SCO: // 框架内部消息
-		this.onScoPacket(pkt)
-	default:
-		this.handle(pkt)
-	}
+	log.Logger.Debug("onPacket",
+		log.Uint8("kind", pkt.kind),
+		log.Uint32("client", pkt.client),
+		log.Uint16("sender", pkt.sender),
+		log.Uint16("sid", pkt.sid),
+		log.Uint16("mid", pkt.mid),
+	)
+
+	str := pkt.ReadString()
+	log.Logger.Debug(str)
 }
 
 // 框架内部消息
@@ -295,51 +294,55 @@ func (this *Agent) onHandshake(body []byte) {
 
 //  握手失败
 func (this *Agent) handshakeFail(code uint32) {
-	defer this.Stop()
-	// 返回数据
-	res := &protocol.HandshakeRes{
-		Code: code,
-	}
-	data, err := json.Marshal(res)
-	if nil != err {
-		log.Logger.Error(
-			"[Agent] 握手失败，但服务器未返回消息：编码握手消息出错",
-		)
+	/*
+		defer this.Stop()
+		// 返回数据
+		res := &protocol.HandshakeRes{
+			Code: code,
+		}
+		data, err := json.Marshal(res)
+		if nil != err {
+			log.Logger.Error(
+				"[Agent] 握手失败，但服务器未返回消息：编码握手消息出错",
+			)
 
-		return
-	}
+			return
+		}
 
-	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
-	pkt.AppendBytes(data)
-	this.socket.SendPacket(pkt) // 越过工作状态发送消息
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
+		pkt.AppendBytes(data)
+		this.socket.SendPacket(pkt) // 越过工作状态发送消息
+	*/
 }
 
 //  握手成功
 func (this *Agent) handshakeOk() {
-	// defer log.Logger.Sync()
+	/*
+		// defer log.Logger.Sync()
 
-	hUint16 := uint16(this.heartbeat / time.Second)
+		hUint16 := uint16(this.heartbeat / time.Second)
 
-	// 返回数据
-	res := &protocol.HandshakeRes{
-		Code:      protocol.C_CODE_OK,
-		Heartbeat: hUint16,
-	}
-	data, err := json.Marshal(res)
-	if nil != err {
-		log.Logger.Error(
-			"[Agent] 握手成功，但服务器未返回消息：编码握手消息出错",
-		)
+		// 返回数据
+		res := &protocol.HandshakeRes{
+			Code:      protocol.C_CODE_OK,
+			Heartbeat: hUint16,
+		}
+		data, err := json.Marshal(res)
+		if nil != err {
+			log.Logger.Error(
+				"[Agent] 握手成功，但服务器未返回消息：编码握手消息出错",
+			)
 
-		return
-	}
+			return
+		}
 
-	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
-	pkt.AppendBytes(data)
-	this.socket.SendPacket(pkt) // 越过工作状态发送消息
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
+		pkt.AppendBytes(data)
+		this.socket.SendPacket(pkt) // 越过工作状态发送消息
 
-	// 状态： 等待握手 ack
-	this.state.Set(C_AGENT_ST_WAIT_ACK)
+		// 状态： 等待握手 ack
+		this.state.Set(C_AGENT_ST_WAIT_ACK)
+	*/
 }
 
 //  收到握手 ACK
@@ -356,11 +359,14 @@ func (this *Agent) onAck() {
 
 //  发送心跳数据
 func (this *Agent) sendHeartbeat() error {
-	// 发送心跳数据
-	pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
-	err := this.Send(pkt)
+	/*
+		// 发送心跳数据
+		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
+		err := this.Send(pkt)
 
-	return err
+		return err
+	*/
+	return nil
 }
 
 // 处理 pkcket

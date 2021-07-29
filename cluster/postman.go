@@ -4,9 +4,9 @@
 package cluster
 
 import (
-	"encoding/json"
+	//"encoding/json"
 
-	"github.com/zpab123/sco/log"
+	//"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/protocol"
 )
@@ -112,22 +112,24 @@ func (this *Postman) onScoPkt(pkt *network.Packet) {
 
 // 开始工作
 func (this *Postman) onConnWork(conn network.IConn) {
-	// 创建协议
-	req := protocol.ServiceRegReq{
-		Id: this.svcId,
-	}
+	/*
+		// 创建协议
+		req := protocol.ServiceRegReq{
+			Id: this.svcId,
+		}
 
-	data, err := json.Marshal(&req)
-	if nil != err {
-		log.Logger.Debug(
-			"[Postman] 编码服务注册消息失败",
-		)
+		data, err := json.Marshal(&req)
+		if nil != err {
+			log.Logger.Debug(
+				"[Postman] 编码服务注册消息失败",
+			)
 
-		return
-	}
+			return
+		}
 
-	// 发送请求
-	pkt := network.NewPacket(protocol.C_MID_CLUSTER, protocol.C_SID_SVCREG_REQ)
-	pkt.AppendBytes(data)
-	conn.Send(pkt)
+		// 发送请求
+		pkt := network.NewPacket(protocol.C_MID_CLUSTER, protocol.C_SID_SVCREG_REQ)
+		pkt.AppendBytes(data)
+		conn.Send(pkt)
+	*/
 }

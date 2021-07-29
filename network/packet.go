@@ -26,8 +26,11 @@ var (
 
 // 网络通信二进制数据
 type Packet struct {
-	mid      uint16 // packet 主 id
-	sid      uint16 // packet 子 id
+	kind     uint8  // 消息类型
+	client   uint32 // 客户端id
+	sender   uint16 // 发送人
+	sid      uint16 // 服务id
+	mid      uint16 // 消息id
 	bytes    []byte // 用于存放需要通过网络 发送/接收 的数据 （head + body）
 	readPos  int    // 读取位置
 	wirtePos int    // 写入位置
@@ -36,33 +39,52 @@ type Packet struct {
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
-func NewPacket(mid uint16, sid uint16) *Packet {
-	pkt := Packet{
+func NewPacket(kind uint8, client uint32, sender uint16, sid uint16, mid uint16) *Packet {
+	pkt := &Packet{
 		bytes:    make([]byte, headLenInt+mincap),
 		readPos:  headLenInt,
 		wirtePos: headLenInt,
 	}
-	pkt.SetMid(mid)
+	pkt.SetKind(kind)
+	pkt.SetClient(client)
+	pkt.SetSender(sender)
 	pkt.SetSid(sid)
+	pkt.SetMid(mid)
 
-	return &pkt
+	return pkt
 }
 
 // -----------------------------------------------------------------------------
 // public
 
-// 设置 Packet 的 id
-func (this *Packet) SetMid(v uint16) {
-	// 记录消息类型
-	packetEndian.PutUint16(this.bytes[0:C_PKT_MID_LEN], v)
-	this.mid = v
+// 设置 Packet 的 kind
+func (this *Packet) SetKind(v uint8) {
+	this.bytes[0] = byte(v)
+	this.kind = v
+}
+
+// 设置 Packet 的 Client
+func (this *Packet) SetClient(v uint32) {
+	packetEndian.PutUint32(this.bytes[C_PKT_KIND_END:C_PKT_CLIENT_END], v)
+	this.client = v
+}
+
+// 设置 Packet 的 Sender
+func (this *Packet) SetSender(v uint16) {
+	packetEndian.PutUint16(this.bytes[C_PKT_CLIENT_END:C_PKT_SENDER_END], v)
+	this.sender = v
 }
 
 // 设置 packet 的 sid
 func (this *Packet) SetSid(v uint16) {
-	// 记录消息类型
-	packetEndian.PutUint16(this.bytes[C_PKT_MID_LEN:C_PKT_MID_LEN+C_PKT_SID_LEN], v)
+	packetEndian.PutUint16(this.bytes[C_PKT_SENDER_END:C_PKT_SID_END], v)
 	this.sid = v
+}
+
+// 设置 Packet 的 mid
+func (this *Packet) SetMid(v uint16) {
+	packetEndian.PutUint16(this.bytes[C_PKT_SID_END:C_PKT_MID_END], v)
+	this.mid = v
 }
 
 // 获取 Packet 的 id
@@ -362,7 +384,7 @@ func (this *Packet) getPayloadCap() int {
 
 // 增加 body 长度
 func (this *Packet) addBodyLen(ln uint32) {
-	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_LEN+C_PKT_SID_LEN]))
+	bl := (*uint32)(unsafe.Pointer(&this.bytes[C_PKT_MID_END]))
 
 	*bl += ln
 	this.wirtePos += int(ln)

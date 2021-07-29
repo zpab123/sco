@@ -16,11 +16,20 @@ import (
 
 // packet 常量
 const (
-	C_PKT_MID_LEN      uint32 = 2                                             // packet 主 id 长度
-	C_PKT_SID_LEN      uint32 = 2                                             // packet 子 id 长度
-	C_PKT_LEN_LEN      uint32 = 4                                             // packet 长度信息长度
-	C_PKT_HEAD_LEN     uint32 = C_PKT_MID_LEN + C_PKT_SID_LEN + C_PKT_LEN_LEN // 消息头大小:字节 main_id + length
-	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024                              // body 最大长度 25M
+	C_PKT_KIND_LEN     uint32 = 1                                   // packet kind 长度
+	C_PKT_KIND_END     uint32 = C_PKT_KIND_LEN                      // packet kind 结束位置 1
+	C_PKT_CLIENT_LEN   uint32 = 4                                   // packet client 长度
+	C_PKT_CLIENT_END   uint32 = C_PKT_KIND_END + C_PKT_CLIENT_LEN   // packet client 结束位置 1 + 4
+	C_PKT_SENDER_LEN   uint32 = 2                                   // packet sender 长度
+	C_PKT_SENDER_END   uint32 = C_PKT_CLIENT_END + C_PKT_SENDER_LEN // packet client 结束位置 5 + 2
+	C_PKT_SID_LEN      uint32 = 2                                   // packet sid 长度
+	C_PKT_SID_END      uint32 = C_PKT_SENDER_END + C_PKT_SID_LEN    // packet sid 结束位置 7 + 2
+	C_PKT_MID_LEN      uint32 = 2                                   // packet mid 长度
+	C_PKT_MID_END      uint32 = C_PKT_SID_END + C_PKT_MID_LEN       // packet mid 长度 9 +2
+	C_PKT_LEN_LEN      uint32 = 4                                   // packet 长度信息长度
+	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024                    // body 最大长度 25M
+	// 消息头大小
+	C_PKT_HEAD_LEN uint32 = C_PKT_KIND_LEN + C_PKT_CLIENT_LEN + C_PKT_SENDER_LEN + C_PKT_SID_LEN + C_PKT_MID_LEN + C_PKT_LEN_LEN
 )
 
 // client 状态
@@ -47,7 +56,7 @@ const (
 const (
 	C_F_MAX_CONN  int32         = 10000              // 默认最大连接数
 	C_F_KEY       string        = "scob9kxH6FdqOKnA" // 握手 key
-	C_F_HEARTBEAT time.Duration = 3 * time.Second    //  心跳周期
+	C_F_HEARTBEAT time.Duration = 0 * time.Second    //  心跳周期
 )
 
 // /////////////////////////////////////////////////////////////////////////////
