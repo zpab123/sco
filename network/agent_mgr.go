@@ -55,7 +55,7 @@ func NewAgentMgr(max int32) IAgentManager {
 
 // 收到1个新的 tcp 连接对象
 func (this *AgentMgr) OnTcpConn(conn net.Conn) {
-	defer log.Logger.Sync()
+	//defer log.Logger.Sync()
 
 	// 参数效验
 	if nil == conn {

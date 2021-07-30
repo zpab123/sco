@@ -28,8 +28,16 @@ const (
 	C_PKT_MID_END      uint32 = C_PKT_SID_END + C_PKT_MID_LEN       // packet mid 长度 9 +2
 	C_PKT_LEN_LEN      uint32 = 4                                   // packet 长度信息长度
 	C_PKT_BODY_MAX_LEN uint32 = 25 * 1024 * 1024                    // body 最大长度 25M
-	// 消息头大小
-	C_PKT_HEAD_LEN uint32 = C_PKT_KIND_LEN + C_PKT_CLIENT_LEN + C_PKT_SENDER_LEN + C_PKT_SID_LEN + C_PKT_MID_LEN + C_PKT_LEN_LEN
+	C_PKT_HEAD_LEN     uint32 = C_PKT_MID_END + C_PKT_LEN_LEN       // 消息头大小
+)
+
+// packet 常量
+const (
+	C_PKT_KIND_CONN    byte = 1   // 连接消息
+	C_PKT_KIND_SCO     byte = 2   // 引擎消息
+	C_PKT_KIND_CLI_SER byte = 100 // client -> server
+	C_PKT_KIND_SER_SER byte = 101 // server -> server
+	C_PKT_KIND_SER_CLI byte = 102 // server -> client
 )
 
 // client 状态
@@ -56,7 +64,7 @@ const (
 const (
 	C_F_MAX_CONN  int32         = 10000              // 默认最大连接数
 	C_F_KEY       string        = "scob9kxH6FdqOKnA" // 握手 key
-	C_F_HEARTBEAT time.Duration = 0 * time.Second    //  心跳周期
+	C_F_HEARTBEAT time.Duration = 3 * time.Second    //  心跳周期
 )
 
 // /////////////////////////////////////////////////////////////////////////////

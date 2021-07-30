@@ -6,20 +6,23 @@ package protocol
 // /////////////////////////////////////////////////////////////////////////////
 // 常量
 
-// mid
+// 服务id
 const (
-	C_MID_INVALID uint16 = 0 // 无效消息
-	C_MID_SCO     uint16 = 1 // sco 内部消息
+	C_SID_NET     uint16 = 0 // 网络消息
 	C_MID_CLUSTER uint16 = 2 // 集群服务
 )
 
-// sco 框架消息
+// 连接消息id
 const (
-	C_SID_CONN_WORKING  uint16 = 4   // conn 进入工作状态
-	C_SID_HANDSHAKE_REQ uint16 = 100 // 握手请求
-	C_SID_HANDSHAKE_RES uint16 = 101 // 握手回复
-	C_SID_ACK           uint16 = 102 // 握手 ack
-	C_SID_HEARTBEAT     uint16 = 103 // 心跳
+	C_MID_HANDSHAKE_REQ uint16 = 0 // 握手请求
+	C_MID_HANDSHAKE_RES uint16 = 1 // 握手回复
+	C_MID_ACK           uint16 = 2 // 握手 ack
+	C_MID_HEARTBEAT     uint16 = 3 // 心跳
+)
+
+// 网络消息
+const (
+	C_MID_NET_WORK uint16 = 0 // 某个连接进入工作
 )
 
 // 集群消息

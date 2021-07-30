@@ -37,6 +37,7 @@ type Agent struct {
 	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	packetChan chan *Packet      // 消息通道
+	clientPkt  chan *Packet      // client消息
 	stopGroup  sync.WaitGroup    // 停止等待组
 	scoPacket  chan *Packet      // 引擎消息通道
 }
@@ -163,7 +164,7 @@ func (this *Agent) Send(pkt *Packet) error {
 		return errState
 	}
 
-	this.socket.SendPacket(pkt)
+	this.socket.Send(pkt)
 
 	return nil
 }
@@ -192,7 +193,7 @@ func (this *Agent) recvLoop() {
 			"[Agent] recvLoop 结束",
 		)
 
-		this.socket.SendPacket(nil) // 用于结束 sendLoop
+		this.socket.Send(nil) // 用于结束 sendLoop
 	}()
 
 	for {
@@ -233,31 +234,33 @@ func (this *Agent) sendLoop() {
 func (this *Agent) onPacket(pkt *Packet) {
 	this.lastRecv.Store(time.Now().UnixNano())
 
-	log.Logger.Debug("onPacket",
-		log.Uint8("kind", pkt.kind),
-		log.Uint32("client", pkt.client),
-		log.Uint16("sender", pkt.sender),
-		log.Uint16("sid", pkt.sid),
-		log.Uint16("mid", pkt.mid),
-	)
+	switch pkt.kind {
+	case C_PKT_KIND_CONN: // 连接消息
+		this.onConnPkt(pkt)
+	case C_PKT_KIND_CLI_SER: // client -> server
+		this.onClientPkt(pkt)
+	default:
+		log.Logger.Debug("[Agent] 无效 kind 断开连接",
+			log.Int8("kind", int8(pkt.kind)),
+		)
 
-	str := pkt.ReadString()
-	log.Logger.Debug(str)
+		this.Stop()
+	}
 }
 
-// 框架内部消息
-func (this *Agent) onScoPacket(pkt *Packet) {
-	switch pkt.GetSid() {
-	case protocol.C_SID_HANDSHAKE_REQ: // 握手请求
+// 连接消息
+func (this *Agent) onConnPkt(pkt *Packet) {
+	switch pkt.mid {
+	case protocol.C_MID_HANDSHAKE_REQ: // 握手请求
 		this.onHandshake(pkt.GetBody())
-	case protocol.C_SID_ACK: // 握手 ACK
+	case protocol.C_MID_ACK: // 握手 ACK
 		this.onAck()
-	case protocol.C_SID_HEARTBEAT: // 心跳
+	case protocol.C_MID_HEARTBEAT: // 心跳
 	//log.Sugar.Debug("心跳")
 	default:
 		// 其他消息
-		log.Logger.Debug("[Agent] 无效 packet",
-			log.Uint16("sid", pkt.GetSid()),
+		log.Logger.Debug("[Agent] 无效连接类消息",
+			log.Uint16("mid", pkt.mid),
 		)
 
 		this.Stop()
@@ -294,55 +297,53 @@ func (this *Agent) onHandshake(body []byte) {
 
 //  握手失败
 func (this *Agent) handshakeFail(code uint32) {
-	/*
-		defer this.Stop()
-		// 返回数据
-		res := &protocol.HandshakeRes{
-			Code: code,
-		}
-		data, err := json.Marshal(res)
-		if nil != err {
-			log.Logger.Error(
-				"[Agent] 握手失败，但服务器未返回消息：编码握手消息出错",
-			)
+	defer this.Stop()
+	//defer log.Logger.Sync()
 
-			return
-		}
+	// 返回数据
+	res := &protocol.HandshakeRes{
+		Code: code,
+	}
+	data, err := json.Marshal(res)
+	if nil != err {
+		log.Logger.Error(
+			"[Agent] 握手失败，服务器编码出错",
+		)
 
-		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
-		pkt.AppendBytes(data)
-		this.socket.SendPacket(pkt) // 越过工作状态发送消息
-	*/
+		return
+	}
+
+	pkt := NewPacket(C_PKT_KIND_CONN, 0, 0, 0, protocol.C_MID_HANDSHAKE_RES)
+	pkt.AppendBytes(data)
+	this.socket.Send(pkt) // 越过工作状态发送消息
 }
 
 //  握手成功
 func (this *Agent) handshakeOk() {
-	/*
-		// defer log.Logger.Sync()
+	//defer log.Logger.Sync()
 
-		hUint16 := uint16(this.heartbeat / time.Second)
+	hUint16 := uint16(this.heartbeat / time.Second)
 
-		// 返回数据
-		res := &protocol.HandshakeRes{
-			Code:      protocol.C_CODE_OK,
-			Heartbeat: hUint16,
-		}
-		data, err := json.Marshal(res)
-		if nil != err {
-			log.Logger.Error(
-				"[Agent] 握手成功，但服务器未返回消息：编码握手消息出错",
-			)
+	// 返回数据
+	res := &protocol.HandshakeRes{
+		Code:      protocol.C_CODE_OK,
+		Heartbeat: hUint16,
+	}
+	data, err := json.Marshal(res)
+	if nil != err {
+		log.Logger.Error(
+			"[Agent] 握手成功，但服务器编码出错",
+		)
 
-			return
-		}
+		return
+	}
 
-		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HANDSHAKE_RES)
-		pkt.AppendBytes(data)
-		this.socket.SendPacket(pkt) // 越过工作状态发送消息
+	pkt := NewPacket(C_PKT_KIND_CONN, 0, 0, 0, protocol.C_MID_HANDSHAKE_RES)
+	pkt.AppendBytes(data)
+	this.socket.Send(pkt)
 
-		// 状态： 等待握手 ack
-		this.state.Set(C_AGENT_ST_WAIT_ACK)
-	*/
+	// 状态： 等待握手 ack
+	this.state.Set(C_AGENT_ST_WAIT_ACK)
 }
 
 //  收到握手 ACK
@@ -358,29 +359,27 @@ func (this *Agent) onAck() {
 }
 
 //  发送心跳数据
-func (this *Agent) sendHeartbeat() error {
-	/*
-		// 发送心跳数据
-		pkt := NewPacket(protocol.C_MID_SCO, protocol.C_SID_HEARTBEAT)
-		err := this.Send(pkt)
-
-		return err
-	*/
-	return nil
+func (this *Agent) sendHeartbeat() {
+	pkt := NewPacket(C_PKT_KIND_CONN, 0, 0, 0, protocol.C_MID_HEARTBEAT)
+	this.socket.Send(pkt)
 }
 
-// 处理 pkcket
-func (this *Agent) handle(pkt *Packet) {
-	if this.state.Get() != state.C_WORKING {
-		log.Logger.Debug("[Agent] 非工作状态，关闭改连接")
-
-		this.Stop()
-		return
+// client -> server
+func (this *Agent) onClientPkt(pkt *Packet) {
+	if this.clientPkt != nil {
+		this.clientPkt <- pkt
 	}
 
-	if this.packetChan != nil {
-		this.packetChan <- pkt
-	}
+	log.Logger.Debug("onClientPkt",
+		log.Int8("kind", int8(pkt.kind)),
+		log.Uint32("client", pkt.client),
+		log.Uint16("sender", pkt.sender),
+		log.Uint16("sid", pkt.sid),
+		log.Uint16("mid", pkt.mid),
+	)
+
+	str := pkt.ReadString()
+	log.Logger.Debug(str)
 }
 
 // 停止成功

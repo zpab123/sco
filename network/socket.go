@@ -19,10 +19,9 @@ import (
 
 // 变量
 var (
-	socketEndian       = binary.LittleEndian   // 小端读取对象
-	headLenInt   int   = int(C_PKT_HEAD_LEN)   // 消息头长度(int)
-	headLenInt64 int64 = int64(C_PKT_HEAD_LEN) // 消息头长度(int64)
-	errClose           = errors.New("socket 关闭")
+	socketEndian     = binary.LittleEndian // 小端读取对象
+	headLenInt   int = int(C_PKT_HEAD_LEN) // 消息头长度(int)
+	errClose         = errors.New("socket 关闭")
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -118,7 +117,7 @@ func (this *Socket) RecvPacket() (*Packet, error) {
 }
 
 // 发送1个 *Packe 数据
-func (this *Socket) SendPacket(pkt *Packet) {
+func (this *Socket) Send(pkt *Packet) {
 	var bytes []byte
 	if nil != pkt {
 		bytes = pkt.Data()

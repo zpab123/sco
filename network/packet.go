@@ -87,14 +87,24 @@ func (this *Packet) SetMid(v uint16) {
 	this.mid = v
 }
 
-// 获取 Packet 的 id
-func (this *Packet) GetMid() uint16 {
+// 获取 Packet 的 kind
+func (this *Packet) Kind() byte {
+	return this.kind
+}
+
+// 获取 Packet 的 sid
+func (this *Packet) Sid() uint16 {
+	return this.sid
+}
+
+// 获取 Packet 的 mid
+func (this *Packet) Mid() uint16 {
 	return this.mid
 }
 
-// 获取 Packet 的子id
-func (this *Packet) GetSid() uint16 {
-	return this.sid
+// 获取 Packet 的 mid
+func (this *Packet) GetMid() uint16 {
+	return this.mid
 }
 
 // 获取 Conn

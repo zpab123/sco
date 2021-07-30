@@ -100,12 +100,20 @@ func (this *Postman) listen() {
 
 // 引擎消息
 func (this *Postman) onScoPkt(pkt *network.Packet) {
-	if pkt.GetMid() != protocol.C_MID_SCO {
+	if pkt.Kind() != network.C_PKT_KIND_SCO {
 		return
 	}
 
-	switch pkt.GetSid() {
-	case protocol.C_SID_CONN_WORKING:
+	switch pkt.Sid() {
+	case protocol.C_SID_NET:
+		this.onConnWork(pkt.GetConn())
+	}
+}
+
+// 网络消息
+func (this *Postman) onNetPkt(pkt *network.Packet) {
+	switch pkt.Mid() {
+	case protocol.C_MID_NET_WORK:
 		this.onConnWork(pkt.GetConn())
 	}
 }
@@ -128,8 +136,8 @@ func (this *Postman) onConnWork(conn network.IConn) {
 		}
 
 		// 发送请求
-		pkt := network.NewPacket(protocol.C_MID_CLUSTER, protocol.C_SID_SVCREG_REQ)
-		pkt.AppendBytes(data)
-		conn.Send(pkt)
+		//pkt := network.NewPacket(network.C_kind, protocol.C_SID_SVCREG_REQ)
+		//pkt.AppendBytes(data)
+		//conn.Send(pkt)
 	*/
 }
