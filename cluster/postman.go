@@ -4,9 +4,9 @@
 package cluster
 
 import (
-	//"encoding/json"
+	"encoding/json"
 
-	//"github.com/zpab123/sco/log"
+	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/protocol"
 )
@@ -16,11 +16,12 @@ import (
 
 // 消息转发
 type Postman struct {
-	svcId      uint16               // 服务id
-	addrs      []string             // 集群地址
-	clusters   []*network.TcpConn   // 集群集合
-	scoPkt     chan *network.Packet // 引擎消息
-	clusterPkt chan *network.Packet // 集群消息
+	appid     uint16               // app 唯一编号
+	svcId     uint16               // 服务id
+	addrs     []string             // 集群地址
+	clusters  []*network.TcpConn   // 集群集合
+	scoPkt    chan *network.Packet // 引擎消息
+	serverPkt chan *network.Packet // server -> server 消息
 }
 
 // 创建1个 Postman
@@ -45,7 +46,7 @@ func (this *Postman) Run() {
 	for _, addr := range this.addrs {
 		conn := network.NewTcpConn(addr)
 		conn.SetScoPktChan(this.scoPkt)
-		conn.SetNetPktChan(this.clusterPkt)
+		conn.SetServerPacketChan(this.serverPkt)
 
 		err := conn.Run()
 		if err != nil {
@@ -69,7 +70,7 @@ func (this *Postman) Post(pkt *network.Packet) {
 		return
 	}
 
-	// 选择一个网关
+	// 选择一个中转服务器
 	conn := this.clusters[0]
 
 	// 发送出去
@@ -79,9 +80,9 @@ func (this *Postman) Post(pkt *network.Packet) {
 }
 
 // 设置集群消息通道
-func (this *Postman) SetClusterChan(ch chan *network.Packet) {
+func (this *Postman) SetServerPacketChan(ch chan *network.Packet) {
 	if ch != nil {
-		this.clusterPkt = ch
+		this.serverPkt = ch
 	}
 }
 
@@ -120,24 +121,22 @@ func (this *Postman) onNetPkt(pkt *network.Packet) {
 
 // 开始工作
 func (this *Postman) onConnWork(conn network.IConn) {
-	/*
-		// 创建协议
-		req := protocol.ServiceRegReq{
-			Id: this.svcId,
-		}
+	// 创建协议
+	req := protocol.ServiceRegReq{
+		Id: this.svcId,
+	}
 
-		data, err := json.Marshal(&req)
-		if nil != err {
-			log.Logger.Debug(
-				"[Postman] 编码服务注册消息失败",
-			)
+	data, err := json.Marshal(&req)
+	if nil != err {
+		log.Logger.Debug(
+			"[Postman] 编码服务注册消息失败",
+		)
 
-			return
-		}
+		return
+	}
 
-		// 发送请求
-		//pkt := network.NewPacket(network.C_kind, protocol.C_SID_SVCREG_REQ)
-		//pkt.AppendBytes(data)
-		//conn.Send(pkt)
-	*/
+	// 发送请求
+	pkt := network.NewPacket(network.C_PKT_KIND_SER_SER, 0, this.appid, protocol.C_SID_CLUSTER, protocol.C_MID_SVCREG_REQ)
+	pkt.AppendBytes(data)
+	conn.Send(pkt)
 }

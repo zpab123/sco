@@ -29,7 +29,7 @@ type TcpConn struct {
 	lastSend  syncs.AtomicInt64 // 上次发送数据时间
 	chDie     chan struct{}     // 关闭通道
 	scoPkt    chan *Packet      // 引擎消息
-	netPkt    chan *Packet      // 网络消息
+	serverPkt chan *Packet      // server -> server 消息
 }
 
 // 新建1个 tcp 连接
@@ -134,10 +134,10 @@ func (this *TcpConn) SetScoPktChan(ch chan *Packet) {
 	}
 }
 
-// 设置网络消息通道
-func (this *TcpConn) SetNetPktChan(ch chan *Packet) {
+// 设置服务器消息通道
+func (this *TcpConn) SetServerPacketChan(ch chan *Packet) {
 	if ch != nil {
-		this.netPkt = ch
+		this.serverPkt = ch
 	}
 }
 
@@ -237,6 +237,8 @@ func (this *TcpConn) onPacket(pkt *Packet) {
 	switch pkt.kind {
 	case C_PKT_KIND_CONN: // 连接消息
 		this.onConnPkt(pkt)
+	case C_PKT_KIND_SER_SER: // server -> server
+		this.onServerPkt(pkt)
 	default:
 		log.Logger.Debug("[Agent] 无效kind 断开连接",
 			log.Int8("kind", int8(pkt.kind)),
@@ -310,10 +312,6 @@ func (this *TcpConn) handle(pkt *Packet) {
 
 		return
 	}
-
-	if this.netPkt != nil {
-		this.netPkt <- pkt
-	}
 }
 
 // 检查心跳
@@ -359,5 +357,12 @@ func (this *TcpConn) checkRecvTime(t time.Time) {
 		)
 
 		this.Stop()
+	}
+}
+
+// 收到服务器消息
+func (this *TcpConn) onServerPkt(pkt *Packet) {
+	if this.serverPkt != nil {
+		this.serverPkt <- pkt
 	}
 }

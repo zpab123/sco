@@ -37,9 +37,9 @@ type Agent struct {
 	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
 	lastSend   syncs.AtomicInt64 // 上次发送数据时间
 	packetChan chan *Packet      // 消息通道
-	clientPkt  chan *Packet      // client消息
+	clientPkt  chan *Packet      // client 消息
+	serverPkt  chan *Packet      // server 消息
 	stopGroup  sync.WaitGroup    // 停止等待组
-	scoPacket  chan *Packet      // 引擎消息通道
 }
 
 // 新建1个 *Agent 对象
@@ -157,6 +157,13 @@ func (this *Agent) SetClientPacketChan(ch chan *Packet) {
 	}
 }
 
+// 设置服务器消息通道
+func (this *Agent) SetServerPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.serverPkt = ch
+	}
+}
+
 // 设置消息通道
 func (this *Agent) SetPacketChan(ch chan *Packet) {
 	if ch != nil {
@@ -246,6 +253,8 @@ func (this *Agent) onPacket(pkt *Packet) {
 		this.onConnPkt(pkt)
 	case C_PKT_KIND_CLI_SER: // client -> server
 		this.onClientPkt(pkt)
+	case C_PKT_KIND_SER_SER: // server -> server
+		this.onServerPkt(pkt)
 	default:
 		log.Logger.Debug("[Agent] 无效 kind 断开连接",
 			log.Int8("kind", int8(pkt.kind)),
@@ -375,6 +384,13 @@ func (this *Agent) sendHeartbeat() {
 func (this *Agent) onClientPkt(pkt *Packet) {
 	if this.clientPkt != nil {
 		this.clientPkt <- pkt
+	}
+}
+
+// server -> server
+func (this *Agent) onServerPkt(pkt *Packet) {
+	if this.serverPkt != nil {
+		this.serverPkt <- pkt
 	}
 }
 

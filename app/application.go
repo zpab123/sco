@@ -169,6 +169,13 @@ func (this *Application) SetClientPacketChan(ch chan *network.Packet) {
 	}
 }
 
+// 设置服务端消息通道
+func (this *Application) SetServerPacketChan(ch chan *network.Packet) {
+	if ch != nil {
+		this.serverPacket = ch
+	}
+}
+
 // 设置代理
 func (this *Application) SetDelegate(d IDelegate) {
 	if d != nil {
@@ -200,6 +207,7 @@ func (this *Application) runNet() {
 	// 连接管理
 	if this.agentMgr != nil {
 		this.agentMgr.SetClientPacketChan(this.clientPacket)
+		this.agentMgr.SetServerPacketChan(this.serverPacket)
 		this.agentMgr.Run()
 	}
 
@@ -221,21 +229,15 @@ func (this *Application) runCluster() {
 		return
 	}
 
-	this.newPktChan()
 	this.newPostman()
 
 	this.postman.Run()
 }
 
-// 服务器消息通道
-func (this *Application) newPktChan() {
-	this.serverPacket = make(chan *network.Packet, 1000)
-}
-
 // 转发
 func (this *Application) newPostman() {
 	this.postman = cluster.NewPostman(this.Options.Mid, this.Options.Clusters)
-	this.postman.SetClusterChan(this.serverPacket)
+	this.postman.SetServerPacketChan(this.serverPacket)
 }
 
 // 侦听信号
@@ -249,8 +251,6 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
-		case pkt := <-this.serverPacket: // 服务器数据包
-			this.onServerPacket(pkt)
 		case sig := <-this.signalChan: // os 信号
 			this.onSignal(sig)
 		}

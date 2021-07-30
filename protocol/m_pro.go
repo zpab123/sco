@@ -9,7 +9,7 @@ package protocol
 // 服务id
 const (
 	C_SID_NET     uint16 = 0 // 网络消息
-	C_MID_CLUSTER uint16 = 2 // 集群服务
+	C_SID_CLUSTER uint16 = 1 // 集群服务
 )
 
 // 连接消息id
@@ -27,8 +27,8 @@ const (
 
 // 集群消息
 const (
-	C_SID_SVCREG_REQ uint16 = 0 // 服务注册请求
-	C_SID_SVCREG_RES uint16 = 1 // 服务注册回复
+	C_MID_SVCREG_REQ uint16 = 0 // 服务注册请求
+	C_MID_SVCREG_RES uint16 = 1 // 服务注册回复
 )
 
 // 消息码

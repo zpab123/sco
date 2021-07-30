@@ -96,7 +96,8 @@ type IAgentManager interface {
 	SetPacketChan(chan *Packet)          // 设置消息通道
 	GetConnNum() int32                   // 获取当前连接数
 	OnAgentStop(a *Agent)                // 某个 Agent 停止
-	SetClientPacketChan(ch chan *Packet) // 设置 clien t消息通道
+	SetClientPacketChan(ch chan *Packet) // 设置 client 消息通道
+	SetServerPacketChan(ch chan *Packet) // 设置 server 消息通道
 }
 
 // 连接管理
