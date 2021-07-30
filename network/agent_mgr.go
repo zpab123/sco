@@ -30,6 +30,7 @@ type AgentMgr struct {
 	packetChan chan *Packet      // 消息通道
 	stoping    bool              // 正在停止中
 	chDie      chan struct{}     // 关闭通道
+	clientPkt  chan *Packet      // client消息
 }
 
 // 新建1个 AgentMgr
@@ -112,6 +113,16 @@ func (this *AgentMgr) OnWsConn(wsconn *websocket.Conn) {
 	)
 
 	this.newAgent(wsconn)
+}
+
+// -----------------------------------------------------------------------------
+// IAgentManager 接口
+
+// 设置消息通道
+func (this *AgentMgr) SetClientPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.clientPkt = ch
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -215,7 +226,7 @@ func (this *AgentMgr) newAgent(conn net.Conn) {
 
 	a.SetKey(this.key)
 	a.SetHeartbeat(this.heartbeat)
-	a.SetPacketChan(this.packetChan)
+	a.SetClientPacketChan(this.clientPkt)
 	id := this.agentId.Add(1)
 	a.SetId(id)
 	a.SetMgr(this)

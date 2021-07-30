@@ -47,17 +47,16 @@ func NewApplication() *Application {
 	ss := make([]svc.IService, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
-	pc := make(chan *network.Packet, 1000)
 
 	// 创建 app
 	a := Application{
-		Options:      NewOptions(),
-		acceptors:    acc,
-		svcs:         ss,
-		signalChan:   sch,
-		ctx:          cx,
-		cancel:       cc,
-		clientPacket: pc,
+		Options:    NewOptions(),
+		agentMgr:   network.NewAgentMgr(10000),
+		acceptors:  acc,
+		svcs:       ss,
+		signalChan: sch,
+		ctx:        cx,
+		cancel:     cc,
 	}
 
 	return &a
@@ -140,9 +139,6 @@ func (this *Application) AddTcpAcceptor(laddr string) error {
 		return err
 	}
 
-	if this.agentMgr == nil {
-		this.newAgentMgr()
-	}
 	acc.SetConnMgr(this.agentMgr)
 
 	this.acceptors = append(this.acceptors, acc)
@@ -159,14 +155,18 @@ func (this *Application) AddWsAcceptor(laddr string) error {
 		return err
 	}
 
-	if this.agentMgr == nil {
-		this.newAgentMgr()
-	}
 	acc.SetConnMgr(this.agentMgr)
 
 	this.acceptors = append(this.acceptors, acc)
 
 	return nil
+}
+
+// 设置客户端消息通道
+func (this *Application) SetClientPacketChan(ch chan *network.Packet) {
+	if ch != nil {
+		this.clientPacket = ch
+	}
 }
 
 // 设置代理
@@ -199,17 +199,12 @@ func (this *Application) Post(pkt *network.Packet) {
 func (this *Application) runNet() {
 	// 连接管理
 	if this.agentMgr != nil {
+		this.agentMgr.SetClientPacketChan(this.clientPacket)
 		this.agentMgr.Run()
 	}
 
 	// 接收器
 	this.runAcceptor()
-}
-
-// 创建 agent 管理
-func (this *Application) newAgentMgr() {
-	this.agentMgr = network.NewAgentMgr(10000)
-	this.agentMgr.SetPacketChan(this.clientPacket)
 }
 
 // 启动接收器
@@ -254,8 +249,6 @@ func (this *Application) listenSignal() {
 func (this *Application) mainLoop() {
 	for {
 		select {
-		case pkt := <-this.clientPacket: // 网络消息
-			this.onClientPacket(pkt)
 		case pkt := <-this.serverPacket: // 服务器数据包
 			this.onServerPacket(pkt)
 		case sig := <-this.signalChan: // os 信号

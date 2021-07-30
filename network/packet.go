@@ -92,6 +92,16 @@ func (this *Packet) Kind() byte {
 	return this.kind
 }
 
+// 获取 Packet 的 client
+func (this *Packet) Client() uint32 {
+	return this.client
+}
+
+// 获取 Packet 的 sender
+func (this *Packet) Sender() uint16 {
+	return this.sender
+}
+
 // 获取 Packet 的 sid
 func (this *Packet) Sid() uint16 {
 	return this.sid

@@ -151,6 +151,13 @@ func (this *Agent) GetId() int32 {
 }
 
 // 设置消息通道
+func (this *Agent) SetClientPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.clientPkt = ch
+	}
+}
+
+// 设置消息通道
 func (this *Agent) SetPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.packetChan = ch
@@ -369,17 +376,6 @@ func (this *Agent) onClientPkt(pkt *Packet) {
 	if this.clientPkt != nil {
 		this.clientPkt <- pkt
 	}
-
-	log.Logger.Debug("onClientPkt",
-		log.Int8("kind", int8(pkt.kind)),
-		log.Uint32("client", pkt.client),
-		log.Uint16("sender", pkt.sender),
-		log.Uint16("sid", pkt.sid),
-		log.Uint16("mid", pkt.mid),
-	)
-
-	str := pkt.ReadString()
-	log.Logger.Debug(str)
 }
 
 // 停止成功

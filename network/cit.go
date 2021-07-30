@@ -86,16 +86,17 @@ type IAcceptor interface {
 
 // agent 管理
 type IAgentManager interface {
-	ITcpConnManager               // 接口继承： tcp 连接管理
-	IWsConnManager                // 接口继承： websocket 连接管理
-	Run()                         // 启动
-	Stop()                        // 停止
-	SetKey(k string)              // 设置握手key
-	SetHeartbeat(h time.Duration) // 设置心跳
-	SetHandler(h IHandler)        // 设置消息处理器
-	SetPacketChan(chan *Packet)   // 设置消息通道
-	GetConnNum() int32            // 获取当前连接数
-	OnAgentStop(a *Agent)         // 某个 Agent 停止
+	ITcpConnManager                      // 接口继承： tcp 连接管理
+	IWsConnManager                       // 接口继承： websocket 连接管理
+	Run()                                // 启动
+	Stop()                               // 停止
+	SetKey(k string)                     // 设置握手key
+	SetHeartbeat(h time.Duration)        // 设置心跳
+	SetHandler(h IHandler)               // 设置消息处理器
+	SetPacketChan(chan *Packet)          // 设置消息通道
+	GetConnNum() int32                   // 获取当前连接数
+	OnAgentStop(a *Agent)                // 某个 Agent 停止
+	SetClientPacketChan(ch chan *Packet) // 设置 clien t消息通道
 }
 
 // 连接管理
