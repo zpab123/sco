@@ -36,8 +36,10 @@ const (
 	C_PKT_KIND_CONN    byte = 1   // 连接消息
 	C_PKT_KIND_SCO     byte = 2   // 引擎消息
 	C_PKT_KIND_CLI_SER byte = 100 // client -> server
-	C_PKT_KIND_SER_SER byte = 101 // server -> server
-	C_PKT_KIND_SER_CLI byte = 102 // server -> client
+	C_PKT_KIND_CLI_SCV byte = 101 // client -> service
+	C_PKT_KIND_SER_SER byte = 102 // server -> server
+	C_PKT_KIND_SER_SVC byte = 103 // server -> service
+	C_PKT_KIND_SER_CLI byte = 104 // server -> client
 )
 
 // client 状态

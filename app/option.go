@@ -8,8 +8,8 @@ package app
 
 // app 配置参数
 type Options struct {
-	Id       string   // app 唯一标识
-	Mid      uint16   // 服务ID
+	Appid    uint16   // app 唯一标识
+	Sid      uint16   // 服务ID
 	Cluster  bool     // 是否开启集群服务
 	Clusters []string // 集群地址集合 ["192.168.0.1:66", "192.168.0.1:88", ...]
 }

@@ -29,6 +29,7 @@ type TcpConn struct {
 	lastSend  syncs.AtomicInt64 // 上次发送数据时间
 	chDie     chan struct{}     // 关闭通道
 	scoPkt    chan *Packet      // 引擎消息
+	clientPkt chan *Packet      // client -> server 消息
 	serverPkt chan *Packet      // server -> server 消息
 }
 
@@ -131,6 +132,13 @@ func (this *TcpConn) SendBytes(bytes []byte) error {
 func (this *TcpConn) SetScoPktChan(ch chan *Packet) {
 	if ch != nil {
 		this.scoPkt = ch
+	}
+}
+
+// 设置客户端消息通道
+func (this *TcpConn) SetClientPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.clientPkt = ch
 	}
 }
 
@@ -237,10 +245,12 @@ func (this *TcpConn) onPacket(pkt *Packet) {
 	switch pkt.kind {
 	case C_PKT_KIND_CONN: // 连接消息
 		this.onConnPkt(pkt)
+	case C_PKT_KIND_CLI_SER: // client -> server
+		this.onClientPkt(pkt)
 	case C_PKT_KIND_SER_SER: // server -> server
 		this.onServerPkt(pkt)
 	default:
-		log.Logger.Debug("[Agent] 无效kind 断开连接",
+		log.Logger.Debug("[Agent] 无效 kind 断开连接",
 			log.Int8("kind", int8(pkt.kind)),
 		)
 
@@ -357,6 +367,13 @@ func (this *TcpConn) checkRecvTime(t time.Time) {
 		)
 
 		this.Stop()
+	}
+}
+
+// 收到客户端消息
+func (this *TcpConn) onClientPkt(pkt *Packet) {
+	if this.clientPkt != nil {
+		this.clientPkt <- pkt
 	}
 }
 

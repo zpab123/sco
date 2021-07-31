@@ -8,7 +8,8 @@ package protocol
 
 // 服务注册请求
 type ServiceRegReq struct {
-	Id uint16 `json:"id"` // 服务id
+	AppId uint16 `json:"appid"` // app id
+	SvcId uint16 `json:"svcid"` // 服务 id
 }
 
 // 服务注册回复

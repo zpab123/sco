@@ -236,7 +236,8 @@ func (this *Application) runCluster() {
 
 // 转发
 func (this *Application) newPostman() {
-	this.postman = cluster.NewPostman(this.Options.Mid, this.Options.Clusters)
+	this.postman = cluster.NewPostman(this.Options.Appid, this.Options.Sid, this.Options.Clusters)
+	this.postman.SetClientPacketChan(this.clientPacket)
 	this.postman.SetServerPacketChan(this.serverPacket)
 }
 
