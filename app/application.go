@@ -29,6 +29,7 @@ type Application struct {
 	acceptors    []network.IAcceptor   // 接收器切片
 	clientPacket chan *network.Packet  // 网络数据包
 	serverPacket chan *network.Packet  // 服务器数据包
+	stcPkt       chan *network.Packet  // server -> client
 	postman      *cluster.Postman      // 消息转发
 	svcs         []svc.IService        // 服务列表
 	stopGroup    sync.WaitGroup        // 停止等待组
@@ -176,6 +177,13 @@ func (this *Application) SetServerPacketChan(ch chan *network.Packet) {
 	}
 }
 
+// 设置 serve-> client 消息通道
+func (this *Application) SetStcPacketChan(ch chan *network.Packet) {
+	if ch != nil {
+		this.stcPkt = ch
+	}
+}
+
 // 设置代理
 func (this *Application) SetDelegate(d IDelegate) {
 	if d != nil {
@@ -208,6 +216,7 @@ func (this *Application) runNet() {
 	if this.agentMgr != nil {
 		this.agentMgr.SetClientPacketChan(this.clientPacket)
 		this.agentMgr.SetServerPacketChan(this.serverPacket)
+		this.agentMgr.SetStcPacketChan(this.stcPkt)
 		this.agentMgr.Run()
 	}
 
@@ -239,6 +248,7 @@ func (this *Application) newPostman() {
 	this.postman = cluster.NewPostman(this.Options.Appid, this.Options.Sid, this.Options.Clusters)
 	this.postman.SetClientPacketChan(this.clientPacket)
 	this.postman.SetServerPacketChan(this.serverPacket)
+	this.postman.SetStcPacketChan(this.stcPkt)
 }
 
 // 侦听信号

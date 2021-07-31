@@ -39,6 +39,7 @@ type Agent struct {
 	packetChan chan *Packet      // 消息通道
 	clientPkt  chan *Packet      // client 消息
 	serverPkt  chan *Packet      // server 消息
+	stcPkt     chan *Packet      // server -> client
 	stopGroup  sync.WaitGroup    // 停止等待组
 }
 
@@ -164,6 +165,13 @@ func (this *Agent) SetServerPacketChan(ch chan *Packet) {
 	}
 }
 
+// 设置 server -> client 消息通道
+func (this *Agent) SetStcPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.stcPkt = ch
+	}
+}
+
 // 设置消息通道
 func (this *Agent) SetPacketChan(ch chan *Packet) {
 	if ch != nil {
@@ -255,6 +263,8 @@ func (this *Agent) onPacket(pkt *Packet) {
 		this.onClientPkt(pkt)
 	case C_PKT_KIND_SER_SER: // server -> server
 		this.onServerPkt(pkt)
+	case C_PKT_KIND_SER_CLI: // server -> client
+		this.onStcPkt(pkt)
 	default:
 		log.Logger.Debug("[Agent] 无效 kind 断开连接",
 			log.Int8("kind", int8(pkt.kind)),
@@ -391,6 +401,13 @@ func (this *Agent) onClientPkt(pkt *Packet) {
 func (this *Agent) onServerPkt(pkt *Packet) {
 	if this.serverPkt != nil {
 		this.serverPkt <- pkt
+	}
+}
+
+// server -> client
+func (this *Agent) onStcPkt(pkt *Packet) {
+	if this.stcPkt != nil {
+		this.stcPkt <- pkt
 	}
 }
 

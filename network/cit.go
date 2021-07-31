@@ -100,6 +100,7 @@ type IAgentManager interface {
 	OnAgentStop(a *Agent)                // 某个 Agent 停止
 	SetClientPacketChan(ch chan *Packet) // 设置 client 消息通道
 	SetServerPacketChan(ch chan *Packet) // 设置 server 消息通道
+	SetStcPacketChan(ch chan *Packet)    // 设置 server -> client 消息通道
 }
 
 // 连接管理

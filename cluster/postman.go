@@ -23,6 +23,7 @@ type Postman struct {
 	scoPkt    chan *network.Packet // 引擎消息
 	clientPkt chan *network.Packet // client -> server 消息
 	serverPkt chan *network.Packet // server -> server 消息
+	stcPkt    chan *network.Packet // server -> client 消息
 }
 
 // 创建1个 Postman
@@ -50,6 +51,7 @@ func (this *Postman) Run() {
 		conn.SetScoPktChan(this.scoPkt)
 		conn.SetClientPacketChan(this.clientPkt)
 		conn.SetServerPacketChan(this.serverPkt)
+		conn.SetStcPacketChan(this.stcPkt)
 
 		err := conn.Run()
 		if err != nil {
@@ -100,6 +102,13 @@ func (this *Postman) SetClientPacketChan(ch chan *network.Packet) {
 func (this *Postman) SetServerPacketChan(ch chan *network.Packet) {
 	if ch != nil {
 		this.serverPkt = ch
+	}
+}
+
+// 设置集群消息通道
+func (this *Postman) SetStcPacketChan(ch chan *network.Packet) {
+	if ch != nil {
+		this.stcPkt = ch
 	}
 }
 

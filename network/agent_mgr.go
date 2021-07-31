@@ -32,6 +32,7 @@ type AgentMgr struct {
 	chDie      chan struct{}     // 关闭通道
 	clientPkt  chan *Packet      // client 消息
 	serverPkt  chan *Packet      // server 消息
+	stcPkt     chan *Packet      // server -> client
 }
 
 // 新建1个 AgentMgr
@@ -130,6 +131,13 @@ func (this *AgentMgr) SetClientPacketChan(ch chan *Packet) {
 func (this *AgentMgr) SetServerPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.serverPkt = ch
+	}
+}
+
+// 设置 server->client 消息通道
+func (this *AgentMgr) SetStcPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.stcPkt = ch
 	}
 }
 
@@ -233,6 +241,7 @@ func (this *AgentMgr) newAgent(conn net.Conn) {
 	a.SetHeartbeat(this.heartbeat)
 	a.SetClientPacketChan(this.clientPkt)
 	a.SetServerPacketChan(this.serverPkt)
+	a.SetStcPacketChan(this.stcPkt)
 	id := this.agentId.Add(1)
 	a.SetId(id)
 	a.SetMgr(this)

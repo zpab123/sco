@@ -31,6 +31,7 @@ type TcpConn struct {
 	scoPkt    chan *Packet      // 引擎消息
 	clientPkt chan *Packet      // client -> server 消息
 	serverPkt chan *Packet      // server -> server 消息
+	stcPkt    chan *Packet      // server -> client
 }
 
 // 新建1个 tcp 连接
@@ -149,6 +150,13 @@ func (this *TcpConn) SetServerPacketChan(ch chan *Packet) {
 	}
 }
 
+// 设置服务器消息通道
+func (this *TcpConn) SetStcPacketChan(ch chan *Packet) {
+	if ch != nil {
+		this.stcPkt = ch
+	}
+}
+
 // -----------------------------------------------------------------------------
 // private
 
@@ -249,6 +257,8 @@ func (this *TcpConn) onPacket(pkt *Packet) {
 		this.onClientPkt(pkt)
 	case C_PKT_KIND_SER_SER: // server -> server
 		this.onServerPkt(pkt)
+	case C_PKT_KIND_SER_CLI: // server -> client
+		this.onStcPkt(pkt)
 	default:
 		log.Logger.Debug("[Agent] 无效 kind 断开连接",
 			log.Int8("kind", int8(pkt.kind)),
@@ -381,5 +391,12 @@ func (this *TcpConn) onClientPkt(pkt *Packet) {
 func (this *TcpConn) onServerPkt(pkt *Packet) {
 	if this.serverPkt != nil {
 		this.serverPkt <- pkt
+	}
+}
+
+// server -> client
+func (this *TcpConn) onStcPkt(pkt *Packet) {
+	if this.stcPkt != nil {
+		this.stcPkt <- pkt
 	}
 }
