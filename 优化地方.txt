@@ -39,4 +39,9 @@ api
 		send(sender, id, mid, data)
 	
 	
+	cs
+		client // 存在id 就是非直接，部存在就是直连
+		sender// 部存在就是直连，存在就是转发
+		
+
 
