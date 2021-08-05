@@ -69,6 +69,12 @@ const (
 	C_F_HEARTBEAT time.Duration = 3 * time.Second    //  心跳周期
 )
 
+// 事件常量
+const (
+	C_EVT_WORKING int8 = iota // 开始工作事件
+	C_EVT_STOP                // 停止事件
+)
+
 // /////////////////////////////////////////////////////////////////////////////
 // 变量
 
