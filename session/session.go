@@ -1,17 +1,21 @@
 // /////////////////////////////////////////////////////////////////////////////
 // session
 
-package network
+package session
+
+import (
+	"github.com/zpab123/sco/cluster"
+)
 
 // /////////////////////////////////////////////////////////////////////////////
 // session
 
 type Session struct {
-	kind    int8     // 种类 0=前端 1=后端
-	client  uint32   // 客户端id
-	sender  uint16   // 发送者
-	conn    IConn    // 连接
-	postMan *Postman // 转发对象
+	kind    int8             // 种类 0=前端 1=后端
+	client  uint32           // 客户端id
+	sender  uint16           // 发送者
+	conn    IConn            // 连接
+	postMan *cluster.Postman // 转发对象
 }
 
 func NewSession() *Session {
@@ -45,7 +49,7 @@ func (this *Session) ToServer(sid, mid uint16, data []byte) {
 }
 
 // 设置 postman
-func (this *Session) SetPostman(man *Postman) {
+func (this *Session) SetPostman(man *cluster.Postman) {
 	if man != nil {
 		this.postMan = man
 	}
@@ -60,7 +64,7 @@ func (this *Session) sendToClient(sid, mid uint16, data []byte) {
 		return
 	}
 
-	pkt := NewPacket(C_PKT_KIND_SER_CLI, 0, this.sender, sid, mid)
+	pkt := network.NewPacket(network.C_PKT_KIND_SER_CLI, 0, this.sender, sid, mid)
 	if data != nil {
 		pkt.AppendBytes(data)
 	}
@@ -74,7 +78,7 @@ func (this *Session) forward(sid, mid uint16, data []byte) {
 		return
 	}
 
-	pkt := NewPacket(network.C_PKT_KIND_SER_CLI, this.client, this.sender, sid, mid)
+	pkt := network.NewPacket(network.C_PKT_KIND_SER_CLI, this.client, this.sender, sid, mid)
 	if data != nil {
 		pkt.AppendBytes(data)
 	}

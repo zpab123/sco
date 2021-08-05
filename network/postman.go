@@ -1,13 +1,12 @@
 // /////////////////////////////////////////////////////////////////////////////
 // 消息分发
 
-package cluster
+package network
 
 import (
 	"encoding/json"
 
 	"github.com/zpab123/sco/log"
-	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/protocol"
 )
 
@@ -16,14 +15,14 @@ import (
 
 // 消息转发
 type Postman struct {
-	appid     uint16               // app 唯一编号
-	svcId     uint16               // 服务id
-	addrs     []string             // 集群地址
-	clusters  []*network.TcpConn   // 集群集合
-	scoPkt    chan *network.Packet // 引擎消息
-	clientPkt chan *network.Packet // client -> server 消息
-	serverPkt chan *network.Packet // server -> server 消息
-	stcPkt    chan *network.Packet // server -> client 消息
+	appid     uint16       // app 唯一编号
+	svcId     uint16       // 服务id
+	addrs     []string     // 集群地址
+	clusters  []*TcpConn   // 集群集合
+	scoPkt    chan *Packet // 引擎消息
+	clientPkt chan *Packet // client -> server 消息
+	serverPkt chan *Packet // server -> server 消息
+	stcPkt    chan *Packet // server -> client 消息
 }
 
 // 创建1个 Postman
@@ -34,8 +33,8 @@ func NewPostman(aid, svc uint16, as []string) *Postman {
 		appid:    aid,
 		svcId:    svc,
 		addrs:    as,
-		scoPkt:   make(chan *network.Packet, 100),
-		clusters: make([]*network.TcpConn, 0),
+		scoPkt:   make(chan *Packet, 100),
+		clusters: make([]*TcpConn, 0),
 	}
 
 	return &p
@@ -47,7 +46,7 @@ func NewPostman(aid, svc uint16, as []string) *Postman {
 // 启动
 func (this *Postman) Run() {
 	for _, addr := range this.addrs {
-		conn := network.NewTcpConn(addr)
+		conn := NewTcpConn(addr)
 		conn.SetScoPktChan(this.scoPkt)
 		conn.SetClientPacketChan(this.clientPkt)
 		conn.SetServerPacketChan(this.serverPkt)
@@ -70,7 +69,7 @@ func (this *Postman) Stop() {
 }
 
 // 将消息推送给某个服务类型
-func (this *Postman) Post(pkt *network.Packet) {
+func (this *Postman) Post(pkt *Packet) {
 	if len(this.clusters) <= 0 {
 		return
 	}
@@ -87,26 +86,26 @@ func (this *Postman) Post(pkt *network.Packet) {
 // 将消息推送给某个服务器
 //
 // id=服务器id
-func (this *Postman) PostTo(id uint16, pkt *network.Packet) {
+func (this *Postman) PostTo(id uint16, pkt *Packet) {
 	// 此时 pkt 的 sid 就是 serverid
 }
 
 // 设置客户端消息通道
-func (this *Postman) SetClientPacketChan(ch chan *network.Packet) {
+func (this *Postman) SetClientPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.clientPkt = ch
 	}
 }
 
 // 设置集群消息通道
-func (this *Postman) SetServerPacketChan(ch chan *network.Packet) {
+func (this *Postman) SetServerPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.serverPkt = ch
 	}
 }
 
 // 设置集群消息通道
-func (this *Postman) SetStcPacketChan(ch chan *network.Packet) {
+func (this *Postman) SetStcPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.stcPkt = ch
 	}
@@ -126,27 +125,27 @@ func (this *Postman) listen() {
 }
 
 // 引擎消息
-func (this *Postman) onScoPkt(pkt *network.Packet) {
-	if pkt.Kind() != network.C_PKT_KIND_SCO {
+func (this *Postman) onScoPkt(pkt *Packet) {
+	if pkt.kind != C_PKT_KIND_SCO {
 		return
 	}
 
-	switch pkt.Sid() {
+	switch pkt.sid {
 	case protocol.C_SID_NET:
 		this.onConnWork(pkt.GetConn())
 	}
 }
 
 // 网络消息
-func (this *Postman) onNetPkt(pkt *network.Packet) {
-	switch pkt.Mid() {
+func (this *Postman) onNetPkt(pkt *Packet) {
+	switch pkt.mid {
 	case protocol.C_MID_NET_WORK:
 		this.onConnWork(pkt.GetConn())
 	}
 }
 
 // 开始工作
-func (this *Postman) onConnWork(conn network.IConn) {
+func (this *Postman) onConnWork(conn IConn) {
 	// 创建协议
 	req := protocol.ServiceRegReq{
 		AppId: this.appid,
@@ -163,7 +162,7 @@ func (this *Postman) onConnWork(conn network.IConn) {
 	}
 
 	// 发送请求
-	pkt := network.NewPacket(network.C_PKT_KIND_SER_SER, 0, this.appid, protocol.C_SID_CLUSTER, protocol.C_MID_SVCREG_REQ)
+	pkt := NewPacket(C_PKT_KIND_SER_SER, 0, this.appid, protocol.C_SID_CLUSTER, protocol.C_MID_SVCREG_REQ)
 	pkt.AppendBytes(data)
 	conn.Send(pkt)
 }

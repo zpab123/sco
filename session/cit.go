@@ -1,0 +1,13 @@
+// /////////////////////////////////////////////////////////////////////////////
+// session
+
+package session
+
+// /////////////////////////////////////////////////////////////////////////////
+// 接口
+
+// 连接对象接口
+type IConn interface {
+	Stop()                                                                     // 停止
+	Send(kind byte, client uint32, sender, sid, mid uint16, data []byte) error // 发送 packet
+}
