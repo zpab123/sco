@@ -23,6 +23,20 @@ func NewSession() *Session {
 // /////////////////////////////////////////////////////////////////////////////
 // public
 
+// 停止
+func (this *Session) Stop() {
+	if this.conn != nil {
+		this.conn.Stop()
+	}
+}
+
+// 直接发送
+func (this *Session) Send(pkt *Packet) {
+	if this.conn != nil {
+		this.conn.Send(pkt)
+	}
+}
+
 // 发送给客户端
 func (this *Session) ToClient(sid, mid uint16, data []byte) {
 	if this.sender == 0 {
@@ -42,6 +56,13 @@ func (this *Session) ToService(sid, mid uint16, data []byte) {
 // 发送给某个服务器
 func (this *Session) ToServer(sid, mid uint16, data []byte) {
 
+}
+
+// 转发
+func (this *Session) Forward(pkt *Packet) {
+	if pkt != nil && this.postMan != nil {
+		this.postMan.Post(pkt)
+	}
 }
 
 // 设置 postman
@@ -74,7 +95,7 @@ func (this *Session) forward(sid, mid uint16, data []byte) {
 		return
 	}
 
-	pkt := NewPacket(network.C_PKT_KIND_SER_CLI, this.client, this.sender, sid, mid)
+	pkt := NewPacket(C_PKT_KIND_SER_CLI, this.client, this.sender, sid, mid)
 	if data != nil {
 		pkt.AppendBytes(data)
 	}

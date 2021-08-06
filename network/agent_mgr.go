@@ -30,9 +30,11 @@ type AgentMgr struct {
 	packetChan chan *Packet      // 消息通道
 	stoping    bool              // 正在停止中
 	chDie      chan struct{}     // 关闭通道
+	agentEvt   chan *AgentEvent  // agent 事件
 	clientPkt  chan *Packet      // client 消息
 	serverPkt  chan *Packet      // server 消息
 	stcPkt     chan *Packet      // server -> client
+	postMan    *Postman          // 转发对象
 }
 
 // 新建1个 AgentMgr
@@ -120,6 +122,13 @@ func (this *AgentMgr) OnWsConn(wsconn *websocket.Conn) {
 // -----------------------------------------------------------------------------
 // IAgentManager 接口
 
+// 设置事件通道
+func (this *AgentMgr) SetEventChan(ch chan *AgentEvent) {
+	if ch != nil {
+		this.agentEvt = ch
+	}
+}
+
 // 设置消息通道
 func (this *AgentMgr) SetClientPacketChan(ch chan *Packet) {
 	if ch != nil {
@@ -138,6 +147,13 @@ func (this *AgentMgr) SetServerPacketChan(ch chan *Packet) {
 func (this *AgentMgr) SetStcPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.stcPkt = ch
+	}
+}
+
+// 设置转发
+func (this *AgentMgr) SetPostman(man *Postman) {
+	if man != nil {
+		this.postMan = man
 	}
 }
 
@@ -237,8 +253,14 @@ func (this *AgentMgr) newAgent(conn net.Conn) {
 		return
 	}
 
+	ses := NewSession()
+	ses.conn = a
+	ses.postMan = this.postMan
+
+	a.session = ses
 	a.SetKey(this.key)
 	a.SetHeartbeat(this.heartbeat)
+	a.SetEventChan(this.agentEvt)
 	a.SetClientPacketChan(this.clientPkt)
 	a.SetServerPacketChan(this.serverPkt)
 	a.SetStcPacketChan(this.stcPkt)

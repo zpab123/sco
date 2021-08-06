@@ -15,14 +15,14 @@ import (
 
 // 消息转发
 type Postman struct {
-	appid     uint16       // app 唯一编号
-	svcId     uint16       // 服务id
-	addrs     []string     // 集群地址
-	clusters  []*TcpConn   // 集群集合
-	scoPkt    chan *Packet // 引擎消息
-	clientPkt chan *Packet // client -> server 消息
-	serverPkt chan *Packet // server -> server 消息
-	stcPkt    chan *Packet // server -> client 消息
+	appid     uint16          // app 唯一编号
+	svcId     uint16          // 服务id
+	addrs     []string        // 集群地址
+	clusters  []*TcpConn      // 集群集合
+	connEvt   chan *ConnEvent // 连接事件
+	clientPkt chan *Packet    // client -> server 消息
+	serverPkt chan *Packet    // server -> server 消息
+	stcPkt    chan *Packet    // server -> client 消息
 }
 
 // 创建1个 Postman
@@ -33,7 +33,7 @@ func NewPostman(aid, svc uint16, as []string) *Postman {
 		appid:    aid,
 		svcId:    svc,
 		addrs:    as,
-		scoPkt:   make(chan *Packet, 100),
+		connEvt:  make(chan *ConnEvent, 10),
 		clusters: make([]*TcpConn, 0),
 	}
 
@@ -47,7 +47,8 @@ func NewPostman(aid, svc uint16, as []string) *Postman {
 func (this *Postman) Run() {
 	for _, addr := range this.addrs {
 		conn := NewTcpConn(addr)
-		conn.SetScoPktChan(this.scoPkt)
+		conn.SetPostman(this)
+		conn.SetEventChan(this.connEvt)
 		conn.SetClientPacketChan(this.clientPkt)
 		conn.SetServerPacketChan(this.serverPkt)
 		conn.SetStcPacketChan(this.stcPkt)
@@ -90,21 +91,21 @@ func (this *Postman) PostTo(id uint16, pkt *Packet) {
 	// 此时 pkt 的 sid 就是 serverid
 }
 
-// 设置客户端消息通道
+// 设置 客户端->服务器 消息通道
 func (this *Postman) SetClientPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.clientPkt = ch
 	}
 }
 
-// 设置集群消息通道
+// 设置 服务器->服务器 消息通道
 func (this *Postman) SetServerPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.serverPkt = ch
 	}
 }
 
-// 设置集群消息通道
+// 设置 服务器 -> 客户端 消息通道
 func (this *Postman) SetStcPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.stcPkt = ch
@@ -118,34 +119,22 @@ func (this *Postman) SetStcPacketChan(ch chan *Packet) {
 func (this *Postman) listen() {
 	for {
 		select {
-		case pkt := <-this.scoPkt:
-			this.onScoPkt(pkt)
+		case evt := <-this.connEvt:
+			this.onConnEvt(evt)
 		}
 	}
 }
 
 // 引擎消息
-func (this *Postman) onScoPkt(pkt *Packet) {
-	if pkt.kind != C_PKT_KIND_SCO {
-		return
-	}
-
-	switch pkt.sid {
-	case protocol.C_SID_NET:
-		this.onConnWork(pkt.GetConn())
-	}
-}
-
-// 网络消息
-func (this *Postman) onNetPkt(pkt *Packet) {
-	switch pkt.mid {
-	case protocol.C_MID_NET_WORK:
-		this.onConnWork(pkt.GetConn())
+func (this *Postman) onConnEvt(evt *ConnEvent) {
+	switch evt.id {
+	case C_EVT_WORKING:
+		this.onConnWork(evt.conn)
 	}
 }
 
 // 开始工作
-func (this *Postman) onConnWork(conn IConn) {
+func (this *Postman) onConnWork(conn *TcpConn) {
 	// 创建协议
 	req := protocol.ServiceRegReq{
 		AppId: this.appid,

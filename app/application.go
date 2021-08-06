@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zpab123/sco/cluster"
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
@@ -24,20 +23,21 @@ import (
 
 // 1个通用服务器对象
 type Application struct {
-	Options      *Options              // 配置选项
-	agentMgr     network.IAgentManager // agent 管理
-	acceptors    []network.IAcceptor   // 接收器切片
-	clientPacket chan *network.Packet  // 网络数据包
-	serverPacket chan *network.Packet  // 服务器数据包
-	stcPkt       chan *network.Packet  // server -> client
-	postman      *cluster.Postman      // 消息转发
-	svcs         []svc.IService        // 服务列表
-	stopGroup    sync.WaitGroup        // 停止等待组
-	signalChan   chan os.Signal        // 操作系统信号
-	state        state.State           // 状态
-	ctx          context.Context       // 退出 ctx
-	cancel       context.CancelFunc    // 退出 ctx
-	delegate     IDelegate             // 代理对象
+	Options      *Options                 // 配置选项
+	agentMgr     network.IAgentManager    // agent 管理
+	acceptors    []network.IAcceptor      // 接收器切片
+	agentEvt     chan *network.AgentEvent // agent 事件
+	clientPacket chan *network.Packet     // 网络数据包
+	serverPacket chan *network.Packet     // 服务器数据包
+	stcPkt       chan *network.Packet     // server -> client
+	postman      *network.Postman         // 消息转发
+	svcs         []svc.IService           // 服务列表
+	stopGroup    sync.WaitGroup           // 停止等待组
+	signalChan   chan os.Signal           // 操作系统信号
+	state        state.State              // 状态
+	ctx          context.Context          // 退出 ctx
+	cancel       context.CancelFunc       // 退出 ctx
+	delegate     IDelegate                // 代理对象
 }
 
 // 创建1个新的 Application 对象
@@ -73,13 +73,13 @@ func (this *Application) Run() {
 
 	log.Logger.Debug("启动 app")
 
-	// 启动网络
-	this.runNet()
-
 	// 集群服务
 	if this.Options.Cluster {
 		this.runCluster()
 	}
+
+	// 启动网络
+	this.runNet()
 
 	// 侦听信号
 	this.listenSignal()
@@ -163,6 +163,13 @@ func (this *Application) AddWsAcceptor(laddr string) error {
 	return nil
 }
 
+// 设置 AgentEvent 消息通道
+func (this *Application) SetAgentEventChan(ch chan *network.AgentEvent) {
+	if ch != nil {
+		this.agentEvt = ch
+	}
+}
+
 // 设置客户端消息通道
 func (this *Application) SetClientPacketChan(ch chan *network.Packet) {
 	if ch != nil {
@@ -214,6 +221,8 @@ func (this *Application) Post(pkt *network.Packet) {
 func (this *Application) runNet() {
 	// 连接管理
 	if this.agentMgr != nil {
+		this.agentMgr.SetPostman(this.postman)
+		this.agentMgr.SetEventChan(this.agentEvt)
 		this.agentMgr.SetClientPacketChan(this.clientPacket)
 		this.agentMgr.SetServerPacketChan(this.serverPacket)
 		this.agentMgr.SetStcPacketChan(this.stcPkt)
@@ -245,7 +254,7 @@ func (this *Application) runCluster() {
 
 // 转发
 func (this *Application) newPostman() {
-	this.postman = cluster.NewPostman(this.Options.Appid, this.Options.Sid, this.Options.Clusters)
+	this.postman = network.NewPostman(this.Options.Appid, this.Options.Sid, this.Options.Clusters)
 	this.postman.SetClientPacketChan(this.clientPacket)
 	this.postman.SetServerPacketChan(this.serverPacket)
 	this.postman.SetStcPacketChan(this.stcPkt)

@@ -28,19 +28,20 @@ var (
 
 // 代理对应于用户，用于存储原始连接信息
 type Agent struct {
-	id         int32             // id 标识
-	socket     *Socket           // socket
-	key        string            // 握手key
-	heartbeat  time.Duration     // 心跳周期
-	state      *state.State      // 状态管理
-	mgr        IAgentManager     // 连接管理
-	lastRecv   syncs.AtomicInt64 // 上次收到数据的时间
-	lastSend   syncs.AtomicInt64 // 上次发送数据时间
-	packetChan chan *Packet      // 消息通道
-	clientPkt  chan *Packet      // client 消息
-	serverPkt  chan *Packet      // server 消息
-	stcPkt     chan *Packet      // server -> client
-	stopGroup  sync.WaitGroup    // 停止等待组
+	id        int32             // id 标识
+	socket    *Socket           // socket
+	session   *Session          // 会话
+	key       string            // 握手key
+	heartbeat time.Duration     // 心跳周期
+	state     *state.State      // 状态管理
+	mgr       IAgentManager     // 连接管理
+	lastRecv  syncs.AtomicInt64 // 上次收到数据的时间
+	lastSend  syncs.AtomicInt64 // 上次发送数据时间
+	agentEvt  chan *AgentEvent  // agent 事件
+	clientPkt chan *Packet      // client 消息
+	serverPkt chan *Packet      // server 消息
+	stcPkt    chan *Packet      // server -> client
+	stopGroup sync.WaitGroup    // 停止等待组
 }
 
 // 新建1个 *Agent 对象
@@ -151,31 +152,31 @@ func (this *Agent) GetId() int32 {
 	return this.id
 }
 
-// 设置消息通道
+// 设置事件通道
+func (this *Agent) SetEventChan(ch chan *AgentEvent) {
+	if ch != nil {
+		this.agentEvt = ch
+	}
+}
+
+// 设置 客户端->服务器 消息通道
 func (this *Agent) SetClientPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.clientPkt = ch
 	}
 }
 
-// 设置服务器消息通道
+// 设置 服务器->服务器 消息通道
 func (this *Agent) SetServerPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.serverPkt = ch
 	}
 }
 
-// 设置 server -> client 消息通道
+// 设置 服务器 -> 客户端 消息通道
 func (this *Agent) SetStcPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.stcPkt = ch
-	}
-}
-
-// 设置消息通道
-func (this *Agent) SetPacketChan(ch chan *Packet) {
-	if ch != nil {
-		this.packetChan = ch
 	}
 }
 
@@ -225,7 +226,7 @@ func (this *Agent) recvLoop() {
 		}
 
 		if nil != pkt {
-			pkt.conn = this
+			pkt.session = this.session
 			this.onPacket(pkt)
 			continue
 		}
@@ -380,6 +381,16 @@ func (this *Agent) onAck() {
 		return
 	}
 
+	// 发送事件
+	if this.agentEvt != nil {
+		evt := AgentEvent{
+			id:    C_EVT_WORKING,
+			agent: this,
+		}
+
+		this.agentEvt <- &evt
+	}
+
 	// 发送心跳数据
 	this.sendHeartbeat()
 }
@@ -413,7 +424,12 @@ func (this *Agent) onStcPkt(pkt *Packet) {
 
 // 停止成功
 func (this *Agent) onStop() {
-	// 将信息打包
-	// 发送到主线程一个 chan 中
-	// 主线程将消息发送给服务方
+	if this.agentEvt != nil {
+		evt := AgentEvent{
+			id:    C_EVT_STOP,
+			agent: this,
+		}
+
+		this.agentEvt <- &evt
+	}
 }

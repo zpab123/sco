@@ -1,24 +1,24 @@
 // /////////////////////////////////////////////////////////////////////////////
-// 连接事件
+// agent 事件
 
 package network
 
 // /////////////////////////////////////////////////////////////////////////////
-// ConnEvent
+// AgentEvent
 
-// 连接事件
-type ConnEvent struct {
-	id   int8     // 事件 id
-	conn *TcpConn // 连接对象
+// agent 事件
+type AgentEvent struct {
+	id    int8   // 事件 id
+	agent *Agent // agent
 }
 
 // /////////////////////////////////////////////////////////////////////////////
 // public
 
-func (this *ConnEvent) Id() int8 {
+func (this *AgentEvent) Id() int8 {
 	return this.id
 }
 
-func (this *ConnEvent) Conn() *TcpConn {
-	return this.conn
+func (this *AgentEvent) Agent() *Agent {
+	return this.agent
 }

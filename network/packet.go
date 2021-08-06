@@ -26,16 +26,15 @@ var (
 
 // 网络通信二进制数据
 type Packet struct {
-	kind     byte   // 消息类型
-	client   uint32 // 客户端id
-	sender   uint16 // 发送人
-	sid      uint16 // 服务id
-	mid      uint16 // 消息id
-	bytes    []byte // 用于存放需要通过网络 发送/接收 的数据 （head + body）
-	readPos  int    // 读取位置
-	wirtePos int    // 写入位置
-	agent    *Agent // 代理
-	conn     IConn  // 网络连接
+	kind     byte     // 消息类型
+	client   uint32   // 客户端id
+	sender   uint16   // 发送人
+	sid      uint16   // 服务id
+	mid      uint16   // 消息id
+	bytes    []byte   // 用于存放需要通过网络 发送/接收 的数据 （head + body）
+	readPos  int      // 读取位置
+	wirtePos int      // 写入位置
+	session  *Session // 会话
 }
 
 // 新建1个 Packet 对象 (从对象池创建)
@@ -117,14 +116,9 @@ func (this *Packet) GetMid() uint16 {
 	return this.mid
 }
 
-// 获取 Conn
-func (this *Packet) GetConn() IConn {
-	return this.conn
-}
-
-// 获取 Agent
-func (this *Packet) GetAgent() *Agent {
-	return this.agent
+// 获取 Session
+func (this *Packet) Session() *Session {
+	return this.session
 }
 
 // 获取 Packet 的 body 部分

@@ -21,6 +21,7 @@ import (
 type TcpConn struct {
 	addr      string            // 远端地址
 	socket    *Socket           // socket
+	session   *Session          // 会话
 	state     *state.State      // 状态管理
 	heartbeat time.Duration     // 心跳周期
 	heartSend int64             // 心跳-发送(纳秒)
@@ -28,10 +29,11 @@ type TcpConn struct {
 	lastRecv  syncs.AtomicInt64 // 上次收到数据的时间
 	lastSend  syncs.AtomicInt64 // 上次发送数据时间
 	chDie     chan struct{}     // 关闭通道
-	scoPkt    chan *Packet      // 引擎消息
+	evtChan   chan *ConnEvent   // 连接事件
 	clientPkt chan *Packet      // client -> server 消息
 	serverPkt chan *Packet      // server -> server 消息
 	stcPkt    chan *Packet      // server -> client
+	postMan   *Postman          // 转发对象
 }
 
 // 新建1个 tcp 连接
@@ -77,6 +79,12 @@ func (this *TcpConn) Run() error {
 	}
 
 	this.socket = s
+
+	ses := NewSession()
+	ses.conn = this
+	ses.postMan = this.postMan
+
+	this.session = ses
 
 	// 接收线程
 	go this.recvLoop()
@@ -129,28 +137,35 @@ func (this *TcpConn) SendBytes(bytes []byte) error {
 	return nil
 }
 
-// 设置引擎消息通道
-func (this *TcpConn) SetScoPktChan(ch chan *Packet) {
-	if ch != nil {
-		this.scoPkt = ch
+// 设置转发
+func (this *TcpConn) SetPostman(man *Postman) {
+	if man != nil {
+		this.postMan = man
 	}
 }
 
-// 设置客户端消息通道
+// 设置连接事件通道
+func (this *TcpConn) SetEventChan(ch chan *ConnEvent) {
+	if ch != nil {
+		this.evtChan = ch
+	}
+}
+
+// 设置 客户端->服务器 消息通道
 func (this *TcpConn) SetClientPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.clientPkt = ch
 	}
 }
 
-// 设置服务器消息通道
+// 设置 服务器->服务器 消息通道
 func (this *TcpConn) SetServerPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.serverPkt = ch
 	}
 }
 
-// 设置服务器消息通道
+// 设置 服务器 -> 客户端 消息通道
 func (this *TcpConn) SetStcPacketChan(ch chan *Packet) {
 	if ch != nil {
 		this.stcPkt = ch
@@ -179,6 +194,7 @@ func (this *TcpConn) recvLoop() {
 		}
 
 		if nil != pkt {
+			pkt.session = this.session
 			this.onPacket(pkt)
 			continue
 		}
@@ -239,10 +255,13 @@ func (this *TcpConn) sendAck() {
 	this.state.Set(C_CLI_ST_WORKING)
 
 	// 通知连接状态
-	if this.scoPkt != nil {
-		pkt := NewPacket(C_PKT_KIND_SCO, 0, 0, protocol.C_SID_NET, protocol.C_MID_NET_WORK)
-		pkt.conn = this
-		this.scoPkt <- pkt
+	if this.evtChan != nil {
+		evt := ConnEvent{
+			id:   C_EVT_WORKING,
+			conn: this,
+		}
+
+		this.evtChan <- &evt
 	}
 }
 
