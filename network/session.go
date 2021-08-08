@@ -48,6 +48,25 @@ func (this *Session) ToClient(sid, mid uint16, data []byte) {
 	}
 }
 
+// 发送给客户端
+func (this *Session) ToClientPacket(pkt *Packet) {
+	if pkt == nil || this.conn == nil {
+		return
+	}
+
+	if pkt.kind != C_PKT_KIND_SER_CLI {
+		return
+	}
+
+	if this.sender == 0 {
+		// 直连
+		this.conn.Send(pkt)
+	} else {
+		// 非直连
+		this.forwardPkt(pkt)
+	}
+}
+
 // 发送给某类服务
 func (this *Session) ToService(sid, mid uint16, data []byte) {
 
@@ -56,13 +75,6 @@ func (this *Session) ToService(sid, mid uint16, data []byte) {
 // 发送给某个服务器
 func (this *Session) ToServer(sid, mid uint16, data []byte) {
 
-}
-
-// 转发
-func (this *Session) Forward(pkt *Packet) {
-	if pkt != nil && this.postMan != nil {
-		this.postMan.Post(pkt)
-	}
 }
 
 // 设置 postman
@@ -98,6 +110,15 @@ func (this *Session) forward(sid, mid uint16, data []byte) {
 	pkt := NewPacket(C_PKT_KIND_SER_CLI, this.client, this.sender, sid, mid)
 	if data != nil {
 		pkt.AppendBytes(data)
+	}
+
+	this.postMan.Post(pkt)
+}
+
+// 转发给服务器
+func (this *Session) forwardPkt(pkt *Packet) {
+	if this.postMan == nil {
+		return
 	}
 
 	this.postMan.Post(pkt)
