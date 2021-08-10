@@ -72,6 +72,15 @@ func (this *Session) ToService(sid, mid uint16, data []byte) {
 
 }
 
+// 发送给某类服务
+func (this *Session) ToServicePacket(pkt *Packet) {
+	if pkt == nil || this.postMan == nil {
+		return
+	}
+
+	this.postMan.Post(pkt)
+}
+
 // 发送给某个服务器
 func (this *Session) ToServer(sid, mid uint16, data []byte) {
 
