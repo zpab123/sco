@@ -207,6 +207,20 @@ func (this *Application) RegService(s svc.IService) {
 	}
 }
 
+// 向某个服务器发送数据
+func (this *Application) ToService(sid, mid uint16, data []byte) {
+	if this.postman == nil {
+		return
+	}
+
+	pkt := network.NewPacket(network.C_PKT_KIND_SER_SER, 0, this.Options.Appid, sid, mid)
+	if data != nil {
+		pkt.AppendBytes(data)
+	}
+
+	this.postman.Post(pkt)
+}
+
 // 分发消息
 func (this *Application) Post(pkt *network.Packet) {
 	if this.postman != nil {

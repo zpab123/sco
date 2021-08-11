@@ -264,6 +264,8 @@ func (this *Agent) onPacket(pkt *Packet) {
 		this.onClientPkt(pkt)
 	case C_PKT_KIND_SER_SER: // server -> server
 		this.onServerPkt(pkt)
+	case C_PKT_KIND_SER_SVC: // server -> service
+
 	case C_PKT_KIND_SER_CLI: // server -> client
 		this.onStcPkt(pkt)
 	default:

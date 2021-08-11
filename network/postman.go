@@ -91,6 +91,21 @@ func (this *Postman) PostTo(id uint16, pkt *Packet) {
 	// 此时 pkt 的 sid 就是 serverid
 }
 
+// 发送给某个类型的服务
+func (this *Postman) ToService(pkt *Packet) {
+
+}
+
+// 发送给所有该类服务
+func (this *Postman) ToServiceAll(pkt *Packet) {
+
+}
+
+// 向所有服务器发出
+func (this *Postman) ToServerAll(pkt *Packet) {
+
+}
+
 // 设置 客户端->服务器 消息通道
 func (this *Postman) SetClientPacketChan(ch chan *Packet) {
 	if ch != nil {
