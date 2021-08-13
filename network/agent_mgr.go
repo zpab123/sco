@@ -266,6 +266,7 @@ func (this *AgentMgr) newAgent(conn net.Conn) {
 	a.SetStcPacketChan(this.stcPkt)
 	id := this.agentId.Add(1)
 	a.SetId(id)
+	ses.id = uint32(id)
 	a.SetMgr(this)
 
 	this.agentMap.Store(id, a)

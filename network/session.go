@@ -7,6 +7,7 @@ package network
 // session
 
 type Session struct {
+	id      uint32   // id 编号
 	kind    int8     // 种类 0=前端 1=后端
 	client  uint32   // 客户端id
 	sender  uint16   // 发送者
@@ -35,6 +36,11 @@ func (this *Session) Send(pkt *Packet) {
 	if this.conn != nil {
 		this.conn.Send(pkt)
 	}
+}
+
+// 获取 id
+func (this *Session) ID() uint32 {
+	return this.id
 }
 
 // 发送给客户端

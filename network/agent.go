@@ -152,6 +152,11 @@ func (this *Agent) GetId() int32 {
 	return this.id
 }
 
+// 获取 session
+func (this *Agent) Session() *Session {
+	return this.session
+}
+
 // 设置事件通道
 func (this *Agent) SetEventChan(ch chan *AgentEvent) {
 	if ch != nil {
