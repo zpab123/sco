@@ -15,7 +15,6 @@ import (
 	"github.com/zpab123/sco/log"
 	"github.com/zpab123/sco/network"
 	"github.com/zpab123/sco/state"
-	"github.com/zpab123/sco/svc"
 )
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -31,7 +30,6 @@ type Application struct {
 	serverPacket chan *network.Packet     // 服务器数据包
 	stcPkt       chan *network.Packet     // server -> client
 	postman      *network.Postman         // 消息转发
-	svcs         []svc.IService           // 服务列表
 	stopGroup    sync.WaitGroup           // 停止等待组
 	signalChan   chan os.Signal           // 操作系统信号
 	state        state.State              // 状态
@@ -45,7 +43,6 @@ func NewApplication() *Application {
 
 	// 创建对象
 	acc := make([]network.IAcceptor, 0)
-	ss := make([]svc.IService, 0)
 	sch := make(chan os.Signal, 1)
 	cx, cc := context.WithCancel(context.Background())
 
@@ -54,7 +51,6 @@ func NewApplication() *Application {
 		Options:    NewOptions(),
 		agentMgr:   network.NewAgentMgr(10000),
 		acceptors:  acc,
-		svcs:       ss,
 		signalChan: sch,
 		ctx:        cx,
 		cancel:     cc,
@@ -199,14 +195,6 @@ func (this *Application) SetDelegate(d IDelegate) {
 	}
 }
 
-// 注册服务
-func (this *Application) RegService(s svc.IService) {
-	if s != nil {
-		s.Init()
-		this.svcs = append(this.svcs, s)
-	}
-}
-
 // 向某个服务器发送数据
 func (this *Application) ToService(sid, mid uint16, data []byte) {
 	if this.postman == nil {
@@ -226,6 +214,11 @@ func (this *Application) Post(pkt *network.Packet) {
 	if this.postman != nil {
 		this.postman.Post(pkt)
 	}
+}
+
+// 发送给客户端
+func (this *Application) ToClent() {
+
 }
 
 // -----------------------------------------------------------------------------

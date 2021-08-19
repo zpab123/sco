@@ -402,6 +402,8 @@ func (this *TcpConn) checkRecvTime(t time.Time) {
 // 收到客户端消息
 func (this *TcpConn) onClientPkt(pkt *Packet) {
 	if this.clientPkt != nil {
+		ses := this.newClientSession(pkt.client, pkt.sender)
+		pkt.session = ses
 		this.clientPkt <- pkt
 	}
 }
@@ -418,4 +420,15 @@ func (this *TcpConn) onStcPkt(pkt *Packet) {
 	if this.stcPkt != nil {
 		this.stcPkt <- pkt
 	}
+}
+
+// server -> client
+func (this *TcpConn) newClientSession(client uint32, sender uint16) *Session {
+	ses := NewSession()
+	ses.client = client
+	ses.sender = sender
+	ses.conn = this
+	ses.postMan = this.postMan
+
+	return ses
 }
