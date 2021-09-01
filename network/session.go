@@ -13,6 +13,9 @@ type Session struct {
 	sender  uint16   // 发送者
 	conn    IConn    // 连接
 	postMan *Postman // 转发对象
+	tag1    uint8    // 自定义标签
+	tag2    uint32   // 自定义标签
+	tag3    int      // 自定义标签
 }
 
 func NewSession() *Session {
@@ -41,6 +44,47 @@ func (this *Session) Send(pkt *Packet) {
 // 获取 id
 func (this *Session) ID() uint32 {
 	return this.id
+}
+
+// 获取 client
+func (this *Session) Cilent() uint32 {
+	return this.Cilent()
+}
+
+// 设置标签
+// 这里多线程是不安全的
+func (this *Session) SetTag1(v uint8) {
+	this.tag1 = v
+}
+
+// 设置标签
+// 这里多线程是不安全的
+func (this *Session) SetTag2(v uint32) {
+	this.tag2 = v
+}
+
+// 设置标签
+// 这里多线程是不安全的
+func (this *Session) SetTag3(v int) {
+	this.tag3 = v
+}
+
+// 设置标签
+// 这里多线程是不安全的
+func (this *Session) Tag1() uint8 {
+	return this.tag1
+}
+
+// 设置标签
+// 这里多线程是不安全的
+func (this *Session) Tag2() uint32 {
+	return this.tag2
+}
+
+// 设置标签
+// 这里多线程是不安全的
+func (this *Session) Tag3() int {
+	return this.tag3
 }
 
 // 发送给客户端
